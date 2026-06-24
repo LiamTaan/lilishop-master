@@ -1,0 +1,85 @@
+@host = http://127.0.0.1:8888
+@buyerToken = Bearer REPLACE_BUYER_TOKEN
+@managerToken = Bearer REPLACE_MANAGER_TOKEN
+@storeToken = Bearer REPLACE_STORE_TOKEN
+@memberId = member-id-001
+@applyId = withdraw-id-001
+@billId = bill-id-001
+
+### 买家端钱包余额
+GET {{host}}/buyer/wallet/wallet
+Authorization: {{buyerToken}}
+
+### 买家端提现设置
+GET {{host}}/buyer/wallet/wallet/withdrawalSettingVO
+Authorization: {{buyerToken}}
+
+### 买家端提现申请
+POST {{host}}/buyer/wallet/wallet/withdrawal
+Authorization: {{buyerToken}}
+Content-Type: application/x-www-form-urlencoded
+
+price=100&realName=ZhangSan&connectNumber=wechat-openid-001
+
+### 买家端提现记录
+GET {{host}}/buyer/member/withdrawApply?pageNumber=1&pageSize=10
+Authorization: {{buyerToken}}
+
+### 买家端钱包流水
+GET {{host}}/buyer/wallet/log?pageNumber=1&pageSize=10
+Authorization: {{buyerToken}}
+
+### 平台端查询钱包
+GET {{host}}/manager/wallet/wallet?memberId={{memberId}}
+Authorization: {{managerToken}}
+
+### 平台端手工加款
+PUT {{host}}/manager/wallet/wallet/increase?memberId={{memberId}}&rechargeMoney=50
+Authorization: {{managerToken}}
+
+### 平台端提现申请分页
+GET {{host}}/manager/wallet/withdrawApply?pageNumber=1&pageSize=10&applyStatus=APPLY
+Authorization: {{managerToken}}
+
+### 平台端审核提现申请
+POST {{host}}/manager/wallet/withdrawApply
+Authorization: {{managerToken}}
+Content-Type: application/x-www-form-urlencoded
+
+applyId={{applyId}}&result=true&remark=%E5%AE%A1%E6%A0%B8%E9%80%9A%E8%BF%87
+
+### 平台端充值记录
+GET {{host}}/manager/wallet/recharge?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 平台端钱包流水
+GET {{host}}/manager/wallet/log?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 店铺端结算单分页
+GET {{host}}/store/order/bill/getByPage?pageNumber=1&pageSize=10
+Authorization: {{storeToken}}
+
+### 店铺端结算单详情
+GET {{host}}/store/order/bill/get/{{billId}}
+Authorization: {{storeToken}}
+
+### 店铺端结算单流水
+GET {{host}}/store/order/bill/{{billId}}/getStoreFlow?pageNumber=1&pageSize=10&flowType=PAY
+Authorization: {{storeToken}}
+
+### 店铺端分销流水
+GET {{host}}/store/order/bill/{{billId}}/getDistributionFlow?pageNumber=1&pageSize=10
+Authorization: {{storeToken}}
+
+### 店铺端核对结算单
+PUT {{host}}/store/order/bill/check/{{billId}}
+Authorization: {{storeToken}}
+
+### 代理商角色检查
+GET {{host}}/buyer/agent/role/check
+Authorization: {{buyerToken}}
+
+### 代理商已绑定店铺
+GET {{host}}/buyer/agent/store
+Authorization: {{buyerToken}}

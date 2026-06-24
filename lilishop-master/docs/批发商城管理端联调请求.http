@@ -1,0 +1,104 @@
+@host = http://127.0.0.1:8888
+@managerToken = Bearer REPLACE_MANAGER_TOKEN
+@agentMemberId = member-id-001
+@storeId = store-id-001
+@orderSn = order-sn-001
+@afterSaleSn = after-sale-sn-001
+@verificationCode = verification-code-001
+
+### 平台工作台
+GET {{host}}/manager/dashboard/wholesale
+Authorization: {{managerToken}}
+
+### 店铺治理汇总
+GET {{host}}/manager/store/store/summary
+Authorization: {{managerToken}}
+
+### 店铺分页
+GET {{host}}/manager/store/store?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 店铺审核历史
+GET {{host}}/manager/store/store/audit/log/{{storeId}}
+Authorization: {{managerToken}}
+
+### 订单治理汇总
+GET {{host}}/manager/order/order/summary
+Authorization: {{managerToken}}
+
+### 订单分页
+GET {{host}}/manager/order/order?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 订单详情
+GET {{host}}/manager/order/order/{{orderSn}}
+Authorization: {{managerToken}}
+
+### 售后治理汇总
+GET {{host}}/manager/order/afterSale/summary
+Authorization: {{managerToken}}
+
+### 售后分页
+GET {{host}}/manager/order/afterSale/page?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 异常核销治理汇总
+GET {{host}}/manager/other/verificationRecord/exception/summary
+Authorization: {{managerToken}}
+
+### 异常核销分页
+GET {{host}}/manager/other/verificationRecord/exception?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 核销治理汇总
+GET {{host}}/manager/other/verificationRecord/summary
+Authorization: {{managerToken}}
+
+### 核销分页
+GET {{host}}/manager/other/verificationRecord?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 平台分账治理汇总
+GET {{host}}/manager/profitsharing/summary
+Authorization: {{managerToken}}
+
+### 分账余额概览
+GET {{host}}/manager/profitsharing/balance
+Authorization: {{managerToken}}
+
+### 分账记录分页
+GET {{host}}/manager/profitsharing/record?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 分账记录导出查询
+GET {{host}}/manager/profitsharing/record/list?pageNumber=1&pageSize=100
+Authorization: {{managerToken}}
+
+### 代理商治理总览
+GET {{host}}/manager/agent/reconciliation/overview
+Authorization: {{managerToken}}
+
+### 代理商采购对账分页
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/procurement?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 代理商采购对账汇总
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/procurement/summary
+Authorization: {{managerToken}}
+
+### 代理商采购对账导出查询
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/procurement/list?pageNumber=1&pageSize=100
+Authorization: {{managerToken}}
+
+### 代理商资金对账分页
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/fund?pageNumber=1&pageSize=10
+Authorization: {{managerToken}}
+
+### 代理商资金对账汇总
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/fund/summary
+Authorization: {{managerToken}}
+
+### 代理商资金对账导出查询
+GET {{host}}/manager/agent/reconciliation/{{agentMemberId}}/fund/list?pageNumber=1&pageSize=100
+Authorization: {{managerToken}}
+

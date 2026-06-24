@@ -1,0 +1,237 @@
+[2m23:38:15[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/passport/user/login?username=admin&password=admin123[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:32[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/goods/goods/wholesale/list?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:34[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/goods/category/allChildren[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:36[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/goods/goods/wholesale/list?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:36[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:39[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:39[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/goods/goods/wholesale/list?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:41[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/goods/goods/wholesale/list?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:41[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:43[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/order/order?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:43[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:44[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/setting/setting/get/VERIFICATION_RULE_SETTING[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:46[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/other/verificationRecord?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:46[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:39:48[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/setting/setting/get/VERIFICATION_RULE_SETTING[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:58[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/other/verificationRecord?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:39:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:00[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/promotion/pintuan?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:00[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:01[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/promotion/pintuan?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:25[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/profitsharing/rule?pageNumber=1&pageSize=10[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:26[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/profitsharing/record[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:26[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:28[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:28[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:28[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:35[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/other/verificationSource[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:37[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:37[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:41[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:41[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:41[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:40:41[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:40:41[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:06[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:06[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:06[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:06[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:06[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:09[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:09[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:09[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:09[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:09[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:52[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:52[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:52[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m23:58:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m23:58:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m00:02:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:54[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m00:02:54[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m00:02:58[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:58[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/dashboard/wholesale[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:58[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /manager/statistics/index/notice[39m
+Error: connect ECONNREFUSED 127.0.0.1:8887
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m00:02:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+
+[2m00:02:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mAxiosError[22m: Request failed with status code 502
+[39m > settle node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/settle.js:20:6
+ > XMLHttpRequest.onloadend node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/adapters/xhr.js:62:8
+ > Axios$1.request node_modules/.pnpm/axios@1.14.0/node_modules/axios/lib/core/Axios.js:46:40
+

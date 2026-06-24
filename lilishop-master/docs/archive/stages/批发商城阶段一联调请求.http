@@ -1,0 +1,100 @@
+@host = http://127.0.0.1:8888
+@managerToken = Bearer REPLACE_MANAGER_TOKEN
+@buyerToken = Bearer REPLACE_BUYER_TOKEN
+@agentMemberId = agent-member-001
+@storeId = store-001
+@bindId = bind-id-001
+@orderSn = order-sn-001
+@orderItemSn = order-item-sn-001
+@afterSaleSn = after-sale-sn-001
+@complainId = complain-id-001
+@receiptId = receipt-id-001
+@evaluationId = evaluation-id-001
+
+### 创建代理商身份
+POST {{host}}/manager/agent/role
+Authorization: {{managerToken}}
+Content-Type: application/json
+
+{
+  "memberId": "{{agentMemberId}}",
+  "regionId": "110000",
+  "remark": "stage1 agent"
+}
+
+### 查询代理商身份列表
+GET {{host}}/manager/agent/role
+Authorization: {{managerToken}}
+
+### 创建代理商店铺绑定
+POST {{host}}/manager/agent/store
+Authorization: {{managerToken}}
+Content-Type: application/json
+
+{
+  "agentMemberId": "{{agentMemberId}}",
+  "storeId": "{{storeId}}",
+  "regionId": "110000",
+  "auditRemark": "submit",
+  "remark": "stage1 bind"
+}
+
+### 审核代理商店铺绑定通过
+PUT {{host}}/manager/agent/store/{{bindId}}/audit
+Authorization: {{managerToken}}
+Content-Type: application/json
+
+{
+  "auditStatus": "APPROVED",
+  "auditRemark": "approved"
+}
+
+### 店铺审核通过
+PUT {{host}}/manager/store/store/audit/{{storeId}}
+Authorization: {{managerToken}}
+Content-Type: application/json
+
+{
+  "auditStatus": "APPROVED",
+  "auditRemark": "approved by manager"
+}
+
+### 查询店铺审核历史
+GET {{host}}/manager/store/store/audit/log/{{storeId}}
+Authorization: {{managerToken}}
+
+### 查询当前是否代理商
+GET {{host}}/buyer/agent/current/isAgent
+Authorization: {{buyerToken}}
+
+### 查询当前代理商已绑定店铺
+GET {{host}}/buyer/agent/current/stores
+Authorization: {{buyerToken}}
+
+### 查询订单列表
+GET {{host}}/buyer/order/order?pageNumber=1&pageSize=10
+Authorization: {{buyerToken}}
+
+### 查询订单详情
+GET {{host}}/buyer/order/order/{{orderSn}}
+Authorization: {{buyerToken}}
+
+### 查询售后列表
+GET {{host}}/buyer/order/afterSale/page?pageNumber=1&pageSize=10
+Authorization: {{buyerToken}}
+
+### 查询售后详情
+GET {{host}}/buyer/order/afterSale/get/{{afterSaleSn}}
+Authorization: {{buyerToken}}
+
+### 查询投诉详情
+GET {{host}}/buyer/order/complain/{{complainId}}
+Authorization: {{buyerToken}}
+
+### 查询发票详情
+GET {{host}}/buyer/trade/receipt/{{receiptId}}
+Authorization: {{buyerToken}}
+
+### 查询评价详情
+GET {{host}}/buyer/member/evaluation/get/{{evaluationId}}
+Authorization: {{buyerToken}}

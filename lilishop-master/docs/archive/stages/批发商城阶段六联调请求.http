@@ -1,0 +1,39 @@
+@host = http://127.0.0.1:8888
+@managerToken = Bearer REPLACE_MANAGER_TOKEN
+@storeToken = Bearer REPLACE_STORE_TOKEN
+
+### 平台工作台聚合
+GET {{host}}/manager/dashboard/wholesale
+Authorization: {{managerToken}}
+
+### 平台首页统计
+GET {{host}}/manager/statistics/index
+Authorization: {{managerToken}}
+
+### 平台热卖商品排行
+GET {{host}}/manager/statistics/index/goodsStatistics
+Authorization: {{managerToken}}
+
+### 平台热卖店铺排行
+GET {{host}}/manager/statistics/index/storeStatistics
+Authorization: {{managerToken}}
+
+### 平台分账余额概览
+GET {{host}}/manager/profitsharing/balance
+Authorization: {{managerToken}}
+
+### 店铺经营概览聚合
+GET {{host}}/store/dashboard/overview
+Authorization: {{storeToken}}
+
+### 店铺首页统计
+GET {{host}}/store/statistics/index
+Authorization: {{storeToken}}
+
+### 店铺订单概览
+GET {{host}}/store/statistics/order/overview
+Authorization: {{storeToken}}
+
+### 店铺热卖商品排行
+GET {{host}}/store/statistics/goods
+Authorization: {{storeToken}}

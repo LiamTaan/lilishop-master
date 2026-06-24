@@ -1,0 +1,23 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:TanLiMing123!}
+lili:
+  data:
+    elasticsearch:
+      enabled: true
+      cluster-nodes: ${ES_NODES:127.0.0.1:9200}
+      schema: http
+    logstash:
+      server: ${LOGSTASH_SERVER:127.0.0.1:4560}
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:19876}
+  producer:
+    group: lili_group
+    send-message-timeout: 30000

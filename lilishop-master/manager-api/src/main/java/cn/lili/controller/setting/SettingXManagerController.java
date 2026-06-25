@@ -3,6 +3,7 @@ package cn.lili.controller.setting;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.system.entity.dto.payment.dto.PaymentSupportForm;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Chopper
  * @since 2020/11/26 15:53
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,系统设置扩展接口")
 @RequestMapping("/manager/setting/settingx")

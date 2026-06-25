@@ -148,8 +148,11 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
 
     private Token createTokenByAdminUser(AdminUser adminUser, String password) {
 
-        if (adminUser == null || !adminUser.getStatus()) {
-            throw new ServiceException(ResultCode.USER_PASSWORD_ERROR);
+        if (adminUser == null) {
+            throw new ServiceException(ResultCode.USER_NOT_EXIST);
+        }
+        if (!adminUser.getStatus()) {
+            throw new ServiceException(ResultCode.USER_STATUS_ERROR);
         }
         if (password != null && !new BCryptPasswordEncoder().matches(password, adminUser.getPassword())) {
             throw new ServiceException(ResultCode.USER_PASSWORD_ERROR);

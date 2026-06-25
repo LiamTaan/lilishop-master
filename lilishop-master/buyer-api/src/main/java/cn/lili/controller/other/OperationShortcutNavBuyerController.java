@@ -15,20 +15,20 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 买家端,首页金刚区快捷入口接口
+ * 买家端,首页分类快捷入口接口
  *
  * @author dawn
  * @since 2026/6/17
  */
 @RestController
-@Tag(name = "买家端,首页金刚区快捷入口接口")
+@Tag(name = "买家端,首页分类快捷入口接口")
 @RequestMapping("/buyer/other/shortcutNav")
 public class OperationShortcutNavBuyerController {
 
     @Autowired
     private OperationShortcutNavService operationShortcutNavService;
 
-    @Operation(summary = "获取首页金刚区快捷入口")
+    @Operation(summary = "获取首页分类快捷入口")
     @GetMapping
     public ResultMessage<List<OperationShortcutNav>> list(@RequestParam(required = false) String clientType) {
         return ResultUtil.data(operationShortcutNavService.listBuyerNav(clientType));

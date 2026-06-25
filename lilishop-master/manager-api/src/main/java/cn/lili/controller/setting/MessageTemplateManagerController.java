@@ -6,6 +6,7 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.message.entity.dto.MessageTemplateAggregateDTO;
 import cn.lili.modules.message.service.NoticeMessageService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 客户消息模板聚合分页（站内信 + 微信分表，scene_code 关联）。
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,消息模板聚合")
 @RequestMapping("/manager/setting/messageTemplate")

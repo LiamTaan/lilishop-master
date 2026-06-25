@@ -151,6 +151,9 @@ public class VerificationServiceImpl implements VerificationService {
      */
     @Override
     public boolean preCheck(Integer xPos, String uuid, VerificationEnums verificationEnums) {
+        if (!Boolean.TRUE.equals(verificationCodeProperties.getEnabled())) {
+            return true;
+        }
         Integer randomX = (Integer) cache.get(cacheKey(verificationEnums, uuid));
         if (randomX == null) {
             throw new ServiceException(ResultCode.VERIFICATION_CODE_INVALID);
@@ -174,6 +177,9 @@ public class VerificationServiceImpl implements VerificationService {
      */
     @Override
     public boolean check(String uuid, VerificationEnums verificationEnums) {
+        if (!Boolean.TRUE.equals(verificationCodeProperties.getEnabled())) {
+            return true;
+        }
         //如果有校验标记，则返回校验结果
         if (Boolean.TRUE.equals(cache.remove(cacheResult(verificationEnums, uuid)))) {
             return true;

@@ -59,7 +59,6 @@ INSERT INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010094', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/parameter-manage', '', '1', 'ParameterManage', '3062200000000000004', '/goods-governance/parameter-manage', 3.00, '参数管理', NULL, NULL),
   ('3062200000000010012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/category-manage', '', '1', 'CategoryManage', '3062200000000000004', '/goods-governance/category-manage', 4.00, '分类管理', NULL, NULL),
   ('3062200000000010095', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/goods-group-manage', '', '1', 'GoodsGroupManage', '3062200000000000004', '/goods-governance/goods-group-manage', 5.00, '商品分组', NULL, NULL),
-  ('3062200000000010013', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/home-category', '', '1', 'HomeCategoryManage', '3062200000000000004', '/goods-governance/home-category', 6.00, '首页分类配置', NULL, NULL),
   ('3062200000000010014', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/points-goods', '', '1', 'PointsGoodsManage', '3062200000000000004', '/goods-governance/points-goods', 7.00, '积分商品治理', NULL, NULL),
   ('3062200000000010015', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/card-coupon-goods', '', '1', 'CardCouponGoodsManage', '3062200000000000004', '/goods-governance/card-coupon-goods', 8.00, '卡券商品治理', NULL, NULL),
   ('3062200000000000005', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance', 'ep:document', '0', 'OrderManage', '0', '/order-governance', 50.00, '订单管理', NULL, NULL),
@@ -131,16 +130,14 @@ INSERT INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010065', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/message-channel', '', '1', 'MessageChannel', '3062200000000000010', '/message-center/message-channel', 7.00, '消息发送管理', NULL, NULL),
   ('3062200000000010066', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-message', '', '1', 'MemberMessage', '3062200000000000010', '/message-center/member-message', 8.00, '客户消息', NULL, NULL),
   ('3062200000000010067', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/store-message', '', '1', 'StoreMessage', '3062200000000000010', '/message-center/store-message', 9.00, '店铺消息', NULL, NULL),
-  ('3062200000000000011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center', 'ep:document', '0', 'ContentArticle', '0', '/content-center', 110.00, '内容管理', NULL, NULL),
-  ('3062200000000010068', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article', '', '1', 'ContentArticle', '3062200000000000011', '/content-center/article', 1.00, '公告管理', NULL, NULL),
-  ('3062200000000010070', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/page-data', '', '1', 'ContentPageData', '3062200000000000011', '/content-center/page-data', 2.00, '页面装修', NULL, NULL),
-  ('3062200000000010071', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/shortcut-nav', '', '1', 'ContentShortcutNav', '3062200000000000011', '/content-center/shortcut-nav', 3.00, '快捷导航', NULL, NULL),
-  ('3062200000000010072', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article-category', '', '1', 'ContentArticleCategory', '3062200000000000011', '/content-center/article-category', 4.00, '文章分类', NULL, NULL),
-  ('3062200000000010073', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/sensitive-words', '', '1', 'ContentSensitiveWords', '3062200000000000011', '/content-center/sensitive-words', 5.00, '敏感词管理', NULL, NULL),
-  ('3062200000000010074', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/custom-words', '', '1', 'ContentCustomWords', '3062200000000000011', '/content-center/custom-words', 6.00, '自定义词库', NULL, NULL),
-  ('3062200000000010075', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/hot-words-manage', '', '1', 'ContentHotWordsManage', '3062200000000000011', '/content-center/hot-words-manage', 7.00, '热词治理', NULL, NULL),
-  ('3062200000000010076', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/special', '', '1', 'ContentSpecial', '3062200000000000011', '/content-center/special', 8.00, '专题管理', NULL, NULL),
-  ('3062200000000010077', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/app-version', '', '1', 'ContentAppVersion', '3062200000000000011', '/content-center/app-version', 9.00, 'APP版本', NULL, NULL),
+  ('3062200000000000011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center', 'ep:document', '0', 'ContentArticle', '0', '/content-center', 110.00, '内容与运营', NULL, NULL),
+  ('3062200000000010069', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/home-config', '', '1', 'ContentHomeConfig', '3062200000000000011', '/content-center/home-config', 1.00, '首页配置', NULL, NULL),
+  ('3062200000000010068', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article', '', '1', 'ContentArticle', '3062200000000000011', '/content-center/article', 2.00, '帮助与公告', NULL, NULL),
+  ('3062200000000010072', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article-category', '', '1', 'ContentArticleCategory', '3062200000000000011', '/content-center/article-category', 3.00, '文章分类', NULL, NULL),
+  ('3062200000000010073', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/sensitive-words', '', '1', 'ContentSensitiveWords', '3062200000000000011', '/content-center/sensitive-words', 4.00, '敏感词管理', NULL, NULL),
+  ('3062200000000010074', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/custom-words', '', '1', 'ContentCustomWords', '3062200000000000011', '/content-center/custom-words', 5.00, '自定义词库', NULL, NULL),
+  ('3062200000000010075', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/hot-words-manage', '', '1', 'ContentHotWordsManage', '3062200000000000011', '/content-center/hot-words-manage', 6.00, '热词治理', NULL, NULL),
+  ('3062200000000010077', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/app-version', '', '1', 'ContentAppVersion', '3062200000000000011', '/content-center/app-version', 8.00, 'APP版本', NULL, NULL),
   ('3062200000000000012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center', 'ep:setting', '0', 'SupportVerificationSource', '0', '/support-center', 120.00, '系统支撑', NULL, NULL),
   ('3062200000000010078', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/verification-source', '', '1', 'SupportVerificationSource', '3062200000000000012', '/support-center/verification-source', 1.00, '验证码资源', NULL, NULL),
   ('3062200000000010079', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/region-manage', '', '1', 'SupportRegionManage', '3062200000000000012', '/support-center/region-manage', 2.00, '区域管理', NULL, NULL),
@@ -191,11 +188,14 @@ SET
   m.`front_component` = seed.`front_component`;
 
 DELETE FROM `li_role_menu`
-WHERE `menu_id` = '3062200000000010069';
+WHERE `menu_id` IN ('3062200000000010071');
 
 DELETE FROM `li_menu`
-WHERE `id` = 3062200000000010069
+WHERE `id` = 3062200000000010071
    OR (`front_route` = '/content-center/message-monitor' AND `id` NOT IN (
+     SELECT `id` FROM `tmp_wholesale_manager_menu_seed`
+   ))
+   OR (`front_route` = '/content-center/shortcut-nav' AND `id` NOT IN (
      SELECT `id` FROM `tmp_wholesale_manager_menu_seed`
    ));
 

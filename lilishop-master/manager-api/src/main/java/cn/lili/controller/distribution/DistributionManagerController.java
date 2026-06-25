@@ -11,6 +11,7 @@ import cn.lili.modules.distribution.entity.dto.DistributionSearchParams;
 import cn.lili.modules.distribution.service.DistributionService;
 import cn.lili.modules.goods.entity.vos.BrandVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,7 @@ import jakarta.validation.constraints.NotNull;
  * @author pikachu
  * @since 2020-03-14 23:04:56
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,分销员管理接口")
 @RequestMapping("/manager/distribution/distribution")

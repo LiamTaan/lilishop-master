@@ -1,6 +1,7 @@
 package cn.lili.modules.promotion.serviceimpl;
 
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.collection.CollUtil;
 import cn.lili.cache.Cache;
 import cn.lili.common.enums.PromotionTypeEnum;
 import cn.lili.common.vo.PageVO;
@@ -295,6 +296,9 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
     @Override
     @SystemLogPoint(description = "删除促销商品", customerLog = "'删除的skuId:['+#skuIds+']，促销活动ID:['+#promotionId+']'")
     public void deletePromotionGoods(String promotionId, List<String> skuIds) {
+        if (CollUtil.isEmpty(skuIds)) {
+            return;
+        }
         LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>()
                 .eq(PromotionGoods::getPromotionId, promotionId).in(PromotionGoods::getSkuId, skuIds);
         this.remove(queryWrapper);
@@ -307,12 +311,18 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
      */
     @Override
     public void deletePromotionGoods(List<String> promotionIds) {
+        if (CollUtil.isEmpty(promotionIds)) {
+            return;
+        }
         LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>().in(PromotionGoods::getPromotionId, promotionIds);
         this.remove(queryWrapper);
     }
 
     @Override
     public void deletePromotionGoodsByGoods(List<String> goodsIds) {
+        if (CollUtil.isEmpty(goodsIds)) {
+            return;
+        }
         LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>().in(PromotionGoods::getGoodsId, goodsIds);
         this.remove(queryWrapper);
     }

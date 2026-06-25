@@ -5,6 +5,7 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.wxchannels.entity.vo.WxChannelOverviewDailyVO;
 import cn.lili.modules.wxchannels.entity.vo.WxChannelOverviewSummaryVO;
 import cn.lili.modules.wxchannels.service.WxChannelOverviewService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Hidden
 @RestController
 @Tag(name = "管理端,微信视频号概况接口")
 @RequestMapping("/manager/wxchannels/overview")

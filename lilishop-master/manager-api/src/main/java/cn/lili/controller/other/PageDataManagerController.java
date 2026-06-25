@@ -9,6 +9,7 @@ import cn.lili.modules.page.entity.dto.PageDataDTO;
 import cn.lili.modules.page.entity.vos.PageDataListVO;
 import cn.lili.modules.page.service.PageDataService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,8 +25,9 @@ import jakarta.validation.constraints.NotNull;
  * @author paulGao
  * @since 2020-05-06 15:18:56
  */
+@Hidden
 @RestController
-@Tag(name = "管理端,页面设置管理接口")
+@Tag(name = "管理端,页面设置管理接口（内部配置，不对普通运营开放）")
 @RequestMapping("/manager/other/pageData")
 public class PageDataManagerController {
 

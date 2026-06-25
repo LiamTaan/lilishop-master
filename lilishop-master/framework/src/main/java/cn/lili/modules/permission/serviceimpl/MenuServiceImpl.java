@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 权限业务层实现
@@ -65,10 +66,10 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     public List<MenuVO> findUserTree() {
         AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
         if (Boolean.TRUE.equals(authUser.getIsSuper())) {
-            return this.tree();
+            return filterDeliveryTree(this.tree());
         }
         List<Menu> userMenus = this.findUserList(authUser.getId());
-        return this.tree(userMenus);
+        return filterDeliveryTree(this.tree(userMenus));
     }
 
     @Override
@@ -122,14 +123,14 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             queryWrapper.like("title", title);
         }
         queryWrapper.orderByDesc("sort_order");
-        return this.baseMapper.selectList(queryWrapper);
+        return filterDeliveryMenus(this.baseMapper.selectList(queryWrapper));
     }
 
 
     @Override
     public List<MenuVO> tree() {
         try {
-            List<Menu> menus = this.list();
+            List<Menu> menus = filterDeliveryMenus(this.list());
             return tree(menus);
         } catch (Exception e) {
             log.error("菜单树错误", e);
@@ -174,6 +175,91 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
                     initChild(childTree, menus);
                     tree.getChildren().add(childTree);
                 });
+    }
+
+    private List<MenuVO> filterDeliveryTree(List<MenuVO> tree) {
+        if (tree == null || tree.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return tree.stream()
+                .map(this::filterDeliveryNode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private MenuVO filterDeliveryNode(MenuVO menu) {
+        if (menu == null || isDeprecatedWholesaleMenu(menu)) {
+            return null;
+        }
+        if (menu.getChildren() != null && !menu.getChildren().isEmpty()) {
+            List<MenuVO> children = menu.getChildren().stream()
+                    .map(this::filterDeliveryNode)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            menu.setChildren(children);
+        }
+        if ((menu.getChildren() == null || menu.getChildren().isEmpty()) && isBlankMenuNode(menu)) {
+            return null;
+        }
+        return menu;
+    }
+
+    private List<Menu> filterDeliveryMenus(List<Menu> menus) {
+        if (menus == null || menus.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return menus.stream()
+                .filter(Objects::nonNull)
+                .filter(menu -> !isDeprecatedWholesaleMenu(menu))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isBlankMenuNode(Menu menu) {
+        return CharSequenceUtil.isBlank(menu.getFrontRoute())
+                && CharSequenceUtil.isBlank(menu.getPath())
+                && CharSequenceUtil.isBlank(menu.getPermission());
+    }
+
+    private boolean isDeprecatedWholesaleMenu(Menu menu) {
+        List<String> tokens = Arrays.asList(
+                normalizeMenuToken(menu.getTitle()),
+                normalizeMenuToken(menu.getName()),
+                normalizeMenuToken(menu.getPath()),
+                normalizeMenuToken(menu.getFrontRoute()),
+                normalizeMenuToken(menu.getPermission())
+        );
+
+        String[] denyTokens = {
+                "page-data", "pagedata", "page-decoration",
+                "shortcut-nav", "shortcutnav", "operation/shortcut-nav", "content-center/page-data",
+                "content-center/shortcut-nav", "home-category", "special", "content-center/special",
+                "/manager/distribution/", "distribution/",
+                "/manager/wechat/", "wechat/",
+                "/manager/wxchannels/", "wxchannels/",
+                "/manager/broadcast/", "broadcast/",
+                "/manager/other/elasticsearch", "elasticsearch",
+                "/manager/setting/messagetemplate", "messagetemplate",
+                "/manager/setting/settingx", "settingx"
+        };
+
+        for (String token : tokens) {
+            if (CharSequenceUtil.isBlank(token)) {
+                continue;
+            }
+            for (String denyToken : denyTokens) {
+                if (token.contains(denyToken)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String normalizeMenuToken(String value) {
+        return CharSequenceUtil.blankToDefault(value, "")
+                .trim()
+                .toLowerCase(Locale.ROOT)
+                .replace("\\", "/");
     }
 
 }

@@ -8,6 +8,7 @@ import cn.lili.modules.wxchannels.entity.dto.WxChannelCategorySubmitDTO;
 import cn.lili.modules.wxchannels.entity.dto.WxChannelsCategoryDTO;
 import cn.lili.modules.wxchannels.service.WxChannelCategoryService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Hidden
 @RestController
 @Tag(name = "管理端,微信视频号类目接口")
 @RequestMapping("/manager/wxchannels/category")

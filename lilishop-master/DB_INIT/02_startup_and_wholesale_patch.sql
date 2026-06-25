@@ -221,33 +221,205 @@ UPDATE `li_wechat_mp_message` SET `scene_code` = 'ORDER_COMPLETE' WHERE (`scene_
 
 -- 批发商城阶段一：代理商、店铺申请与审核扩展
 
-ALTER TABLE `li_store`
-  ADD COLUMN `apply_type` varchar(32) DEFAULT NULL COMMENT '申请主体类型：PERSONAL个人，INDIVIDUAL个体户，COMPANY_LEGAL企业法人，COMPANY_NON_LEGAL企业非法人' AFTER `store_name`,
-  ADD COLUMN `store_type` varchar(32) DEFAULT NULL COMMENT '店铺类型' AFTER `apply_type`,
-  ADD COLUMN `audit_status` varchar(32) NOT NULL DEFAULT 'DRAFT' COMMENT '审核状态：DRAFT草稿，SUBMITTED待审核，APPROVED通过，REJECTED驳回，FROZEN冻结' AFTER `store_disable`,
-  ADD COLUMN `audit_remark` varchar(255) DEFAULT NULL COMMENT '审核备注' AFTER `audit_status`;
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'apply_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `apply_type` varchar(32) DEFAULT NULL COMMENT ''申请主体类型：PERSONAL个人，INDIVIDUAL个体户，COMPANY_LEGAL企业法人，COMPANY_NON_LEGAL企业非法人'' AFTER `store_name`',
+  'SELECT ''li_store.apply_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-ALTER TABLE `li_store_detail`
-  ADD COLUMN `apply_type` varchar(32) DEFAULT NULL COMMENT '申请主体类型' AFTER `store_name`,
-  ADD COLUMN `store_type` varchar(32) DEFAULT NULL COMMENT '店铺类型' AFTER `apply_type`,
-  ADD COLUMN `business_license_url` varchar(255) DEFAULT NULL COMMENT '营业执照图片' AFTER `scope`,
-  ADD COLUMN `credit_code` varchar(64) DEFAULT NULL COMMENT '统一社会信用代码' AFTER `business_license_url`,
-  ADD COLUMN `business_license_region_id` varchar(64) DEFAULT NULL COMMENT '营业执照所在地区ID' AFTER `credit_code`,
-  ADD COLUMN `business_license_expire_type` varchar(32) DEFAULT NULL COMMENT '营业执照有效期类型' AFTER `business_license_region_id`,
-  ADD COLUMN `business_license_expire_date` varchar(32) DEFAULT NULL COMMENT '营业执照有效期截止时间' AFTER `business_license_expire_type`,
-  ADD COLUMN `facade_image_url` varchar(255) DEFAULT NULL COMMENT '门头照' AFTER `business_license_expire_date`,
-  ADD COLUMN `indoor_image_urls` text DEFAULT NULL COMMENT '店内照，英文逗号分隔' AFTER `facade_image_url`,
-  ADD COLUMN `store_category_id` varchar(64) DEFAULT NULL COMMENT '店铺分类ID' AFTER `indoor_image_urls`,
-  ADD COLUMN `business_hours_start` varchar(16) DEFAULT NULL COMMENT '营业开始时间' AFTER `store_category_id`,
-  ADD COLUMN `business_hours_end` varchar(16) DEFAULT NULL COMMENT '营业结束时间' AFTER `business_hours_start`,
-  ADD COLUMN `real_name` varchar(64) DEFAULT NULL COMMENT '个人主体姓名' AFTER `legal_photo`,
-  ADD COLUMN `id_card_no` varchar(64) DEFAULT NULL COMMENT '个人身份证号' AFTER `real_name`,
-  ADD COLUMN `id_card_front_url` varchar(255) DEFAULT NULL COMMENT '身份证正面' AFTER `id_card_no`,
-  ADD COLUMN `id_card_back_url` varchar(255) DEFAULT NULL COMMENT '身份证反面' AFTER `id_card_front_url`,
-  ADD COLUMN `legal_mobile` varchar(32) DEFAULT NULL COMMENT '法人手机号' AFTER `id_card_back_url`,
-  ADD COLUMN `authorization_url` varchar(255) DEFAULT NULL COMMENT '企业非法人授权书' AFTER `legal_mobile`;
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'store_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `store_type` varchar(32) DEFAULT NULL COMMENT ''店铺类型'' AFTER `apply_type`',
+  'SELECT ''li_store.store_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CREATE TABLE `agent_role_relation` (
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'audit_status'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `audit_status` varchar(32) NOT NULL DEFAULT ''DRAFT'' COMMENT ''审核状态：DRAFT草稿，SUBMITTED待审核，APPROVED通过，REJECTED驳回，FROZEN冻结'' AFTER `store_disable`',
+  'SELECT ''li_store.audit_status exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'audit_remark'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `audit_remark` varchar(255) DEFAULT NULL COMMENT ''审核备注'' AFTER `audit_status`',
+  'SELECT ''li_store.audit_remark exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'apply_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `apply_type` varchar(32) DEFAULT NULL COMMENT ''申请主体类型'' AFTER `store_name`',
+  'SELECT ''li_store_detail.apply_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_type` varchar(32) DEFAULT NULL COMMENT ''店铺类型'' AFTER `apply_type`',
+  'SELECT ''li_store_detail.store_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_license_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_license_url` varchar(255) DEFAULT NULL COMMENT ''营业执照图片'' AFTER `scope`',
+  'SELECT ''li_store_detail.business_license_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'credit_code'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `credit_code` varchar(64) DEFAULT NULL COMMENT ''统一社会信用代码'' AFTER `business_license_url`',
+  'SELECT ''li_store_detail.credit_code exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_license_region_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_license_region_id` varchar(64) DEFAULT NULL COMMENT ''营业执照所在地区ID'' AFTER `credit_code`',
+  'SELECT ''li_store_detail.business_license_region_id exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_license_expire_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_license_expire_type` varchar(32) DEFAULT NULL COMMENT ''营业执照有效期类型'' AFTER `business_license_region_id`',
+  'SELECT ''li_store_detail.business_license_expire_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_license_expire_date'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_license_expire_date` varchar(32) DEFAULT NULL COMMENT ''营业执照有效期截止时间'' AFTER `business_license_expire_type`',
+  'SELECT ''li_store_detail.business_license_expire_date exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'facade_image_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `facade_image_url` varchar(255) DEFAULT NULL COMMENT ''门头照'' AFTER `business_license_expire_date`',
+  'SELECT ''li_store_detail.facade_image_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'indoor_image_urls'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `indoor_image_urls` text DEFAULT NULL COMMENT ''店内照，英文逗号分隔'' AFTER `facade_image_url`',
+  'SELECT ''li_store_detail.indoor_image_urls exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_category_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_category_id` varchar(64) DEFAULT NULL COMMENT ''店铺分类ID'' AFTER `indoor_image_urls`',
+  'SELECT ''li_store_detail.store_category_id exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_hours_start'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_hours_start` varchar(16) DEFAULT NULL COMMENT ''营业开始时间'' AFTER `store_category_id`',
+  'SELECT ''li_store_detail.business_hours_start exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'business_hours_end'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `business_hours_end` varchar(16) DEFAULT NULL COMMENT ''营业结束时间'' AFTER `business_hours_start`',
+  'SELECT ''li_store_detail.business_hours_end exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'real_name'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `real_name` varchar(64) DEFAULT NULL COMMENT ''个人主体姓名'' AFTER `legal_photo`',
+  'SELECT ''li_store_detail.real_name exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'id_card_no'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `id_card_no` varchar(64) DEFAULT NULL COMMENT ''个人身份证号'' AFTER `real_name`',
+  'SELECT ''li_store_detail.id_card_no exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'id_card_front_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `id_card_front_url` varchar(255) DEFAULT NULL COMMENT ''身份证正面'' AFTER `id_card_no`',
+  'SELECT ''li_store_detail.id_card_front_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'id_card_back_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `id_card_back_url` varchar(255) DEFAULT NULL COMMENT ''身份证反面'' AFTER `id_card_front_url`',
+  'SELECT ''li_store_detail.id_card_back_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'legal_mobile'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `legal_mobile` varchar(32) DEFAULT NULL COMMENT ''法人手机号'' AFTER `id_card_back_url`',
+  'SELECT ''li_store_detail.legal_mobile exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'authorization_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `authorization_url` varchar(255) DEFAULT NULL COMMENT ''企业非法人授权书'' AFTER `legal_mobile`',
+  'SELECT ''li_store_detail.authorization_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS `agent_role_relation` (
   `id` varchar(64) NOT NULL COMMENT '主键ID',
   `member_id` varchar(64) NOT NULL COMMENT '会员ID',
   `role_code` varchar(32) NOT NULL COMMENT '角色编码，固定为ROLE_AGENT',
@@ -267,7 +439,7 @@ CREATE TABLE `agent_role_relation` (
   KEY `idx_region_status` (`region_id`, `status`) COMMENT '按区域和状态查询'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理商角色关系表';
 
-CREATE TABLE `agent_store_bind` (
+CREATE TABLE IF NOT EXISTS `agent_store_bind` (
   `id` varchar(64) NOT NULL COMMENT '主键ID',
   `agent_member_id` varchar(64) NOT NULL COMMENT '代理商会员ID',
   `store_id` varchar(64) NOT NULL COMMENT '店铺ID',
@@ -289,7 +461,7 @@ CREATE TABLE `agent_store_bind` (
   KEY `idx_store_id` (`store_id`) COMMENT '按店铺查询绑定关系'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理商店铺绑定表';
 
-CREATE TABLE `li_store_audit_log` (
+CREATE TABLE IF NOT EXISTS `li_store_audit_log` (
   `id` varchar(64) NOT NULL COMMENT '主键ID',
   `store_id` varchar(64) NOT NULL COMMENT '店铺ID',
   `from_audit_status` varchar(32) DEFAULT NULL COMMENT '审核前状态',
@@ -305,75 +477,6 @@ CREATE TABLE `li_store_audit_log` (
   PRIMARY KEY (`id`),
   KEY `idx_store_create_time` (`store_id`, `create_time`) COMMENT '按店铺和时间查询审核记录'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='店铺审核历史表';
-
--- Wholesale stage1 menu
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- 批发商城阶段一：管理端菜单与权限初始化
--- 约束：
--- 1. 仅插入缺失菜单，不重复写入
--- 2. 仅为已拥有「店铺管理」菜单的角色补授新菜单
-
--- 店铺主菜单下：代理商治理
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000001,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段一-代理商治理','seller/agent/agent-manage','ios-people',2,'agent-manage','1367048684339986432','agent-manage',10.00,'代理商治理',NULL,
-  '/manager/agent/role*,/manager/agent/store*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000001
-);
-
--- 店铺主菜单下：店铺审核历史
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000002,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段一-店铺审核历史','seller/shop/store-audit-log','ios-document',2,'store-audit-log','1367048684339986432','store-audit-log',11.00,'店铺审核历史',NULL,
-  '/manager/store/store/audit/log*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000002
-);
-
--- 自动将新增菜单授予已拥有店铺列表菜单的角色
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000001',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367048832210173952'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000001'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000002',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367048832210173952'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000002'
-  );
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-SELECT id, title, path, parent_id, permission
-FROM `li_menu`
-WHERE id IN ('2061700000000000001','2061700000000000002');
-
--- Wholesale stage2
 
 CREATE TABLE IF NOT EXISTS `li_operation_shortcut_nav` (
     `id` varchar(64) NOT NULL COMMENT '主键ID',
@@ -473,253 +576,57 @@ CREATE TABLE IF NOT EXISTS `li_profit_sharing_rule` (
   KEY `idx_region_category` (`region_id`,`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台分账规则表';
 
--- Wholesale manager menu stage2 to stage6
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- 批发商城管理端菜单补充：阶段二到阶段六
--- 说明：
--- 1. 阶段一菜单已由 patch_wholesale_stage1_menu.sql 初始化
--- 2. 本脚本仅补批发商城新增治理入口，不重复覆盖框架既有菜单
--- 3. 仅插入缺失菜单，不删除、不覆盖既有菜单
--- 4. 仅为已拥有对应父菜单能力的角色补授新菜单，避免误扩权
-
--- 父菜单约定：
--- 店铺：1367048684339986432
--- 商品管理：1367044376391319552
--- 促销管理：1367049214198022144
--- 预存款：1367042490443497472
--- 统计：1367052616634204160
-
--- 阶段二：商品治理扩展
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000003,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段二-首页分类配置','operation/shortcut-nav/index','ios-apps',2,'shortcut-nav','1367044376391319552','shortcut-nav',12.00,'首页分类配置',NULL,
-  '/manager/other/shortcutNav*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000003
-);
-
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000004,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段二-卡券商品治理','promotions/card-coupon-goods/index','ios-card',2,'card-coupon-goods','1367049214198022144','card-coupon-goods',8.00,'卡券商品治理',NULL,
-  '/manager/promotion/cardCouponGoods*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000004
-);
-
--- 阶段三：订单治理扩展
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000005,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段三-核销记录','order/verification-record/index','ios-checkmark-circle',2,'verification-record','1367048684339986432','verification-record',12.00,'核销记录',NULL,
-  '/manager/other/verificationRecord*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000005
-);
-
--- 阶段五：资金治理扩展
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000006,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段五-分账规则','finance/profitsharing-rule/index','logo-yen',2,'profitsharing-rule','1367042490443497472','profitsharing-rule',10.00,'分账规则',NULL,
-  '/manager/profitsharing/rule*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000006
-);
-
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000007,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段五-分账明细','finance/profitsharing-record/index','ios-paper',2,'profitsharing-record','1367042490443497472','profitsharing-record',11.00,'分账明细',NULL,
-  '/manager/profitsharing/record*,/manager/profitsharing/balance*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000007
-);
-
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000008,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段五-采购对账','finance/procurement-reconciliation/index','ios-document',2,'procurement-reconciliation','1367042490443497472','procurement-reconciliation',12.00,'采购对账',NULL,
-  '/manager/reconciliation/purchase*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000008
-);
-
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000009,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段五-资金对账','finance/fund-reconciliation/index','ios-cash',2,'fund-reconciliation','1367042490443497472','fund-reconciliation',13.00,'资金对账',NULL,
-  '/manager/reconciliation/fund*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000009
-);
-
--- 阶段六：平台工作台扩展
-INSERT INTO `li_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
-  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,`sort_order`,`title`,`front_component`,`permission`
-)
-SELECT
-  2061700000000000010,'admin',NOW(),b'0','admin',NOW(),
-  '批发商城阶段六-平台工作台','statistics/wholesale-dashboard/index','ios-podium',2,'wholesale-dashboard','1367052616634204160','wholesale-dashboard',5.00,'平台工作台',NULL,
-  '/manager/dashboard/wholesale*,/manager/statistics/index*,/manager/statistics/order/overview*'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `li_menu` WHERE `id` = 2061700000000000010
-);
-
--- 将新增菜单授权给具备对应父级菜单的角色
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000003',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367044376391319552'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000003'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000004',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367049214198022144'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000004'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000005',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367048832210173952'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000005'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000006',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367042490443497472'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000006'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000007',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367042490443497472'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000007'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000008',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367042490443497472'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000008'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000009',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367042490443497472'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000009'
-  );
-
-INSERT INTO `li_role_menu` (
-  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,`role_id`,`menu_id`,`is_super`
-)
-SELECT
-  UUID_SHORT(),COALESCE(rm.`create_by`,'admin'),NOW(),b'0',COALESCE(rm.`update_by`,'admin'),NOW(),rm.`role_id`,'2061700000000000010',rm.`is_super`
-FROM `li_role_menu` rm
-WHERE rm.`menu_id` = '1367052616634204160'
-  AND NOT EXISTS (
-    SELECT 1 FROM `li_role_menu` x WHERE x.`role_id` = rm.`role_id` AND x.`menu_id` = '2061700000000000010'
-  );
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-SELECT id, title, path, parent_id, permission
-FROM `li_menu`
-WHERE id IN (
-  '2061700000000000003',
-  '2061700000000000004',
-  '2061700000000000005',
-  '2061700000000000006',
-  '2061700000000000007',
-  '2061700000000000008',
-  '2061700000000000009',
-  '2061700000000000010'
-);
-
 -- Recommended indexes
 
 -- 针对WHERE条件、排序和分组的组合索引
-CREATE INDEX idx_order_delete_flag_create_time_id_sn ON li_order (delete_flag, create_time DESC, id DESC, sn);
+SET @idx_exists := (
+  SELECT COUNT(1) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'li_order' AND index_name = 'idx_order_delete_flag_create_time_id_sn'
+);
+SET @sql := IF(@idx_exists = 0,
+  'CREATE INDEX idx_order_delete_flag_create_time_id_sn ON li_order (delete_flag, create_time DESC, id DESC, sn)',
+  'SELECT ''idx_order_delete_flag_create_time_id_sn exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 针对WHERE条件和连接条件的组合索引
-CREATE INDEX idx_order_status_delete_flag_sn ON li_order (order_status, delete_flag, sn);
+SET @idx_exists := (
+  SELECT COUNT(1) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'li_order' AND index_name = 'idx_order_status_delete_flag_sn'
+);
+SET @sql := IF(@idx_exists = 0,
+  'CREATE INDEX idx_order_status_delete_flag_sn ON li_order (order_status, delete_flag, sn)',
+  'SELECT ''idx_order_status_delete_flag_sn exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 针对连接条件的索引
-CREATE INDEX idx_order_item_order_sn ON li_order_item (order_sn);
+SET @idx_exists := (
+  SELECT COUNT(1) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'li_order_item' AND index_name = 'idx_order_item_order_sn'
+);
+SET @sql := IF(@idx_exists = 0,
+  'CREATE INDEX idx_order_item_order_sn ON li_order_item (order_sn)',
+  'SELECT ''idx_order_item_order_sn exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 针对过滤条件、排序字段的组合索引
-CREATE INDEX idx_li_member_disabled_create_time ON li_member (disabled, create_time DESC);
+SET @idx_exists := (
+  SELECT COUNT(1) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'li_member' AND index_name = 'idx_li_member_disabled_create_time'
+);
+SET @sql := IF(@idx_exists = 0,
+  'CREATE INDEX idx_li_member_disabled_create_time ON li_member (disabled, create_time DESC)',
+  'SELECT ''idx_li_member_disabled_create_time exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 针对过滤条件、排序字段的组合索引
-CREATE INDEX idx_li_goods_delete_flag_create_time ON li_goods (delete_flag, create_time DESC);
+SET @idx_exists := (
+  SELECT COUNT(1) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'li_goods' AND index_name = 'idx_li_goods_delete_flag_create_time'
+);
+SET @sql := IF(@idx_exists = 0,
+  'CREATE INDEX idx_li_goods_delete_flag_create_time ON li_goods (delete_flag, create_time DESC)',
+  'SELECT ''idx_li_goods_delete_flag_create_time exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS `li_stock_reason` (
   `id` BIGINT NOT NULL COMMENT 'ID',
@@ -866,3 +773,659 @@ CREATE TABLE IF NOT EXISTS `li_qa` (
   KEY `idx_li_qa_tenant_id` (`tenant_id`) USING BTREE,
   KEY `idx_li_qa_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='租户问答';
+
+-- 采购治理相关表补齐
+CREATE TABLE IF NOT EXISTS `li_procurement_order` (
+  `id` BIGINT NOT NULL COMMENT 'ID',
+  `create_by` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '创建者',
+  `create_time` DATETIME(6) DEFAULT NULL COMMENT '创建时间',
+  `delete_flag` BIT(1) DEFAULT NULL COMMENT '删除标志 true/false 删除/未删除',
+  `update_by` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '更新者',
+  `update_time` DATETIME(6) DEFAULT NULL COMMENT '更新时间',
+  `order_sn` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '采购订单编号',
+  `store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '店铺ID',
+  `store_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '店铺名称',
+  `total_amount` DECIMAL(20,2) DEFAULT NULL COMMENT '采购总金额',
+  `total_quantity` INT DEFAULT NULL COMMENT '采购总数量',
+  `maker_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '制单人ID',
+  `maker_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '制单人',
+  `audit_time` DATETIME(6) DEFAULT NULL COMMENT '审核时间',
+  `remark` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '备注',
+  `status` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '状态',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_li_procurement_order_order_sn` (`order_sn`) USING BTREE,
+  KEY `idx_li_procurement_order_store_id` (`store_id`) USING BTREE,
+  KEY `idx_li_procurement_order_create_time` (`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购单';
+
+CREATE TABLE IF NOT EXISTS `li_procurement_order_item` (
+  `id` BIGINT NOT NULL COMMENT 'ID',
+  `create_time` DATETIME(6) DEFAULT NULL COMMENT '创建时间',
+  `procurement_order_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '采购订单ID',
+  `goods_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '商品ID',
+  `sku_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'SKU ID',
+  `goods_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '商品名称',
+  `retail_price` DECIMAL(20,2) DEFAULT NULL COMMENT '零售价',
+  `quantity` INT DEFAULT NULL COMMENT '采购数量',
+  `tax_rate` INT DEFAULT NULL COMMENT '税率(百分比整数)',
+  `unit_price_with_tax` DECIMAL(20,2) DEFAULT NULL COMMENT '含税单价',
+  `unit_price_without_tax` DECIMAL(20,2) DEFAULT NULL COMMENT '不含税单价',
+  `subtotal_without_tax` DECIMAL(20,2) DEFAULT NULL COMMENT '不含税小计',
+  `subtotal_with_tax` DECIMAL(20,2) DEFAULT NULL COMMENT '含税小计',
+  `received_quantity` INT DEFAULT NULL COMMENT '已入库数量',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_li_procurement_order_item_order_id` (`procurement_order_id`) USING BTREE,
+  KEY `idx_li_procurement_order_item_sku_id` (`sku_id`) USING BTREE,
+  KEY `idx_li_procurement_order_item_create_time` (`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购单明细';
+
+CREATE TABLE IF NOT EXISTS `li_procurement_inbound` (
+  `id` BIGINT NOT NULL COMMENT 'ID',
+  `create_by` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '创建者',
+  `create_time` DATETIME(6) DEFAULT NULL COMMENT '创建时间',
+  `delete_flag` BIT(1) DEFAULT NULL COMMENT '删除标志 true/false 删除/未删除',
+  `update_by` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '更新者',
+  `update_time` DATETIME(6) DEFAULT NULL COMMENT '更新时间',
+  `inbound_sn` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '入库单号',
+  `store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '店铺ID',
+  `procurement_order_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '采购订单ID',
+  `expected_quantity` INT DEFAULT NULL COMMENT '预计入库量',
+  `confirmed_quantity` INT DEFAULT NULL COMMENT '已确认入库量',
+  `pending_quantity` INT DEFAULT NULL COMMENT '待确认入库量',
+  `total_cost` DECIMAL(20,2) DEFAULT NULL COMMENT '合计入库成本',
+  `total_retail_amount` DECIMAL(20,2) DEFAULT NULL COMMENT '合计零售金额',
+  `inbound_time` DATETIME(6) DEFAULT NULL COMMENT '入库时间',
+  `certificate_images` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '入库凭证',
+  `operator_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '制单人ID',
+  `operator_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '制单人',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_li_procurement_inbound_inbound_sn` (`inbound_sn`) USING BTREE,
+  KEY `idx_li_procurement_inbound_store_id` (`store_id`) USING BTREE,
+  KEY `idx_li_procurement_inbound_order_id` (`procurement_order_id`) USING BTREE,
+  KEY `idx_li_procurement_inbound_create_time` (`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购入库单';
+
+CREATE TABLE IF NOT EXISTS `li_procurement_inbound_item` (
+  `id` BIGINT NOT NULL COMMENT 'ID',
+  `inbound_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '入库单ID',
+  `procurement_order_item_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '采购订单子项ID',
+  `goods_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '商品ID',
+  `sku_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'SKU ID',
+  `goods_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '商品名称',
+  `expected_quantity` INT DEFAULT NULL COMMENT '预计入库量',
+  `inbound_quantity` INT DEFAULT NULL COMMENT '实际入库量',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_li_procurement_inbound_item_inbound_id` (`inbound_id`) USING BTREE,
+  KEY `idx_li_procurement_inbound_item_order_item_id` (`procurement_order_item_id`) USING BTREE,
+  KEY `idx_li_procurement_inbound_item_sku_id` (`sku_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购入库明细';
+
+-- 批发管理端菜单、权限、条码补丁在空库初始化阶段一并完成
+-- 这里直接内联 SQL，避免 Navicat/DataGrip 等客户端执行 SOURCE 时报 1064。
+
+-- BEGIN patch_wholesale_manager_menu_route_baseline.sql
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_seed`;
+
+CREATE TEMPORARY TABLE `tmp_wholesale_manager_menu_seed` (
+  `id` bigint NOT NULL,
+  `create_by` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `delete_flag` bit(1) DEFAULT NULL,
+  `update_by` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `front_route` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `icon` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `level` int DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `parent_id` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `path` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `sort_order` decimal(10,2) DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `front_component` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `permission` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000000001', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/', 'ep:data-board', '0', 'Home', '0', '/', 10.00, '工作台', NULL, NULL),
+  ('3062200000000010001', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/welcome', '', '1', 'WholesaleDashboardHome', '3062200000000000001', '/welcome', 1.00, '工作台', NULL, NULL),
+  ('3062200000000000002', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard', 'ep:data-board', '0', 'WholesaleDashboard', '0', '/dashboard', 20.00, '数据概览', NULL, NULL),
+  ('3062200000000010002', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard/wholesale', '', '1', 'WholesaleDashboard', '3062200000000000002', '/dashboard/wholesale', 1.00, '工作台', NULL, NULL),
+  ('3062200000000010003', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard/overview', '', '1', 'PlatformOverview', '3062200000000000002', '/dashboard/overview', 2.00, '数据概览', NULL, NULL),
+  ('3062200000000010004', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard/store-rank', '', '1', 'StoreRank', '3062200000000000002', '/dashboard/store-rank', 3.00, '门店排行', NULL, NULL),
+  ('3062200000000010005', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard/goods-rank', '', '1', 'GoodsRank', '3062200000000000002', '/dashboard/goods-rank', 4.00, '商品/品类排行', NULL, NULL),
+  ('3062200000000010006', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/dashboard/order-overview', '', '1', 'OrderOverview', '3062200000000000002', '/dashboard/order-overview', 5.00, '订单概览', NULL, NULL),
+  ('3062200000000000003', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/store-governance', 'ep:shop', '0', 'StoreApplyAudit', '0', '/store-governance', 30.00, '店铺治理', NULL, NULL),
+  ('3062200000000010007', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/store-governance/store-apply', '', '1', 'StoreApplyAudit', '3062200000000000003', '/store-governance/store-apply', 1.00, '入驻审核', NULL, NULL),
+  ('3062200000000010008', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/store-governance/store-manage', '', '1', 'StoreManage', '3062200000000000003', '/store-governance/store-manage', 2.00, '店铺管理', NULL, NULL),
+  ('3062200000000010009', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/store-governance/agent-manage', '', '1', 'AgentManage', '3062200000000000003', '/store-governance/agent-manage', 3.00, '代理商治理', NULL, NULL),
+  ('3062200000000010010', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/store-governance/store-audit-log', '', '1', 'StoreAuditLog', '3062200000000000003', '/store-governance/store-audit-log', 4.00, '店铺审核历史', NULL, NULL),
+  ('3062200000000000004', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance', 'ep:goods', '0', 'GoodsManage', '0', '/goods-governance', 40.00, '商品管理', NULL, NULL),
+  ('3062200000000010011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/goods-manage', '', '1', 'GoodsManage', '3062200000000000004', '/goods-governance/goods-manage', 1.00, '商品列表', NULL, NULL),
+  ('3062200000000010093', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/brand-manage', '', '1', 'BrandManage', '3062200000000000004', '/goods-governance/brand-manage', 2.00, '品牌管理', NULL, NULL),
+  ('3062200000000010094', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/parameter-manage', '', '1', 'ParameterManage', '3062200000000000004', '/goods-governance/parameter-manage', 3.00, '参数管理', NULL, NULL),
+  ('3062200000000010012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/category-manage', '', '1', 'CategoryManage', '3062200000000000004', '/goods-governance/category-manage', 4.00, '分类管理', NULL, NULL),
+  ('3062200000000010095', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/goods-group-manage', '', '1', 'GoodsGroupManage', '3062200000000000004', '/goods-governance/goods-group-manage', 5.00, '商品分组', NULL, NULL),
+  ('3062200000000010014', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/points-goods', '', '1', 'PointsGoodsManage', '3062200000000000004', '/goods-governance/points-goods', 7.00, '积分商品治理', NULL, NULL),
+  ('3062200000000010015', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/card-coupon-goods', '', '1', 'CardCouponGoodsManage', '3062200000000000004', '/goods-governance/card-coupon-goods', 8.00, '卡券商品治理', NULL, NULL),
+  ('3062200000000000005', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance', 'ep:document', '0', 'OrderManage', '0', '/order-governance', 50.00, '订单管理', NULL, NULL),
+  ('3062200000000010016', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/order-manage', '', '1', 'OrderManage', '3062200000000000005', '/order-governance/order-manage', 1.00, '订单列表', NULL, NULL),
+  ('3062200000000010096', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/order-complaint', '', '1', 'OrderComplaintManage', '3062200000000000005', '/order-governance/order-complaint', 2.00, '订单投诉', NULL, NULL),
+  ('3062200000000010017', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/verification-rule', '', '1', 'VerificationRuleManage', '3062200000000000005', '/order-governance/verification-rule', 3.00, '核销规则', NULL, NULL),
+  ('3062200000000010107', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/refund-log', '', '1', 'RefundLogManage', '3062200000000000005', '/order-governance/refund-log', 4.00, '退款日志', NULL, NULL),
+  ('3062200000000010108', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/payment-log', '', '1', 'PaymentLogManage', '3062200000000000005', '/order-governance/payment-log', 5.00, '支付日志', NULL, NULL),
+  ('3062200000000010109', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/receipt-manage', '', '1', 'ReceiptManage', '3062200000000000005', '/order-governance/receipt-manage', 6.00, '发票管理', NULL, NULL),
+  ('3062200000000010110', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/order-log', '', '1', 'OrderLogManage', '3062200000000000005', '/order-governance/order-log', 7.00, '订单日志', NULL, NULL),
+  ('3062200000000010018', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/after-sale', '', '1', 'AfterSaleManage', '3062200000000000005', '/order-governance/after-sale', 8.00, '售后治理', NULL, NULL),
+  ('3062200000000010019', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/order-governance/verification-record', '', '1', 'VerificationRecordManage', '3062200000000000005', '/order-governance/verification-record', 9.00, '核销记录', NULL, NULL),
+  ('3062200000000000006', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance', 'ep:sell', '0', 'MarketingGovernance', '0', '/marketing-governance', 60.00, '营销管理', NULL, NULL),
+  ('3062200000000010101', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/coupon-manage', '', '1', 'CouponManage', '3062200000000000006', '/marketing-governance/coupon-manage', 1.00, '优惠券管理', NULL, NULL),
+  ('3062200000000010102', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/coupon-activity', '', '1', 'CouponActivityManage', '3062200000000000006', '/marketing-governance/coupon-activity', 2.00, '券活动管理', NULL, NULL),
+  ('3062200000000010103', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/full-discount', '', '1', 'FullDiscountManage', '3062200000000000006', '/marketing-governance/full-discount', 3.00, '满减活动管理', NULL, NULL),
+  ('3062200000000010104', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/seckill-manage', '', '1', 'SeckillManage', '3062200000000000006', '/marketing-governance/seckill-manage', 4.00, '秒杀活动管理', NULL, NULL),
+  ('3062200000000010105', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/kanjia-manage', '', '1', 'KanjiaManage', '3062200000000000006', '/marketing-governance/kanjia-manage', 5.00, '砍价活动管理', NULL, NULL),
+  ('3062200000000010020', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/pintuan-rule', '', '1', 'PintuanRule', '3062200000000000006', '/marketing-governance/pintuan-rule', 6.00, '拼团规则', NULL, NULL),
+  ('3062200000000010021', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/marketing-governance/pintuan-record', '', '1', 'PintuanRecord', '3062200000000000006', '/marketing-governance/pintuan-record', 7.00, '拼团记录', NULL, NULL),
+  ('3062200000000000007', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance', 'ep:money', '0', 'ProfitSharingRule', '0', '/fund-governance', 70.00, '分账管理', NULL, NULL),
+  ('3062200000000010022', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/profitsharing-rule', '', '1', 'ProfitSharingRule', '3062200000000000007', '/fund-governance/profitsharing-rule', 1.00, '分账规则', NULL, NULL),
+  ('3062200000000010106', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/bill-manage', '', '1', 'BillManage', '3062200000000000007', '/fund-governance/bill-manage', 2.00, '结算单', NULL, NULL),
+  ('3062200000000010023', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/profitsharing-record', '', '1', 'ProfitSharingRecord', '3062200000000000007', '/fund-governance/profitsharing-record', 3.00, '分账明细', NULL, NULL),
+  ('3062200000000010024', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/wallet-log', '', '1', 'WalletLog', '3062200000000000007', '/fund-governance/wallet-log', 4.00, '余额记录', NULL, NULL),
+  ('3062200000000010025', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/profitsharing-balance', '', '1', 'ProfitSharingBalance', '3062200000000000007', '/fund-governance/profitsharing-balance', 5.00, '分账治理概览', NULL, NULL),
+  ('3062200000000010026', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/wallet-account', '', '1', 'WalletAccount', '3062200000000000007', '/fund-governance/wallet-account', 6.00, '钱包账户台账', NULL, NULL),
+  ('3062200000000010027', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/withdraw-apply', '', '1', 'WithdrawApply', '3062200000000000007', '/fund-governance/withdraw-apply', 7.00, '提现审核', NULL, NULL),
+  ('3062200000000010028', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/procurement-reconciliation', '', '1', 'ProcurementReconciliation', '3062200000000000007', '/fund-governance/procurement-reconciliation', 8.00, '采购对账', NULL, NULL),
+  ('3062200000000010029', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/fund-governance/fund-reconciliation', '', '1', 'FundReconciliation', '3062200000000000007', '/fund-governance/fund-reconciliation', 9.00, '资金对账', NULL, NULL),
+  ('3062200000000000008', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config', 'ep:tools', '0', 'PlatformBaseSetting', '0', '/platform-config', 80.00, '平台配置', NULL, NULL),
+  ('3062200000000010030', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/base-setting', '', '1', 'PlatformBaseSetting', '3062200000000000008', '/platform-config/base-setting', 1.00, '基础设置', NULL, NULL),
+  ('3062200000000010031', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/payment-setting', '', '1', 'PlatformPaymentSetting', '3062200000000000008', '/platform-config/payment-setting', 2.00, '支付配置', NULL, NULL),
+  ('3062200000000010032', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/withdraw-setting', '', '1', 'PlatformWithdrawSetting', '3062200000000000008', '/platform-config/withdraw-setting', 3.00, '提现设置', NULL, NULL),
+  ('3062200000000010033', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/oss-setting', '', '1', 'PlatformOssSetting', '3062200000000000008', '/platform-config/oss-setting', 4.00, '对象存储配置', NULL, NULL),
+  ('3062200000000010034', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/sms-setting', '', '1', 'PlatformSmsSetting', '3062200000000000008', '/platform-config/sms-setting', 5.00, '短信配置', NULL, NULL),
+  ('3062200000000010035', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/email-setting', '', '1', 'PlatformEmailSetting', '3062200000000000008', '/platform-config/email-setting', 6.00, '邮件配置', NULL, NULL),
+  ('3062200000000010036', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/goods-setting', '', '1', 'PlatformGoodsSetting', '3062200000000000008', '/platform-config/goods-setting', 7.00, '商品设置', NULL, NULL),
+  ('3062200000000010037', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/order-setting', '', '1', 'PlatformOrderSetting', '3062200000000000008', '/platform-config/order-setting', 8.00, '订单设置', NULL, NULL),
+  ('3062200000000010038', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/logistics-setting', '', '1', 'PlatformLogisticsSetting', '3062200000000000008', '/platform-config/logistics-setting', 9.00, '物流设置', NULL, NULL),
+  ('3062200000000010039', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/point-setting', '', '1', 'PlatformPointSetting', '3062200000000000008', '/platform-config/point-setting', 10.00, '积分设置', NULL, NULL),
+  ('3062200000000010040', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/experience-setting', '', '1', 'PlatformExperienceSetting', '3062200000000000008', '/platform-config/experience-setting', 11.00, '经验值设置', NULL, NULL),
+  ('3062200000000010041', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/seckill-setting', '', '1', 'PlatformSeckillSetting', '3062200000000000008', '/platform-config/seckill-setting', 12.00, '秒杀设置', NULL, NULL),
+  ('3062200000000010042', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/im-setting', '', '1', 'PlatformImSetting', '3062200000000000008', '/platform-config/im-setting', 13.00, 'IM配置', NULL, NULL),
+  ('3062200000000010043', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/connect-setting', '', '1', 'PlatformConnectSetting', '3062200000000000008', '/platform-config/connect-setting', 14.00, '登录设置', NULL, NULL),
+  ('3062200000000010044', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/distribution-setting', '', '1', 'PlatformDistributionSetting', '3062200000000000008', '/platform-config/distribution-setting', 15.00, '分销设置', NULL, NULL),
+  ('3062200000000010045', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/alipay-setting', '', '1', 'PlatformAlipaySetting', '3062200000000000008', '/platform-config/alipay-setting', 16.00, '支付宝配置', NULL, NULL),
+  ('3062200000000010046', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wechat-payment-setting', '', '1', 'PlatformWechatPaymentSetting', '3062200000000000008', '/platform-config/wechat-payment-setting', 17.00, '微信支付配置', NULL, NULL),
+  ('3062200000000010047', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/unionpay-setting', '', '1', 'PlatformUnionpaySetting', '3062200000000000008', '/platform-config/unionpay-setting', 18.00, '银联支付配置', NULL, NULL),
+  ('3062200000000010048', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wechat-connect-setting', '', '1', 'PlatformWechatConnectSetting', '3062200000000000008', '/platform-config/wechat-connect-setting', 19.00, '微信登录配置', NULL, NULL),
+  ('3062200000000010049', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/qq-connect-setting', '', '1', 'PlatformQqConnectSetting', '3062200000000000008', '/platform-config/qq-connect-setting', 20.00, 'QQ登录配置', NULL, NULL),
+  ('3062200000000010050', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/hot-words-setting', '', '1', 'PlatformHotWordsSetting', '3062200000000000008', '/platform-config/hot-words-setting', 21.00, '热词设置', NULL, NULL),
+  ('3062200000000010051', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wx-channels-setting', '', '1', 'PlatformWxChannelsSetting', '3062200000000000008', '/platform-config/wx-channels-setting', 22.00, '视频号配置', NULL, NULL),
+  ('3062200000000000009', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center', 'ep:user', '0', 'MemberList', '0', '/member-center', 90.00, '用户中心', NULL, NULL),
+  ('3062200000000010052', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-list', '', '1', 'MemberList', '3062200000000000009', '/member-center/member-list', 1.00, '前台用户管理', NULL, NULL),
+  ('3062200000000010053', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-grade', '', '1', 'MemberGrade', '3062200000000000009', '/member-center/member-grade', 2.00, '会员等级', NULL, NULL),
+  ('3062200000000010054', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-group', '', '1', 'MemberGroup', '3062200000000000009', '/member-center/member-group', 3.00, '会员分组', NULL, NULL),
+  ('3062200000000010055', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-benefit', '', '1', 'MemberBenefit', '3062200000000000009', '/member-center/member-benefit', 4.00, '会员权益', NULL, NULL),
+  ('3062200000000010056', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-points-history', '', '1', 'MemberPointsHistory', '3062200000000000009', '/member-center/member-points-history', 5.00, '积分记录', NULL, NULL),
+  ('3062200000000010057', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-evaluation', '', '1', 'MemberEvaluation', '3062200000000000009', '/member-center/member-evaluation', 6.00, '用户评价', NULL, NULL),
+  ('3062200000000010058', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-address', '', '1', 'MemberAddress', '3062200000000000009', '/member-center/member-address', 7.00, '用户地址', NULL, NULL),
+  ('3062200000000000010', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center', 'ep:chat-dot-round', '0', 'MemberNotice', '0', '/message-center', 100.00, '通知与消息', NULL, NULL),
+  ('3062200000000010059', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice', '', '1', 'MemberNotice', '3062200000000000010', '/message-center/member-notice', 1.00, '站内通知', NULL, NULL),
+  ('3062200000000010060', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice-log', '', '1', 'MemberNoticeLog', '3062200000000000010', '/message-center/member-notice-log', 2.00, '通知日志', NULL, NULL),
+  ('3062200000000010061', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/sms-sign', '', '1', 'SmsSign', '3062200000000000010', '/message-center/sms-sign', 3.00, '短信签名', NULL, NULL),
+  ('3062200000000010062', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/sms-template', '', '1', 'SmsTemplate', '3062200000000000010', '/message-center/sms-template', 4.00, '短信模板', NULL, NULL),
+  ('3062200000000010063', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice-sender', '', '1', 'MemberNoticeSender', '3062200000000000010', '/message-center/member-notice-sender', 5.00, '发送任务', NULL, NULL),
+  ('3062200000000010064', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/service-notice', '', '1', 'ServiceNotice', '3062200000000000010', '/message-center/service-notice', 6.00, '服务通知', NULL, NULL),
+  ('3062200000000010065', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/message-channel', '', '1', 'MessageChannel', '3062200000000000010', '/message-center/message-channel', 7.00, '消息发送管理', NULL, NULL),
+  ('3062200000000010066', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-message', '', '1', 'MemberMessage', '3062200000000000010', '/message-center/member-message', 8.00, '客户消息', NULL, NULL),
+  ('3062200000000010067', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/store-message', '', '1', 'StoreMessage', '3062200000000000010', '/message-center/store-message', 9.00, '店铺消息', NULL, NULL),
+  ('3062200000000000011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center', 'ep:document', '0', 'ContentArticle', '0', '/content-center', 110.00, '内容与运营', NULL, NULL),
+  ('3062200000000010069', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/home-config', '', '1', 'ContentHomeConfig', '3062200000000000011', '/content-center/home-config', 1.00, '首页配置', NULL, NULL),
+  ('3062200000000010068', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article', '', '1', 'ContentArticle', '3062200000000000011', '/content-center/article', 2.00, '帮助与公告', NULL, NULL),
+  ('3062200000000010072', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article-category', '', '1', 'ContentArticleCategory', '3062200000000000011', '/content-center/article-category', 3.00, '文章分类', NULL, NULL),
+  ('3062200000000010073', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/sensitive-words', '', '1', 'ContentSensitiveWords', '3062200000000000011', '/content-center/sensitive-words', 4.00, '敏感词管理', NULL, NULL),
+  ('3062200000000010074', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/custom-words', '', '1', 'ContentCustomWords', '3062200000000000011', '/content-center/custom-words', 5.00, '自定义词库', NULL, NULL),
+  ('3062200000000010075', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/hot-words-manage', '', '1', 'ContentHotWordsManage', '3062200000000000011', '/content-center/hot-words-manage', 6.00, '热词治理', NULL, NULL),
+  ('3062200000000010077', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/app-version', '', '1', 'ContentAppVersion', '3062200000000000011', '/content-center/app-version', 8.00, 'APP版本', NULL, NULL),
+  ('3062200000000000012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center', 'ep:setting', '0', 'SupportVerificationSource', '0', '/support-center', 120.00, '系统支撑', NULL, NULL),
+  ('3062200000000010078', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/verification-source', '', '1', 'SupportVerificationSource', '3062200000000000012', '/support-center/verification-source', 1.00, '验证码资源', NULL, NULL),
+  ('3062200000000010079', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/region-manage', '', '1', 'SupportRegionManage', '3062200000000000012', '/support-center/region-manage', 2.00, '区域管理', NULL, NULL),
+  ('3062200000000010080', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/logistics-manage', '', '1', 'SupportLogisticsManage', '3062200000000000012', '/support-center/logistics-manage', 3.00, '物流公司', NULL, NULL),
+  ('3062200000000010081', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/after-sale-reason', '', '1', 'SupportAfterSaleReason', '3062200000000000012', '/support-center/after-sale-reason', 4.00, '售后原因', NULL, NULL),
+  ('3062200000000010082', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/feedback-manage', '', '1', 'SupportFeedbackManage', '3062200000000000012', '/support-center/feedback-manage', 5.00, '意见反馈', NULL, NULL),
+  ('3062200000000010083', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/setting-log', '', '1', 'SupportSettingLog', '3062200000000000012', '/support-center/setting-log', 6.00, '配置日志', NULL, NULL),
+  ('3062200000000000013', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant', 'ep:key', '0', 'MerchantGrantMenuPermission', '0', '/merchant-grant', 130.00, '系统与权限', NULL, NULL),
+  ('3062200000000010086', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/menu-permission', '', '1', 'MerchantGrantMenuPermission', '3062200000000000013', '/merchant-grant/menu-permission', 1.00, '平台菜单权限', NULL, NULL),
+  ('3062200000000010087', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/role-permission', '', '1', 'MerchantGrantRolePermission', '3062200000000000013', '/merchant-grant/role-permission', 2.00, '平台角色权限', NULL, NULL),
+  ('3062200000000010088', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/department-manage', '', '1', 'MerchantGrantDepartmentManage', '3062200000000000013', '/merchant-grant/department-manage', 3.00, '组织架构配置', NULL, NULL),
+  ('3062200000000010089', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/backend-account', '', '1', 'MerchantGrantBackendAccount', '3062200000000000013', '/merchant-grant/backend-account', 4.00, '平台后台账号', NULL, NULL),
+  ('3062200000000010097', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/store-menu', '', '1', 'MerchantGrantStoreMenu', '3062200000000000013', '/merchant-grant/store-menu', 5.00, '店铺菜单资源', NULL, NULL),
+  ('3062200000000000014', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system', 'ep:setting', '0', 'SystemWarningSetting', '0', '/system', 140.00, '系统设置', NULL, NULL),
+  ('3062200000000010090', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/warning-setting', '', '1', 'SystemWarningSetting', '3062200000000000014', '/system/warning-setting', 1.00, '预警设置', NULL, NULL),
+  ('3062200000000010091', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/maintenance-log', '', '1', 'SystemMaintenanceLog', '3062200000000000014', '/system/maintenance-log', 2.00, '系统维护记录', NULL, NULL),
+  ('3062200000000010092', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/operation-log', '', '1', 'SystemOperationLog', '3062200000000000014', '/system/operation-log', 3.00, '操作日志', NULL, NULL);
+
+INSERT INTO `li_menu` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+)
+SELECT
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+FROM `tmp_wholesale_manager_menu_seed` seed
+WHERE NOT EXISTS (
+  SELECT 1 FROM `li_menu` m WHERE m.`id` = seed.`id`
+);
+
+UPDATE `li_menu` m
+JOIN `tmp_wholesale_manager_menu_seed` seed ON m.`id` = seed.`id`
+SET
+  m.`update_by` = seed.`update_by`,
+  m.`update_time` = CURRENT_TIMESTAMP,
+  m.`delete_flag` = seed.`delete_flag`,
+  m.`description` = seed.`description`,
+  m.`front_route` = seed.`front_route`,
+  m.`icon` = seed.`icon`,
+  m.`level` = seed.`level`,
+  m.`name` = seed.`name`,
+  m.`parent_id` = seed.`parent_id`,
+  m.`path` = seed.`path`,
+  m.`sort_order` = seed.`sort_order`,
+  m.`title` = seed.`title`,
+  m.`front_component` = seed.`front_component`;
+
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_seed`;
+
+DELETE FROM `li_role_menu`
+WHERE `menu_id` IN ('3062200000000010071');
+
+DELETE FROM `li_menu`
+WHERE `id` = 3062200000000010071
+   OR `front_route` IN ('/content-center/message-monitor', '/content-center/shortcut-nav');
+
+-- BEGIN patch_wholesale_manager_menu_permission_fill.sql
+UPDATE li_menu SET permission = '/manager/dashboard/wholesale*,/manager/statistics/index/notice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/welcome';
+UPDATE li_menu SET permission = '/manager/dashboard/wholesale*,/manager/statistics/index/notice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/wholesale';
+UPDATE li_menu SET permission = '/manager/dashboard/wholesale*,/manager/statistics/order/overview*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/overview';
+UPDATE li_menu SET permission = '/manager/statistics/index/storeStatistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/store-rank';
+UPDATE li_menu SET permission = '/manager/statistics/index/goodsStatistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/goods-rank';
+UPDATE li_menu SET permission = '/manager/statistics/order/overview*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/order-overview';
+UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-apply';
+UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-manage';
+UPDATE li_menu SET permission = '/manager/agent/role*,/manager/agent/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/agent-manage';
+UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-audit-log';
+UPDATE li_menu SET permission = '/manager/goods/goods/up*,/manager/goods/goods/get*,/manager/goods/goods/auth*,/manager/goods/goods/under*,/manager/goods/goods/wholesale/list*,/manager/goods/goodsUnit*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-manage';
+UPDATE li_menu SET permission = '/manager/goods/brand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/brand-manage';
+UPDATE li_menu SET permission = '/manager/goods/parameters*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/parameter-manage';
+UPDATE li_menu SET permission = '/manager/goods/category*,/manager/goods/brand/all*,/manager/goods/categoryBrand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/category-manage';
+UPDATE li_menu SET permission = '/manager/goods/goodsGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-group-manage';
+UPDATE li_menu SET permission = '/manager/promotion/pointsGoods*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/points-goods';
+UPDATE li_menu SET permission = '/manager/promotion/cardCouponGoods*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/card-coupon-goods';
+UPDATE li_menu SET permission = '/manager/order/order*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/order-manage';
+UPDATE li_menu SET permission = '/manager/order/complain*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/order-complaint';
+UPDATE li_menu SET permission = '/manager/setting/setting/get/VERIFICATION_RULE_SETTING*,/manager/setting/setting/put/VERIFICATION_RULE_SETTING*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/verification-rule';
+UPDATE li_menu SET permission = '/manager/order/refundLog*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/refund-log';
+UPDATE li_menu SET permission = '/manager/order/paymentLog*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/payment-log';
+UPDATE li_menu SET permission = '/manager/trade/receipt*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/receipt-manage';
+UPDATE li_menu SET permission = '/manager/order/orderLog*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/order-log';
+UPDATE li_menu SET permission = '/manager/order/afterSale/page*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/after-sale';
+UPDATE li_menu SET permission = '/manager/other/verificationRecord*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/order-governance/verification-record';
+UPDATE li_menu SET permission = '/manager/promotion/coupon*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/coupon-manage';
+UPDATE li_menu SET permission = '/manager/promotion/couponActivity*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/coupon-activity';
+UPDATE li_menu SET permission = '/manager/promotion/fullDiscount*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/full-discount';
+UPDATE li_menu SET permission = '/manager/promotion/seckill*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/seckill-manage';
+UPDATE li_menu SET permission = '/manager/promotion/kanJiaGoods*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/kanjia-manage';
+UPDATE li_menu SET permission = '/manager/promotion/pintuan*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/pintuan-rule';
+UPDATE li_menu SET permission = '/manager/promotion/pintuan*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/marketing-governance/pintuan-record';
+UPDATE li_menu SET permission = '/manager/profitsharing/rule*,/common/common/region/allCity*,/manager/goods/category/allChildren*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/profitsharing-rule';
+UPDATE li_menu SET permission = '/manager/order/bill*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/bill-manage';
+UPDATE li_menu SET permission = '/manager/profitsharing/record*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/profitsharing-record';
+UPDATE li_menu SET permission = '/manager/wallet/log*,/manager/wallet/wallet*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/wallet-log';
+UPDATE li_menu SET permission = '/manager/profitsharing/balance*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/profitsharing-balance';
+UPDATE li_menu SET permission = '/manager/wallet/wallet/page*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/wallet-account';
+UPDATE li_menu SET permission = '/manager/wallet/withdrawApply*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/withdraw-apply';
+UPDATE li_menu SET permission = '/manager/reconciliation/purchase*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/procurement-reconciliation';
+UPDATE li_menu SET permission = '/manager/reconciliation/fund*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/fund-reconciliation';
+UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/platform-config/base-setting','/platform-config/payment-setting','/platform-config/withdraw-setting','/platform-config/oss-setting','/platform-config/sms-setting','/platform-config/email-setting','/platform-config/goods-setting','/platform-config/order-setting','/platform-config/logistics-setting','/platform-config/point-setting','/platform-config/experience-setting','/platform-config/seckill-setting','/platform-config/im-setting','/platform-config/connect-setting','/platform-config/distribution-setting','/platform-config/alipay-setting','/platform-config/wechat-payment-setting','/platform-config/unionpay-setting','/platform-config/wechat-connect-setting','/platform-config/qq-connect-setting','/platform-config/hot-words-setting','/platform-config/wx-channels-setting');
+UPDATE li_menu SET permission = '/manager/passport/member*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-list';
+UPDATE li_menu SET permission = '/manager/member/memberGrade*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-grade';
+UPDATE li_menu SET permission = '/manager/passport/member*,/manager/member/memberGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-group';
+UPDATE li_menu SET permission = '/manager/member/benefit*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-benefit';
+UPDATE li_menu SET permission = '/manager/member/memberPointsHistory/getByPage*,/manager/member/memberPointsHistory/getMemberPointsHistoryVO*,/manager/member/memberPointsHistory/queryMemberPointsStatistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-points-history';
+UPDATE li_menu SET permission = '/manager/member/evaluation/get*,/manager/member/evaluation/delete*,/manager/member/evaluation/updateTop*,/manager/member/evaluation/updateStatus*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-evaluation';
+UPDATE li_menu SET permission = '/manager/member/address*,/manager/passport/member*,/manager/setting/region/item*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-address';
+UPDATE li_menu SET permission = '/manager/message/memberNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice';
+UPDATE li_menu SET permission = '/manager/message/memberNoticeLog/get*,/manager/message/memberNoticeLog/delByIds*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice-log';
+UPDATE li_menu SET permission = '/manager/sms/sign*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/sms-sign';
+UPDATE li_menu SET permission = '/manager/sms/template*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/sms-template';
+UPDATE li_menu SET permission = '/manager/message/memberNoticeSenter/get*,/manager/message/memberNoticeSenter/delByIds*,/manager/message/memberNoticeSenter/insertOrUpdate*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice-sender';
+UPDATE li_menu SET permission = '/manager/message/serviceNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/service-notice';
+UPDATE li_menu SET permission = '/manager/other/message*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/message-channel';
+UPDATE li_menu SET permission = '/manager/other/memberMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-message';
+UPDATE li_menu SET permission = '/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/store-message';
+UPDATE li_menu SET permission = '/manager/other/platformHomeConfig*,/manager/goods/category/allChildren*,/manager/goods/goods/wholesale/list*,/manager/goods/goods/get*,/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/home-config';
+UPDATE li_menu SET permission = '/manager/other/article*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article';
+UPDATE li_menu SET permission = '/manager/other/articleCategory*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article-category';
+UPDATE li_menu SET permission = '/manager/other/sensitiveWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/sensitive-words';
+UPDATE li_menu SET permission = '/manager/other/customWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/custom-words';
+UPDATE li_menu SET permission = '/manager/hotwords/hotwords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/hot-words-manage';
+UPDATE li_menu SET permission = '/manager/other/appVersion*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/app-version';
+UPDATE li_menu SET permission = '/manager/other/verificationSource*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/verification-source';
+UPDATE li_menu SET permission = '/manager/setting/region*,/common/common/region/allCity*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/region-manage';
+UPDATE li_menu SET permission = '/manager/other/logistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/logistics-manage';
+UPDATE li_menu SET permission = '/manager/order/afterSaleReason*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/after-sale-reason';
+UPDATE li_menu SET permission = '/manager/other/feedback*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/feedback-manage';
+UPDATE li_menu SET permission = '/manager/setting/log*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/support-center/setting-log','/system/maintenance-log','/system/operation-log');
+UPDATE li_menu SET permission = '/manager/permission/menu*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/menu-permission','/system/menu');
+UPDATE li_menu SET permission = '/manager/permission/role*,/manager/permission/menu/tree*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/role-permission','/system/role');
+UPDATE li_menu SET permission = '/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/department-manage','/system/dept');
+UPDATE li_menu SET permission = '/manager/passport/user*,/manager/permission/role*,/common/common/upload/file*,/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/backend-account','/system/user');
+UPDATE li_menu SET permission = '/manager/permission/storeMenu*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/store-menu';
+UPDATE li_menu SET permission = '/manager/message/serviceNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/system/warning-setting';
+
+-- BEGIN patch_wholesale_manager_legacy_menu_archive.sql
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_legacy_menu_ids`;
+CREATE TEMPORARY TABLE `tmp_wholesale_legacy_menu_ids` (
+  `id` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+INSERT INTO `tmp_wholesale_legacy_menu_ids` (`id`)
+SELECT DISTINCT legacy_seed.id_str
+FROM (
+  SELECT CAST(root.`id` AS CHAR) AS id_str
+  FROM `li_menu` root
+  WHERE root.`parent_id` = '0'
+    AND root.`id` NOT BETWEEN 3062200000000000001 AND 3062200000000010097
+    AND root.`title` IN ('会员', '订单', '商品', '促销', '店铺', '运营', '统计', '设置', '日志')
+
+  UNION ALL
+
+  SELECT CAST(level1.`id` AS CHAR) AS id_str
+  FROM `li_menu` level1
+  INNER JOIN `li_menu` root
+    ON level1.`parent_id` = CAST(root.`id` AS CHAR)
+  WHERE root.`parent_id` = '0'
+    AND root.`id` NOT BETWEEN 3062200000000000001 AND 3062200000000010097
+    AND root.`title` IN ('会员', '订单', '商品', '促销', '店铺', '运营', '统计', '设置', '日志')
+
+  UNION ALL
+
+  SELECT CAST(level2.`id` AS CHAR) AS id_str
+  FROM `li_menu` level2
+  INNER JOIN `li_menu` level1
+    ON level2.`parent_id` = CAST(level1.`id` AS CHAR)
+  INNER JOIN `li_menu` root
+    ON level1.`parent_id` = CAST(root.`id` AS CHAR)
+  WHERE root.`parent_id` = '0'
+    AND root.`id` NOT BETWEEN 3062200000000000001 AND 3062200000000010097
+    AND root.`title` IN ('会员', '订单', '商品', '促销', '店铺', '运营', '统计', '设置', '日志')
+
+  UNION ALL
+
+  SELECT CAST(level3.`id` AS CHAR) AS id_str
+  FROM `li_menu` level3
+  INNER JOIN `li_menu` level2
+    ON level3.`parent_id` = CAST(level2.`id` AS CHAR)
+  INNER JOIN `li_menu` level1
+    ON level2.`parent_id` = CAST(level1.`id` AS CHAR)
+  INNER JOIN `li_menu` root
+    ON level1.`parent_id` = CAST(root.`id` AS CHAR)
+  WHERE root.`parent_id` = '0'
+    AND root.`id` NOT BETWEEN 3062200000000000001 AND 3062200000000010097
+    AND root.`title` IN ('会员', '订单', '商品', '促销', '店铺', '运营', '统计', '设置', '日志')
+) legacy_seed;
+
+UPDATE li_menu target
+INNER JOIN `tmp_wholesale_legacy_menu_ids` archived
+  ON CAST(target.id AS CHAR) = archived.id
+SET
+  target.delete_flag = b'1',
+  target.update_by = 'codex',
+  target.update_time = CURRENT_TIMESTAMP(6)
+WHERE target.id NOT BETWEEN 3062200000000000001 AND 3062200000000010097;
+
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_legacy_menu_ids`;
+
+-- BEGIN patch_wholesale_manager_archived_menu_purge.sql
+DELETE FROM li_role_menu
+WHERE menu_id IN (
+  SELECT archived_menu.id_str
+  FROM (
+    SELECT CAST(id AS CHAR) AS id_str
+    FROM li_menu
+    WHERE delete_flag = b'1'
+      AND update_by = 'codex'
+  ) AS archived_menu
+);
+
+DELETE FROM li_menu
+WHERE delete_flag = b'1'
+  AND update_by = 'codex';
+
+-- BEGIN patch_wholesale_manager_delivery_cleanup.sql
+UPDATE li_menu
+SET
+  delete_flag = b'1',
+  update_by = 'codex',
+  update_time = CURRENT_TIMESTAMP(6)
+WHERE delete_flag = b'0'
+  AND (
+    front_route IN (
+      '/goods-governance/home-category',
+      '/content-center/page-data',
+      '/content-center/shortcut-nav',
+      '/content-center/special'
+    )
+    OR path IN (
+      '/goods-governance/home-category',
+      '/content-center/page-data',
+      '/content-center/shortcut-nav',
+      '/content-center/special'
+    )
+    OR permission LIKE '%/manager/other/shortcutNav%'
+    OR permission LIKE '%/manager/distribution/%'
+    OR permission LIKE '%/manager/wechat/%'
+    OR permission LIKE '%/manager/wxchannels/%'
+    OR permission LIKE '%/manager/broadcast/%'
+    OR permission LIKE '%/manager/other/elasticsearch%'
+    OR permission LIKE '%/manager/setting/messageTemplate%'
+    OR permission LIKE '%/manager/setting/settingx%'
+  );
+
+DELETE FROM li_role_menu
+WHERE menu_id IN (
+  SELECT id
+  FROM li_menu
+  WHERE delete_flag = b'1'
+    AND (
+      front_route IN (
+        '/goods-governance/home-category',
+        '/content-center/page-data',
+        '/content-center/shortcut-nav',
+        '/content-center/special'
+      )
+      OR path IN (
+        '/goods-governance/home-category',
+        '/content-center/page-data',
+        '/content-center/shortcut-nav',
+        '/content-center/special'
+      )
+      OR permission LIKE '%/manager/other/shortcutNav%'
+      OR permission LIKE '%/manager/distribution/%'
+      OR permission LIKE '%/manager/wechat/%'
+      OR permission LIKE '%/manager/wxchannels/%'
+      OR permission LIKE '%/manager/broadcast/%'
+      OR permission LIKE '%/manager/other/elasticsearch%'
+      OR permission LIKE '%/manager/setting/messageTemplate%'
+      OR permission LIKE '%/manager/setting/settingx%'
+    )
+);
+
+-- BEGIN patch_manager_role_baseline.sql
+UPDATE li_admin_user
+SET is_super = b'1',
+    status = b'1',
+    role_ids = NULL,
+    update_by = 'admin',
+    update_time = CURRENT_TIMESTAMP
+WHERE username = 'admin';
+
+DELETE FROM li_user_role;
+DELETE FROM li_role_menu;
+DELETE FROM li_role;
+
+-- BEGIN patch_goods_barcode_columns.sql
+SET @goods_barcode_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'li_goods'
+    AND COLUMN_NAME = 'barcode'
+);
+
+SET @goods_barcode_sql = IF(
+  @goods_barcode_exists = 0,
+  'ALTER TABLE `li_goods` ADD COLUMN `barcode` varchar(64) DEFAULT NULL COMMENT ''商品主条码'' AFTER `sn`',
+  'SELECT ''li_goods.barcode already exists'' AS message'
+);
+PREPARE goods_barcode_stmt FROM @goods_barcode_sql;
+EXECUTE goods_barcode_stmt;
+DEALLOCATE PREPARE goods_barcode_stmt;
+
+SET @goods_sku_barcode_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'li_goods_sku'
+    AND COLUMN_NAME = 'barcode'
+);
+
+SET @goods_sku_barcode_sql = IF(
+  @goods_sku_barcode_exists = 0,
+  'ALTER TABLE `li_goods_sku` ADD COLUMN `barcode` varchar(64) DEFAULT NULL COMMENT ''商品规格条码'' AFTER `sn`',
+  'SELECT ''li_goods_sku.barcode already exists'' AS message'
+);
+PREPARE goods_sku_barcode_stmt FROM @goods_sku_barcode_sql;
+EXECUTE goods_sku_barcode_stmt;
+DEALLOCATE PREPARE goods_sku_barcode_stmt;
+
+UPDATE `li_goods_sku` sku
+JOIN `li_goods` goods ON goods.`id` = sku.`goods_id`
+SET sku.`barcode` = goods.`barcode`
+WHERE (sku.`barcode` IS NULL OR sku.`barcode` = '')
+  AND goods.`barcode` IS NOT NULL
+  AND goods.`barcode` <> '';
+
+-- BEGIN patch_wholesale_manager_menu_finalize.sql
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_finalize_seed`;
+
+CREATE TEMPORARY TABLE `tmp_wholesale_manager_menu_finalize_seed` (
+  `id` bigint NOT NULL,
+  `create_by` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `delete_flag` bit(1) DEFAULT NULL,
+  `update_by` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `front_route` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `icon` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `level` int DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `parent_id` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `path` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `sort_order` decimal(10,2) DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `front_component` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `permission` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000000015', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement-governance', 'ep:box', '0', 'ProcurementGovernance', '0', 'procurement-governance', 75.00, '采购管理', NULL, NULL),
+  ('3062200000000010098', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/order/index', '', '1', 'procurement-order', '3062200000000000015', 'procurement-order', 1.00, '采购订单管理', NULL, NULL),
+  ('3062200000000010099', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inbound/index', '', '1', 'procurement-inbound', '3062200000000000015', 'procurement-inbound', 2.00, '采购入库管理', NULL, NULL),
+  ('3062200000000010100', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inventory-count/index', '', '1', 'procurement-inventory-count', '3062200000000000015', 'procurement-inventory-count', 3.00, '盘点管理', NULL, NULL),
+  ('3062200000000010111', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/damage-report/index', '', '1', 'procurement-damage-report', '3062200000000000015', 'procurement-damage-report', 4.00, '报损管理', NULL, NULL),
+  ('3062200000000010112', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/reason/index', '', '1', 'procurement-reason', '3062200000000000015', 'procurement-reason', 5.00, '库存原因管理', NULL, NULL);
+
+INSERT INTO `li_menu` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+)
+SELECT
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+FROM `tmp_wholesale_manager_menu_finalize_seed` seed
+WHERE NOT EXISTS (
+  SELECT 1 FROM `li_menu` m WHERE m.`id` = seed.`id`
+);
+
+UPDATE `li_menu`
+SET `front_route` = 'finance/profitsharing-balance/index',
+    `path` = 'profitsharing-balance',
+    `name` = 'profitsharing-balance',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010025';
+
+UPDATE `li_menu`
+SET `front_route` = 'finance/wallet-account/index',
+    `path` = 'wallet-account',
+    `name` = 'wallet-account',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010026';
+
+UPDATE `li_menu`
+SET `front_route` = 'finance/withdraw-apply/index',
+    `path` = 'withdraw-apply',
+    `name` = 'withdraw-apply',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010027';
+
+UPDATE `li_menu`
+SET `front_route` = 'finance/procurement-reconciliation/index',
+    `path` = 'procurement-reconciliation',
+    `name` = 'procurement-reconciliation',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010028';
+
+UPDATE `li_menu`
+SET `front_route` = 'finance/fund-reconciliation/index',
+    `path` = 'fund-reconciliation',
+    `name` = 'fund-reconciliation',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010029';
+
+UPDATE `li_menu`
+SET `front_route` = 'seller/agent/agent-manage',
+    `path` = 'agent-manage',
+    `name` = 'agent-manage',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010009';
+
+UPDATE `li_menu`
+SET `front_route` = 'seller/store/store-apply/index',
+    `path` = 'store-apply',
+    `name` = 'store-apply',
+    `update_by` = 'admin',
+    `update_time` = CURRENT_TIMESTAMP
+WHERE `id` = '3062200000000010007';
+
+DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_finalize_seed`;

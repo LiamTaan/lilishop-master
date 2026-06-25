@@ -4,6 +4,8 @@ import cn.lili.common.enums.SwitchEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * 楼层装修数据VO
  *
@@ -22,4 +24,10 @@ public class PageDataListVO {
      */
     @Schema(description = "页面开关状态", allowableValues = "OPEN,CLOSE")
     private String pageShow;
+
+    @Schema(description = "客户端类型")
+    private String pageClientType;
+
+    @Schema(description = "更新时间")
+    private Date updateTime;
 }

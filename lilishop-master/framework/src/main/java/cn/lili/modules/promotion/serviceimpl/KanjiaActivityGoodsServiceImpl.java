@@ -1,6 +1,7 @@
 package cn.lili.modules.promotion.serviceimpl;
 
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.lili.common.enums.PromotionTypeEnum;
 import cn.lili.common.enums.ResultCode;
@@ -283,6 +284,9 @@ public class KanjiaActivityGoodsServiceImpl extends AbstractPromotionsServiceImp
 
     @Override
     public void deleteByGoodsIds(List<String> goodsIds) {
+        if (CollUtil.isEmpty(goodsIds)) {
+            return;
+        }
         this.remove(new LambdaQueryWrapper<KanjiaActivityGoods>().in(KanjiaActivityGoods::getGoodsId, goodsIds));
     }
 

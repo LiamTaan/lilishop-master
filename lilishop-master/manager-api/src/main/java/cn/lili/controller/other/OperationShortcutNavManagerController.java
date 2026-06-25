@@ -8,6 +8,7 @@ import cn.lili.modules.page.entity.dos.OperationShortcutNav;
 import cn.lili.modules.page.entity.dto.OperationShortcutNavDTO;
 import cn.lili.modules.page.service.OperationShortcutNavService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
  * @author dawn
  * @since 2026/6/17
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,首页分类配置接口")
 @RequestMapping("/manager/other/shortcutNav")

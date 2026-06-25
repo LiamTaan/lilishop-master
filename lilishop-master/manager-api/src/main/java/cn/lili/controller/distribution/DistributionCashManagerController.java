@@ -8,6 +8,7 @@ import cn.lili.modules.distribution.entity.dos.DistributionCash;
 import cn.lili.modules.distribution.entity.vos.DistributionCashSearchParams;
 import cn.lili.modules.distribution.service.DistributionCashService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
  * @author pikachu
  * @since 2020-03-14 23:04:56
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,分销佣金管理接口")
 @RequestMapping("/manager/distribution/cash")
@@ -62,4 +64,3 @@ public class DistributionCashManagerController {
         distributorCashService.queryExport(response, distributionCashSearchParams);
     }
 }
-

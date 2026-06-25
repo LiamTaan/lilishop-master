@@ -46,12 +46,6 @@ export default {
       meta: { title: "商品分组" }
     },
     {
-      path: "/goods-governance/home-category",
-      name: "HomeCategoryManage",
-      component: () => import("@/views/goods-governance/home-category/index.vue"),
-      meta: { title: "首页分类配置", showLink: false }
-    },
-    {
       path: "/goods-governance/points-goods",
       name: "PointsGoodsManage",
       component: () => import("@/views/goods-governance/points-goods/index.vue"),

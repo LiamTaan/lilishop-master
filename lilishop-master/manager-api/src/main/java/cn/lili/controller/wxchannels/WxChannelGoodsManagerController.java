@@ -6,12 +6,14 @@ import cn.lili.modules.wxchannels.entity.dos.WxChannelGoods;
 import cn.lili.modules.wxchannels.entity.dto.WxChannelGoodsSearchParams;
 import cn.lili.modules.wxchannels.service.WxChannelGoodsService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @Tag(name = "管理端,微信视频号商品接口")
 @RequestMapping("/manager/wxchannels/goods")

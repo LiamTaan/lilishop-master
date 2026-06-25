@@ -7,6 +7,7 @@ import cn.lili.modules.page.entity.dos.Special;
 import cn.lili.modules.page.service.SpecialService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import java.util.List;
  * @author Bulbasaur
  * @since 2020/12/7 11:33
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,专题活动接口")
 @RequestMapping("/manager/other/special")

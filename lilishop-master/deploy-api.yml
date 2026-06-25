@@ -227,6 +227,7 @@ data:
         - /buyer/payment/cashier/**
         - /buyer/other/pageData/**
         - /buyer/other/article/**
+        - /buyer/other/shortcutNav/**
         - /buyer/goods/**
         - /buyer/store/**
         - /buyer/passport/connect/**
@@ -246,24 +247,11 @@ data:
         - /manager/other/elasticsearch
         - /manager/other/customWords
         - /druid/**
-        - /swagger-ui.html
-        - /v3/api-docs/**
         - /manager/promotion/seckill/init
         - /static/**
         - /public/**
         - /resources/**
         - /META-INF/resources/**
-
-    # Swagger界面内容配置
-    swagger:
-      title: lilishop API接口文档
-      description: lilishop Api Documentation
-      version: 4.2.2
-      termsOfServiceUrl: https://pickmall.cn
-      contact:
-        name: lili
-        url: https://pickmall.cn
-        email: admin@pickmall.com
 
     # Mybatis-plus
     mybatis-plus:
@@ -299,6 +287,8 @@ data:
     lili:
       #验证码设置
       verification-code:
+        #是否启用滑块验证码校验
+        enabled: false
         #图形验证码有效时间 秒 包含滑块验证码有效时间， 以及验证通过之后，缓存中存储的验证结果有效时间
         effectiveTime: 300
         #水印

@@ -8,6 +8,7 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.vos.StudioVO;
 import cn.lili.modules.goods.service.StudioService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import jakarta.validation.constraints.NotNull;
  * @author Bulbasaur
  * @since 2021/5/28 11:56 上午
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,直播间接口")
 @RequestMapping("/manager/broadcast/studio")

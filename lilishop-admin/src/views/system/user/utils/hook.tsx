@@ -189,7 +189,7 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
       minWidth: 140
     },
     {
-      label: "账号类型",
+      label: "权限级别",
       prop: "isSuper",
       minWidth: 110,
       cellRenderer: ({ row, props }) => (
@@ -201,6 +201,18 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
           {row.isSuper ? "超级管理员" : "普通管理员"}
         </el-tag>
       )
+    },
+    {
+      label: "绑定角色",
+      prop: "roles",
+      minWidth: 220,
+      formatter: ({ roles }) =>
+        Array.isArray(roles) && roles.length > 0
+          ? roles
+              .map(role => role?.name)
+              .filter(Boolean)
+              .join(" / ")
+          : "-"
     },
     {
       label: "部门",

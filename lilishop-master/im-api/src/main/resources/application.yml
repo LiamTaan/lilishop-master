@@ -115,21 +115,6 @@ ignored:
     - /manager/other/elasticsearch
     - /manager/other/customWords
     - /druid/**
-    - /swagger-ui.html
-    - /swagger-ui/**
-    - /v3/api-docs
-    - /v3/api-docs/**
-
-# Swagger界面内容配置
-swagger:
-  title: lili API接口文档
-  description: lili Api Documentation
-  version: 1.0.0
-  termsOfServiceUrl: https://pickmall.cn
-  contact:
-    name: lili
-    url: https://pickmall.cn
-    email: admin@pickmall.com
 
 # Mybatis-plus
 mybatis-plus:
@@ -154,9 +139,9 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    path: /swagger-ui/index.html
+    enabled: false
   packages-to-scan: cn.lili.controller
   paths-to-match:
     - /im/**

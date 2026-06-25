@@ -189,8 +189,11 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     public Token usernameLogin(String username, String password) {
         Member member = this.findMember(username);
         //判断用户是否存在
-        if (member == null || !member.getDisabled()) {
+        if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
+        }
+        if (!Boolean.TRUE.equals(member.getDisabled())) {
+            throw new ServiceException(ResultCode.USER_STATUS_ERROR);
         }
         //判断密码是否输入正确
         if (!new BCryptPasswordEncoder().matches(password, member.getPassword())) {
@@ -231,8 +234,11 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
 
         Member member = this.findMember(username);
         //判断用户是否存在
-        if (member == null || !member.getDisabled()) {
+        if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
+        }
+        if (!Boolean.TRUE.equals(member.getDisabled())) {
+            throw new ServiceException(ResultCode.USER_STATUS_ERROR);
         }
         //判断密码是否输入正确
         if (!new BCryptPasswordEncoder().matches(password, member.getPassword())) {

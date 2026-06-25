@@ -14,6 +14,10 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "lili.verification-code")
 public class VerificationCodeProperties {
 
+    /**
+     * 是否启用滑块验证码校验
+     */
+    private Boolean enabled = true;
 
     /**
      * 过期时间

@@ -8,6 +8,7 @@ import cn.lili.modules.wechat.entity.dos.WechatMessage;
 import cn.lili.modules.wechat.service.WechatMessageService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,7 @@ import java.nio.file.StandardOpenOption;
  * @author Chopper
  * @since 2020/12/2 10:40
  */
+@Hidden
 @RestController
 @Tag(name = "管理端,微信消息接口")
 @RequestMapping("/manager/wechat/wechatMessage")

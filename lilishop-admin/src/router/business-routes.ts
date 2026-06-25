@@ -14,7 +14,7 @@ import supportCenterRouter from "./modules/support-center";
 import merchantGrantRouter from "./modules/merchant-grant";
 import systemCenterRouter from "./modules/system-center";
 
-/** 当前批发商城管理端的业务菜单骨架 */
+/** 当前批发商城管理端的业务菜单骨架，仅保留正式交付后台主链路 */
 export const businessRouteModules = [
   homeRouter,
   dashboardWholesaleRouter,

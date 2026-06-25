@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.lili.cache.Cache;
 import cn.lili.cache.CachePrefix;
 import cn.lili.common.security.AuthUser;
+import cn.lili.common.security.context.UserContext;
 import cn.lili.common.security.enums.SecurityEnum;
 import cn.lili.common.security.enums.UserEnums;
 import cn.lili.common.security.token.SecretKeyUtil;
@@ -65,7 +66,7 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
             throws IOException, ServletException {
 
         //从header中获取jwt
-        String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
+        String jwt = UserContext.resolveAccessToken(request);
         try {
             //如果没有token 则return
             if (StrUtil.isBlank(jwt)) {
@@ -121,4 +122,3 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
 }
-

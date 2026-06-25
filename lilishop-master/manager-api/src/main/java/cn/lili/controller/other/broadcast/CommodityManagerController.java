@@ -6,6 +6,7 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.vos.CommodityVO;
 import cn.lili.modules.goods.service.CommodityService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Bulbasaur
  * @since 2021/5/28 11:56 上午
  */
+@Hidden
 @RestController
 @Tag(name = "店铺端,直播商品接口")
 @RequestMapping("/manager/broadcast/commodity")

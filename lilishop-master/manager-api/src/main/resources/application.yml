@@ -111,9 +111,6 @@ ignored:
     - /manager/other/elasticsearch
     - /manager/other/customWords
     - /druid/**
-    - /v3/api-docs
-    - /v3/api-docs/**
-    - /swagger-ui/**
     - /favicon.ico
     - /static/**
     - /public/**
@@ -143,9 +140,9 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    path: /swagger-ui/index.html
+    enabled: false
   packages-to-scan: cn.lili.controller
   paths-to-match: /manager/**
   override-with-generic-response: false

@@ -105,12 +105,6 @@ ignored:
     - /store/passport/login/**
     - /store/passport/login/refresh/**
     - /druid/**
-    - /swagger-ui.html
-    - /swagger-ui
-    - /swagger-ui/
-    - /swagger-ui/**
-    - /v3/api-docs
-    - /v3/api-docs/**
 
 # Mybatis-plus
 mybatis-plus:
@@ -135,9 +129,9 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    path: /swagger-ui.html
+    enabled: false
   packages-to-scan: cn.lili.controller
   paths-to-match: /store/**
   override-with-generic-response: false

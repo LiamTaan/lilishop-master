@@ -94,7 +94,7 @@ public class ArticleManagerController {
     @PutMapping("update/status/{id}")
     public ResultMessage<Article> updateStatus(
             @PathVariable("id") String id, 
-            @PathVariable("status") boolean status) {
+            @RequestParam("status") boolean status) {
         articleService.updateArticleStatus(id, status);
         return ResultUtil.success();
     }

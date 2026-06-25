@@ -91,9 +91,9 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    path: /swagger-ui/index.html
+    enabled: false
   packages-to-scan: cn.lili.controller.common
   paths-to-match: /common/**
   override-with-generic-response: false
@@ -109,7 +109,6 @@ ignored:
     - /common/common/logo
     - /common/common/site
     - /druid/**
-    - /swagger-ui.html
 
 # Mybatis-plus
 mybatis-plus:
@@ -145,6 +144,8 @@ jasypt:
 lili:
   #验证码设置
   verification-code:
+    #是否启用滑块验证码校验
+    enabled: false
     #图形验证码有效时间 秒 包含滑块验证码有效时间， 以及验证通过之后，缓存中存储的验证结果有效时间
     effectiveTime: 300
     #水印

@@ -49,9 +49,6 @@ UPDATE li_menu SET permission = '/manager/goods/category*,/manager/goods/brand/a
 -- [商品管理] 商品分组 -> /goods-governance/goods-group-manage
 UPDATE li_menu SET permission = '/manager/goods/goodsGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-group-manage';
 
--- [商品管理] 首页分类配置 -> /goods-governance/home-category
-UPDATE li_menu SET permission = '/manager/other/shortcutNav*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/home-category';
-
 -- [商品管理] 积分商品治理 -> /goods-governance/points-goods
 UPDATE li_menu SET permission = '/manager/promotion/pointsGoods*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/points-goods';
 
@@ -247,31 +244,25 @@ UPDATE li_menu SET permission = '/manager/other/memberMessage*' WHERE id BETWEEN
 -- [通知与消息] 店铺消息 -> /message-center/store-message
 UPDATE li_menu SET permission = '/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/store-message';
 
--- [内容管理] 公告管理 -> /content-center/article
+-- [内容与运营] 首页配置 -> /content-center/home-config
+UPDATE li_menu SET permission = '/manager/other/platformHomeConfig*,/manager/goods/category/allChildren*,/manager/goods/goods/wholesale/list*,/manager/goods/goods/get*,/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/home-config';
+
+-- [内容与运营] 帮助与公告 -> /content-center/article
 UPDATE li_menu SET permission = '/manager/other/article*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article';
 
--- [内容管理] 页面装修 -> /content-center/page-data
-UPDATE li_menu SET permission = '/manager/other/pageData*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/page-data';
-
--- [内容管理] 快捷导航 -> /content-center/shortcut-nav
-UPDATE li_menu SET permission = '/manager/other/shortcutNav*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/shortcut-nav';
-
--- [内容管理] 文章分类 -> /content-center/article-category
+-- [内容与运营] 文章分类 -> /content-center/article-category
 UPDATE li_menu SET permission = '/manager/other/articleCategory*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article-category';
 
--- [内容管理] 敏感词管理 -> /content-center/sensitive-words
+-- [内容与运营] 敏感词管理 -> /content-center/sensitive-words
 UPDATE li_menu SET permission = '/manager/other/sensitiveWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/sensitive-words';
 
--- [内容管理] 自定义词库 -> /content-center/custom-words
+-- [内容与运营] 自定义词库 -> /content-center/custom-words
 UPDATE li_menu SET permission = '/manager/other/customWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/custom-words';
 
--- [内容管理] 热词治理 -> /content-center/hot-words-manage
+-- [内容与运营] 热词治理 -> /content-center/hot-words-manage
 UPDATE li_menu SET permission = '/manager/hotwords/hotwords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/hot-words-manage';
 
--- [内容管理] 专题管理 -> /content-center/special
-UPDATE li_menu SET permission = '/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/special';
-
--- [内容管理] APP版本 -> /content-center/app-version
+-- [内容与运营] APP版本 -> /content-center/app-version
 UPDATE li_menu SET permission = '/manager/other/appVersion*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/app-version';
 
 -- [系统支撑] 验证码资源 -> /support-center/verification-source
@@ -330,5 +321,5 @@ UPDATE li_menu SET permission = '/manager/permission/menu*' WHERE id BETWEEN 306
 
 SELECT CAST(id AS CHAR) AS id, title, path, permission FROM li_menu WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 ORDER BY level, sort_order, id;
 
--- matched routes with permission fill: 108/108
+-- matched routes with permission fill: 105/105
 

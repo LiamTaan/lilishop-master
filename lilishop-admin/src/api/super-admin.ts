@@ -3,6 +3,15 @@ import type { ResultMessage } from "./types";
 
 export type SuperAdminMenuRecord = Record<string, any>;
 
+function toFormBody(payload: Record<string, any>) {
+  const body = new URLSearchParams();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    body.append(key, String(value));
+  });
+  return body;
+}
+
 export const getSettingConfig = (key: string) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "get",
@@ -661,89 +670,6 @@ export const getSmsChannelPage = (params?: Record<string, any>) => {
     "get",
     "/manager/sms/sms",
     { params }
-  );
-};
-
-export const getPageDataPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/other/pageData/pageDataList",
-    { params }
-  );
-};
-
-export const getPageDataDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/other/pageData/${id}`
-  );
-};
-
-export const createPageData = (data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "post",
-    "/manager/other/pageData/add",
-    { params: data }
-  );
-};
-
-export const updatePageData = (id: string, data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "put",
-    `/manager/other/pageData/update/${id}`,
-    { params: data }
-  );
-};
-
-export const releasePageData = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "put",
-    `/manager/other/pageData/release/${id}`
-  );
-};
-
-export const deletePageData = (id: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/other/pageData/remove/${id}`
-  );
-};
-
-export const getShortcutNavPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/other/shortcutNav",
-    { params }
-  );
-};
-
-export const getShortcutNavDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/other/shortcutNav/${id}`
-  );
-};
-
-export const createShortcutNav = (data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "post",
-    "/manager/other/shortcutNav",
-    { params: data }
-  );
-};
-
-export const updateShortcutNav = (id: string, data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "put",
-    `/manager/other/shortcutNav/${id}`,
-    { params: data }
-  );
-};
-
-export const deleteShortcutNav = (id: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/other/shortcutNav/${id}`
   );
 };
 

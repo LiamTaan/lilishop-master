@@ -11,6 +11,8 @@ import cn.lili.common.utils.StringUtils;
 import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,10 +34,12 @@ public class UserContext {
     public static AuthUser getCurrentUser() {
         if (RequestContextHolder.getRequestAttributes() != null) {
             HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-            String accessToken = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
-            return getAuthUser(accessToken);
+            AuthUser authUser = getAuthUser(resolveAccessToken(request));
+            if (authUser != null) {
+                return authUser;
+            }
         }
-        return null;
+        return resolveFromSecurityContext();
     }
 
     /**
@@ -76,7 +80,7 @@ public class UserContext {
     public static String getCurrentUserToken() {
         if (RequestContextHolder.getRequestAttributes() != null) {
             HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-            return request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
+            return resolveAccessToken(request);
         }
         return null;
     }
@@ -102,6 +106,40 @@ public class UserContext {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static String resolveAccessToken(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String accessToken = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
+        if (StringUtils.isNotEmpty(accessToken)) {
+            return accessToken;
+        }
+        String authorization = request.getHeader("Authorization");
+        if (StringUtils.isEmpty(authorization)) {
+            return null;
+        }
+        if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return authorization.substring(7).trim();
+        }
+        return authorization.trim();
+    }
+
+    private static AuthUser resolveFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+        Object details = authentication.getDetails();
+        if (details instanceof AuthUser authUser) {
+            return authUser;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof AuthUser authUser) {
+            return authUser;
+        }
+        return null;
     }
 
 

@@ -4,6 +4,7 @@ import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.search.service.EsGoodsIndexService;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import java.util.Map;
  * @version v1.0
  * 2021-03-24 18:32
  */
+@Hidden
 @RestController
 @Tag(name = "ES初始化接口")
 @RequestMapping("/manager/other/elasticsearch")

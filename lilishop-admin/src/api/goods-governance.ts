@@ -68,14 +68,6 @@ export const deleteCategory = (id: string) => {
   );
 };
 
-export const getHomeCategoryPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
-    "get",
-    "/manager/other/shortcutNav",
-    { params }
-  );
-};
-
 export const getPointsGoodsPage = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "get",

@@ -26,20 +26,17 @@
 
 ## 数据库初始化
 
-空库初始化时，建议按顺序执行下面四个文件：
+空库初始化时，只需要按顺序执行 `DB_INIT` 下这两个文件：
 
 1. [DB_INIT/01_full_base_schema.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/01_full_base_schema.sql)
 2. [DB_INIT/02_startup_and_wholesale_patch.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/02_startup_and_wholesale_patch.sql)
-3. [DB_INIT/03_procurement_schema_patch.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/03_procurement_schema_patch.sql)
-4. [DB_INIT/04_wholesale_manager_menu_alignment.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/04_wholesale_manager_menu_alignment.sql)
 
 说明：
 
-- `01_full_base_schema.sql`：基础库建表与初始化数据
-- `02_startup_and_wholesale_patch.sql`：官方启动补丁 + 本项目批发商城补丁 + 推荐索引
-- `03_procurement_schema_patch.sql`：采购单、采购入库等采购域补表
-- `04_wholesale_manager_menu_alignment.sql`：批发管理端菜单基线、权限回填、旧平台菜单清理、平台角色基线
-- 执行 `04_wholesale_manager_menu_alignment.sql` 时，请从仓库根目录发起，以便其中的 `SOURCE DB/...` 路径正常解析
+- `01_full_base_schema.sql`：基础库建表 + 官方基础种子数据
+- `02_startup_and_wholesale_patch.sql`：官方启动补丁 + 批发商城补丁 + 采购域补表 + 管理端菜单权限收口 + 条码补丁
+- 管理端初始化后只保留默认唯一超级管理员 `admin`，不预置平台管理员或其他后台角色；业务管理员与角色由后台自行维护
+- `02_startup_and_wholesale_patch.sql` 已内联所有补丁，支持在 Navicat、DataGrip、mysql CLI 中直接执行
 
 已初始化过的旧库如出现缺表，按缺失模块补执行：
 
@@ -168,15 +165,12 @@ mvn -pl im-api -am spring-boot:run "-Dspring-boot.run.profiles=dev"
 - `im-api`：`8885`
 - `consumer`：`8886`
 
-## Swagger
+## 接口文档
 
-启动后可访问：
+Swagger 已关闭，APP 对接请直接查看：
 
-- 管理端：`http://127.0.0.1:8887/swagger-ui/index.html`
-- 买家端：`http://127.0.0.1:8888/swagger-ui/index.html`
-- 商家端：`http://127.0.0.1:8889/swagger-ui.html`
-- 公共服务：`http://127.0.0.1:8890/swagger-ui/index.html`
-- IM 服务：`http://127.0.0.1:8885/swagger-ui/index.html`
+- [docs/批发商城APP接口对接文档.md](D:/user_wuyou/lilishop-master/lilishop-master/docs/批发商城APP接口对接文档.md)
+- [docs/批发商城原型页面逐页字段核对表.md](D:/user_wuyou/lilishop-master/lilishop-master/docs/批发商城原型页面逐页字段核对表.md)
 
 说明：
 

@@ -6,12 +6,14 @@ import cn.lili.modules.wxchannels.entity.dos.WxChannelRefund;
 import cn.lili.modules.wxchannels.entity.dto.WxChannelRefundSearchParams;
 import cn.lili.modules.wxchannels.service.WxChannelRefundService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @Tag(name = "管理端,微信视频号退单接口")
 @RequestMapping("/manager/wxchannels/refund")

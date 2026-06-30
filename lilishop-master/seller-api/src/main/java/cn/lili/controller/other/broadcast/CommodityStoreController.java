@@ -40,7 +40,6 @@ public class CommodityStoreController {
     }
 
     @Operation(description = "添加店铺直播商品")
-    @Parameter(name = "commodityList", description = "直播商品列表", required = true)
     @PostMapping
     public ResultMessage<Object> addCommodity(@RequestBody List<Commodity> commodityList) {
         if (commodityService.addCommodity(commodityList)) {

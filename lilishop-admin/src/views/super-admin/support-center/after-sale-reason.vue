@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createAfterSaleReason,
@@ -13,6 +14,7 @@ import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -36,6 +38,12 @@ const summaryCards = computed(() => [
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接真实售后原因接口" }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function typeLabel(type: string) {
   if (type === "RETURN_GOODS") return "退货退款";
   if (type === "RETURN_MONEY") return "仅退款";
@@ -56,10 +64,15 @@ function normalizeRecord(item: Record<string, any>): Record<string, any> {
 
 async function loadData() {
   try {
-    const res = await getAfterSaleReasonPage({ serviceType: query.serviceType });
+    const res = await getAfterSaleReasonPage({
+      serviceType: query.serviceType,
+      pageNumber: 1,
+      pageSize: 200
+    });
     let list = extractApiRecords(res).map(normalizeRecord);
     if (query.keyword) list = list.filter(item => item.displayName.includes(query.keyword));
     rows.value = list;
+    selectedRows.value = [];
   } catch (_error) {
     message("售后原因加载失败，请稍后重试", { type: "error" });
   }
@@ -73,6 +86,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -136,6 +153,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的售后原因", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条售后原因吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteAfterSaleReason(id)));
+    selectedRows.value = [];
+    message("售后原因批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("售后原因批量删除失败", { type: "error" });
+  }
+}
+
+function exportReasons() {
+  if (!rows.value.length) {
+    message("暂无可导出的售后原因数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    售后原因: item.displayName,
+    售后类型: item.displayType,
+    更新时间: item.displayTime,
+    备注: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "售后原因");
+  writeFile(workbook, "售后原因.xlsx");
+  message("售后原因导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -146,6 +201,7 @@ onMounted(loadData);
     api-path="/manager/order/afterSaleReason/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -157,6 +213,7 @@ onMounted(loadData);
     keyword-placeholder="请输入售后原因"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #filters-extra>
       <el-form-item label="售后类型">
@@ -168,6 +225,8 @@ onMounted(loadData);
       </el-form-item>
     </template>
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportReasons">导出</el-button>
       <el-button type="primary" @click="openCreate">新增售后原因</el-button>
     </template>
     <template #operation="{ row }">

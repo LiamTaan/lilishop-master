@@ -65,7 +65,6 @@ public class CouponStoreController {
     }
 
     @Operation(description = "添加优惠券")
-    @Parameter(name = "couponVO", description = "优惠券VO", required = true)
     @PostMapping(consumes = "application/json", produces = "application/json")
     public ResultMessage<CouponVO> addCoupon(@RequestBody CouponVO couponVO) {
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
@@ -79,7 +78,6 @@ public class CouponStoreController {
 
     @PutMapping(consumes = "application/json", produces = "application/json")
     @Operation(description = "修改优惠券")
-    @Parameter(name = "couponVO", description = "优惠券VO", required = true)
     public ResultMessage<Coupon> updateCoupon(@RequestBody CouponVO couponVO) {
         OperationalJudgment.judgment(couponService.getById(couponVO.getId()));
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());

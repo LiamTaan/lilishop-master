@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import {
   getFullDiscountDetail,
   getFullDiscountPage,
@@ -13,6 +14,12 @@ import {
   getPromotionStatusLabel
 } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
+import {
+  formatBooleanLabel,
+  formatMoney,
+  normalizePromotionDetail,
+  toTimeValue
+} from "../shared/promotion-helpers";
 
 defineOptions({
   name: "FullDiscountManage"
@@ -52,20 +59,68 @@ const filteredRows = computed(() =>
   })
 );
 
+const summaryCards = computed(() => [
+  {
+    label: "活动总数",
+    value: filteredRows.value.length,
+    accent: "orange" as const,
+    hint: "当前筛选结果"
+  },
+  {
+    label: "进行中",
+    value: filteredRows.value.filter(item => String(item.promotionStatus).toUpperCase() === "START").length,
+    accent: "green" as const,
+    hint: "当前有效满减"
+  },
+  {
+    label: "包邮活动",
+    value: filteredRows.value.filter(item => Boolean(item.freeFreightFlag)).length,
+    accent: "blue" as const,
+    hint: "当前含包邮权益"
+  },
+  {
+    label: "治理动作",
+    value: "详情/状态/导出",
+    accent: "purple" as const,
+    hint: "已接入真实导出"
+  }
+]);
+
+const detailFields = computed(() => {
+  if (!currentRow.value) {
+    return [];
+  }
+  const detail = currentRow.value;
+  return [
+    { label: "活动名称", value: detail.promotionName || detail.title || "-" },
+    { label: "门槛金额", value: formatMoney(detail.fullMoney) },
+    { label: "减现金", value: detail.fullMinusFlag ? formatMoney(detail.fullMinus) : "未启用" },
+    { label: "打折", value: detail.fullRateFlag ? `${detail.fullRate || 0} 折` : "未启用" },
+    { label: "包邮", value: formatBooleanLabel(detail.freeFreightFlag) },
+    { label: "赠积分", value: detail.pointFlag ? `${detail.point || 0} 积分` : "未启用" },
+    { label: "赠优惠券", value: detail.couponFlag ? detail.couponId || "已配置" : "未启用" },
+    { label: "赠品", value: detail.giftFlag ? detail.giftSkuName || detail.giftId || "已配置" : "未启用" },
+    { label: "开始时间", value: detail.startTimeText || "-" },
+    { label: "结束时间", value: detail.endTimeText || "-" },
+    { label: "状态", value: detail.promotionStatusLabel || "-" },
+    { label: "活动说明", value: detail.description || "-" }
+  ];
+});
+
 function normalizeRow(item: Record<string, any>) {
   return {
-    ...item,
-    id: item.id || item.promotionId,
-    promotionName: item.promotionName || "-",
-    promotionStatus: item.promotionStatus || item.status || "-",
-    promotionStatusLabel: getPromotionStatusLabel(item.promotionStatus || item.status || "-"),
+    ...normalizePromotionDetail(item),
+    promotionName: item.promotionName || item.title || "-",
     fullMoneyDisplay: `¥ ${Number(item.fullMoney ?? item.consumeThreshold ?? 0).toFixed(2)}`,
     benefitText:
       item.benefitText ||
       [
-        item.reducePrice ? `减 ${item.reducePrice}` : "",
-        item.discount ? `折扣 ${item.discount}` : "",
-        item.freeFreight ? "包邮" : ""
+        item.fullMinusFlag ? `减 ${item.fullMinus}` : "",
+        item.fullRateFlag ? `打 ${item.fullRate} 折` : "",
+        item.freeFreightFlag ? "包邮" : "",
+        item.pointFlag ? `送 ${item.point} 积分` : "",
+        item.couponFlag ? "送优惠券" : "",
+        item.giftFlag ? `送赠品 ${item.giftSkuName || item.giftId || ""}` : ""
       ]
         .filter(Boolean)
         .join(" / ") ||
@@ -121,8 +176,8 @@ async function submitStatus() {
   if (!currentRow.value) return;
   try {
     await updateFullDiscountStatus(String(currentRow.value.id), {
-      startTime: statusForm.startTime ? new Date(statusForm.startTime).getTime() : undefined,
-      endTime: statusForm.endTime ? new Date(statusForm.endTime).getTime() : undefined
+      startTime: toTimeValue(statusForm.startTime),
+      endTime: toTimeValue(statusForm.endTime)
     });
     message("满减活动状态更新成功", { type: "success" });
     statusVisible.value = false;
@@ -130,6 +185,25 @@ async function submitStatus() {
   } catch (_error) {
     message("满减活动状态更新失败", { type: "error" });
   }
+}
+
+function exportFullDiscount() {
+  if (!filteredRows.value.length) {
+    message("暂无可导出的满减活动数据", { type: "warning" });
+    return;
+  }
+  const table = filteredRows.value.map(item => ({
+    活动名称: item.promotionName,
+    门槛金额: item.fullMoneyDisplay,
+    优惠内容: item.benefitText,
+    状态: item.promotionStatusLabel || getPromotionStatusLabel(item.promotionStatus),
+    活动时间: item.activityTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "满减活动管理");
+  writeFile(workbook, "满减活动管理.xlsx");
+  message("满减活动数据导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -144,6 +218,7 @@ onMounted(() => {
     api-path="/manager/promotion/fullDiscount"
     :columns="columns"
     :data="filteredRows"
+    :summary-cards="summaryCards"
     :status-options="[
       { label: '待开始', value: 'NEW' },
       { label: '进行中', value: 'START' },
@@ -154,6 +229,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportFullDiscount">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="warning" @click="openStatusDialog(row)">状态</el-button>
@@ -185,15 +263,23 @@ onMounted(() => {
     </template>
   </el-dialog>
 
-  <el-drawer v-model="detailVisible" title="满减活动详情" size="46%">
-    <pre v-if="currentRow" class="json-panel">{{ JSON.stringify(currentRow, null, 2) }}</pre>
+  <el-drawer v-model="detailVisible" title="满减活动详情" size="56%">
+    <el-descriptions v-if="currentRow" :column="2" border>
+      <el-descriptions-item
+        v-for="field in detailFields"
+        :key="field.label"
+        :label="field.label"
+        :span="field.label === '活动说明' ? 2 : 1"
+      >
+        <div class="detail-text">{{ field.value }}</div>
+      </el-descriptions-item>
+    </el-descriptions>
   </el-drawer>
 </template>
 
 <style scoped>
-.json-panel {
-  margin: 0;
+.detail-text {
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
 }
 </style>

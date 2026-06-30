@@ -11,6 +11,8 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.dos.Goods;
 import cn.lili.modules.goods.entity.dos.GoodsSku;
 import cn.lili.modules.goods.entity.dto.GoodsOperationDTO;
+import cn.lili.modules.goods.entity.dto.GoodsBatchOperationDTO;
+import cn.lili.modules.goods.entity.dto.GoodsFreightUpdateDTO;
 import cn.lili.modules.goods.entity.dto.GoodsMarketScheduleDTO;
 import cn.lili.modules.goods.entity.dto.GoodsSearchParams;
 import cn.lili.modules.goods.entity.dto.GoodsSkuStockDTO;
@@ -148,37 +150,32 @@ public class GoodsStoreController {
 
     @DemoSite
     @Operation(summary = "下架商品", description = "下架商品时使用")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
     @PutMapping("/under")
-    public ResultMessage<Object> underGoods(@RequestParam List<String> goodsId) {
+    public ResultMessage<Object> underGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
 
-        goodsService.updateGoodsMarketAble(goodsId, GoodsStatusEnum.DOWN, "商家下架");
+        goodsService.updateGoodsMarketAble(updateDTO.getGoodsId(), GoodsStatusEnum.DOWN, "商家下架");
         return ResultUtil.success();
     }
 
     @Operation(summary = "上架商品", description = "上架商品时使用")
     @PutMapping("/up")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
-    public ResultMessage<Object> unpGoods(@RequestParam List<String> goodsId) {
-        goodsService.updateGoodsMarketAble(goodsId, GoodsStatusEnum.UPPER, "");
+    public ResultMessage<Object> unpGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
+        goodsService.updateGoodsMarketAble(updateDTO.getGoodsId(), GoodsStatusEnum.UPPER, "");
         return ResultUtil.success();
     }
 
     @DemoSite
     @Operation(summary = "删除商品")
     @PutMapping("/delete")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
-    public ResultMessage<Object> deleteGoods(@RequestParam List<String> goodsId) {
-        goodsService.deleteGoods(goodsId);
+    public ResultMessage<Object> deleteGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
+        goodsService.deleteGoods(updateDTO.getGoodsId());
         return ResultUtil.success();
     }
 
     @Operation(summary = "设置商品运费模板")
     @PutMapping("/freight")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
-    @Parameter(name = "templateId", description = "运费模板ID", required = true)
-    public ResultMessage<Object> freight(@RequestParam List<String> goodsId, @RequestParam String templateId) {
-        goodsService.freight(goodsId, templateId);
+    public ResultMessage<Object> freight(@RequestBody @Valid GoodsFreightUpdateDTO updateDTO) {
+        goodsService.freight(updateDTO.getGoodsId(), updateDTO.getTemplateId());
         return ResultUtil.success();
     }
 

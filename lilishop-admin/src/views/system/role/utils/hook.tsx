@@ -1,7 +1,6 @@
 import dayjs from "dayjs";
 import editForm from "../form.vue";
 import { message } from "@/utils/message";
-import { ElMessageBox } from "element-plus";
 import { transformI18n } from "@/plugins/i18n";
 import { addDialog } from "@/components/ReDialog";
 import type { FormItemProps } from "../utils/types";
@@ -18,7 +17,7 @@ import {
 } from "@/api/system";
 import { extractApiPayload, extractApiRecords } from "@/utils/admin-governance";
 import { isSuccessResult } from "@/utils/result";
-import { type Ref, reactive, ref, onMounted, h, watch } from "vue";
+import { type Ref, reactive, ref, onMounted, h, watch, computed } from "vue";
 
 type RoleRow = {
   id: string;
@@ -66,8 +65,10 @@ export function useRole(treeRef: Ref) {
   const curRow = ref<RoleRow | null>(null);
   const formRef = ref();
   const dataList = ref<RoleRow[]>([]);
+  const selectedRows = ref<RoleRow[]>([]);
   const treeIds = ref<string[]>([]);
   const treeData = ref<Record<string, any>[]>([]);
+  const selectedNum = computed(() => selectedRows.value.length);
   const isShow = ref(false);
   const loading = ref(true);
   const isLinkage = ref(false);
@@ -86,6 +87,12 @@ export function useRole(treeRef: Ref) {
     background: true
   });
   const columns: TableColumnList = [
+    {
+      type: "selection",
+      width: 54,
+      reserveSelection: true,
+      align: "center"
+    },
     {
       label: "角色编号",
       prop: "id"
@@ -133,7 +140,8 @@ export function useRole(treeRef: Ref) {
       pageSize: pagination.pageSize
     };
     if (form.name.trim()) params.name = form.name.trim();
-    if (form.defaultRole !== "") params.defaultRole = form.defaultRole === "true";
+    if (form.defaultRole !== "")
+      params.defaultRole = form.defaultRole === "true";
     return params;
   }
 
@@ -231,6 +239,29 @@ export function useRole(treeRef: Ref) {
     }
   }
 
+  async function onbatchDel() {
+    const ids = selectedRows.value.map(item => item.id).filter(Boolean);
+    if (!ids.length) return;
+    try {
+      const response = await deleteManagerRoles(ids);
+      if (!isSuccessResult(response)) {
+        throw new Error(response?.message || "批量删除角色失败");
+      }
+      if (ids.length >= dataList.value.length && pagination.currentPage > 1) {
+        pagination.currentPage -= 1;
+      }
+      selectedRows.value = [];
+      message(`已删除角色编号为 ${ids.join(", ")} 的数据`, {
+        type: "success"
+      });
+      await onSearch();
+    } catch (error: any) {
+      message(getErrorMessage(error, "批量删除角色失败"), {
+        type: "error"
+      });
+    }
+  }
+
   async function handleSizeChange(val: number) {
     pagination.pageSize = val;
     pagination.currentPage = 1;
@@ -243,7 +274,7 @@ export function useRole(treeRef: Ref) {
   }
 
   function handleSelectionChange(val) {
-    console.log("handleSelectionChange", val);
+    selectedRows.value = Array.isArray(val) ? val : [];
   }
 
   async function handleMenu(row?: RoleRow) {
@@ -253,9 +284,9 @@ export function useRole(treeRef: Ref) {
       isShow.value = true;
       const response = await getManagerRoleMenuList(id);
       if (isSuccessResult(response) && treeRef.value) {
-        const checkedKeys = extractApiRecords<Record<string, any>>(response).map(
-          item => String(item.menuId || item.id)
-        );
+        const checkedKeys = extractApiRecords<Record<string, any>>(
+          response
+        ).map(item => String(item.menuId || item.id));
         treeRef.value.setCheckedKeys(checkedKeys);
       }
       return;
@@ -277,7 +308,7 @@ export function useRole(treeRef: Ref) {
       const payload = treeRef.value.getCheckedKeys().map(menuId => ({
         roleId: curRow.value.id,
         menuId: String(menuId),
-        isSuper: false
+        isSuper: true
       }));
       const response = await saveManagerRoleMenuList(curRow.value.id, payload);
       if (!isSuccessResult(response)) {
@@ -312,12 +343,16 @@ export function useRole(treeRef: Ref) {
 
   watch(isExpandAll, val => {
     if (!treeRef.value) return;
-    val ? treeRef.value.setExpandedKeys(treeIds.value) : treeRef.value.setExpandedKeys([]);
+    val
+      ? treeRef.value.setExpandedKeys(treeIds.value)
+      : treeRef.value.setExpandedKeys([]);
   });
 
   watch(isSelectAll, val => {
     if (!treeRef.value) return;
-    val ? treeRef.value.setCheckedKeys(treeIds.value) : treeRef.value.setCheckedKeys([]);
+    val
+      ? treeRef.value.setCheckedKeys(treeIds.value)
+      : treeRef.value.setCheckedKeys([]);
   });
 
   return {
@@ -341,6 +376,8 @@ export function useRole(treeRef: Ref) {
     handleMenu,
     handleSave,
     handleDelete,
+    onbatchDel,
+    selectedNum,
     filterMethod,
     transformI18n,
     onQueryChanged,

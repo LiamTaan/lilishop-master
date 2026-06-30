@@ -16,10 +16,33 @@ export const getStoreApplyPage = (params?: Record<string, any>) => {
   );
 };
 
+export const getStoreSummary = () => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    "/manager/store/store/summary"
+  );
+};
+
 export const getStoreDetail = (storeId: string) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "get",
     `/manager/store/store/get/detail/${storeId}`
+  );
+};
+
+export const createStore = (params: Record<string, any>) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "post",
+    "/manager/store/store/add",
+    { data: params }
+  );
+};
+
+export const updateStore = (storeId: string, params: Record<string, any>) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "put",
+    `/manager/store/store/edit/${storeId}`,
+    { data: params }
   );
 };
 

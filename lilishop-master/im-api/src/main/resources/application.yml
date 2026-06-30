@@ -106,6 +106,7 @@ spring:
 # 忽略鉴权url
 ignored:
   urls:
+    - /v3/api-docs
     - /editor-app/**
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
@@ -139,7 +140,8 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    version: openapi_3_0
   swagger-ui:
     enabled: false
   packages-to-scan: cn.lili.controller

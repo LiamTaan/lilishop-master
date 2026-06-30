@@ -66,17 +66,17 @@ export const router: Router = createRouter({
   routes: constantRoutes.concat(...(remainingRouter as any)),
   strict: true,
   scrollBehavior(to, from, savedPosition) {
-    return new Promise(resolve => {
-      if (savedPosition) {
-        return savedPosition;
-      } else {
-        if (from.meta.saveSrollTop) {
-          const top: number =
-            document.documentElement.scrollTop || document.body.scrollTop;
-          resolve({ left: 0, top });
-        }
-      }
-    });
+    if (savedPosition) {
+      return savedPosition;
+    }
+
+    if (from.meta.saveSrollTop) {
+      const top: number =
+        document.documentElement.scrollTop || document.body.scrollTop;
+      return { left: 0, top };
+    }
+
+    return { left: 0, top: 0 };
   }
 });
 

@@ -23,10 +23,6 @@ import cn.lili.cache.CachePrefix;
 import cn.lili.modules.sms.SmsUtil;
 import cn.lili.modules.verification.entity.enums.VerificationEnums;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -47,7 +43,6 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @RestController
-@Tag(name = "管理员")
 @RequestMapping("/manager/passport/user")
 @Validated
 public class AdminUserManagerController {
@@ -69,20 +64,12 @@ public class AdminUserManagerController {
     private SystemSettingProperties systemSettingProperties;
 
     @PostMapping("/login")
-    @Operation(description = "登录管理员")
-    @Parameter(name = "username", description = "用户名", required = true)
-    @Parameter(name = "password", description = "密码", required = true)
     public ResultMessage<Token> login(@NotNull(message = "用户名不能为空") @RequestParam String username,
                                       @NotNull(message = "密码不能为空") @RequestParam String password) {
         return ResultUtil.data(adminUserService.login(username, password));
     }
 
     @GetMapping("/sms/{mobile}")
-    @Operation(description = "管理员登录短信验证码")
-    @Parameters({
-            @Parameter(name = "mobile", description = "手机号", required = true),
-            @Parameter(name = "uuid", description = "uuid", required = true)
-    })
     public ResultMessage<Object> sendLoginSmsCode(@RequestHeader String uuid,
                                                   @PathVariable String mobile) {
         smsUtil.sendSmsCode(mobile, VerificationEnums.LOGIN, uuid);
@@ -90,12 +77,6 @@ public class AdminUserManagerController {
     }
 
     @PostMapping("/mobile/login")
-    @Operation(description = "管理员手机号登录")
-    @Parameters({
-            @Parameter(name = "mobile", description = "手机号", required = true),
-            @Parameter(name = "code", description = "验证码", required = true),
-            @Parameter(name = "uuid", description = "uuid", required = true)
-    })
     public ResultMessage<Token> mobileLogin(@NotNull(message = "手机号不能为空") @RequestParam String mobile,
                                             @NotNull(message = "验证码不能为空") @RequestParam String code,
                                             @RequestHeader String uuid) {
@@ -106,11 +87,6 @@ public class AdminUserManagerController {
     }
 
     @GetMapping("/reset/sms/{mobile}")
-    @Operation(description = "管理员找回密码短信验证码")
-    @Parameters({
-            @Parameter(name = "mobile", description = "手机号", required = true),
-            @Parameter(name = "uuid", description = "uuid", required = true)
-    })
     public ResultMessage<Object> sendResetSmsCode(@RequestHeader String uuid,
                                                   @PathVariable String mobile) {
         smsUtil.sendSmsCode(mobile, VerificationEnums.FIND_USER, uuid);
@@ -118,12 +94,6 @@ public class AdminUserManagerController {
     }
 
     @PostMapping("/reset/verify")
-    @Operation(description = "管理员找回密码短信验证")
-    @Parameters({
-            @Parameter(name = "mobile", description = "手机号", required = true),
-            @Parameter(name = "code", description = "验证码", required = true),
-            @Parameter(name = "uuid", description = "uuid", required = true)
-    })
     public ResultMessage<Object> verifyResetSms(@NotNull(message = "手机号不能为空") @RequestParam String mobile,
                                                 @NotNull(message = "验证码不能为空") @RequestParam String code,
                                                 @RequestHeader String uuid) {
@@ -139,12 +109,6 @@ public class AdminUserManagerController {
     }
 
     @PostMapping("/reset/password")
-    @Operation(description = "管理员找回密码重置")
-    @Parameters({
-            @Parameter(name = "mobile", description = "手机号", required = true),
-            @Parameter(name = "password", description = "新密码", required = true),
-            @Parameter(name = "uuid", description = "uuid", required = true)
-    })
     public ResultMessage<Object> resetPasswordByMobile(@NotNull(message = "手机号不能为空") @RequestParam String mobile,
                                                        @NotNull(message = "密码不能为空") @RequestParam String password,
                                                        @RequestHeader String uuid) {
@@ -152,14 +116,12 @@ public class AdminUserManagerController {
         return ResultUtil.success(ResultCode.USER_EDIT_SUCCESS);
     }
 
-    @Operation(description = "注销接口")
     @PostMapping("/logout")
     public ResultMessage<Object> logout() {
         this.memberService.logout(UserEnums.MANAGER);
         return ResultUtil.success();
     }
 
-    @Operation(description = "刷新token")
     @GetMapping("/refresh/{refreshToken}")
     public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @PathVariable String refreshToken) {
         return ResultUtil.data(this.adminUserService.refreshToken(refreshToken));
@@ -167,7 +129,6 @@ public class AdminUserManagerController {
 
 
     @GetMapping("/info")
-    @Operation(description = "获取当前登录用户接口")
     public ResultMessage<AdminUser> getUserInfo() {
         AuthUser tokenUser = UserContext.getCurrentUser();
         if (tokenUser != null) {
@@ -179,14 +140,12 @@ public class AdminUserManagerController {
     }
 
     @PutMapping("/edit")
-    @Operation(description = "修改用户自己资料")
-    public ResultMessage<Object> editOwner(@Valid AdminUserProfileDTO adminUserProfileDTO) {
+    public ResultMessage<Object> editOwner(@Valid @RequestBody AdminUserProfileDTO adminUserProfileDTO) {
         adminUserService.updateOwnerProfile(adminUserProfileDTO);
         return ResultUtil.success(ResultCode.USER_EDIT_SUCCESS);
     }
 
     @PutMapping("/admin/edit")
-    @Operation(description = "超级管理员修改其他管理员资料")
     @DemoSite
     public ResultMessage<Object> edit(@Valid AdminUser adminUser,
                                       @RequestParam(required = false) List<String> roles) {
@@ -204,7 +163,6 @@ public class AdminUserManagerController {
      * @return
      */
     @PutMapping("/editPassword")
-    @Operation(description = "修改密码")
     @DemoSite
     public ResultMessage<Object> editPassword(String password, String newPassword) {
         adminUserService.editPassword(password, newPassword);
@@ -212,7 +170,6 @@ public class AdminUserManagerController {
     }
 
     @PostMapping("/resetPassword/{ids}")
-    @Operation(description = "重置密码")
     @DemoSite
     public ResultMessage<Object> resetPassword(@PathVariable List<String> ids) {
         adminUserService.resetPassword(ids);
@@ -220,7 +177,6 @@ public class AdminUserManagerController {
     }
 
     @GetMapping("/getByCondition")
-    @Operation(description = "多条件分页获取用户列表")
     public ResultMessage<IPage<AdminUserVO>> getByCondition(AdminUserDTO user,
                                                             SearchVO searchVo,
                                                             PageVO pageVo) {
@@ -231,7 +187,6 @@ public class AdminUserManagerController {
 
 
     @PostMapping("/register")
-    @Operation(description = "添加用户")
     public ResultMessage<Object> register(@Valid AdminUserDTO adminUser,
                                           @RequestParam(required = false) List<String> roles) {
         int rolesMaxSize = 10;
@@ -248,9 +203,8 @@ public class AdminUserManagerController {
     }
 
     @PutMapping("/enable/{userId}")
-    @Operation(description = "禁/启 用 用户")
     @DemoSite
-    public ResultMessage<Object> disable(@Parameter(description = "用户唯一id标识") @PathVariable String userId, Boolean status) {
+ public ResultMessage<Object> disable(@PathVariable String userId, Boolean status) {
         AdminUser user = adminUserService.getById(userId);
         if (user == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
@@ -269,7 +223,6 @@ public class AdminUserManagerController {
     }
 
     @DeleteMapping("/{ids}")
-    @Operation(description = "批量通过ids删除")
     @DemoSite
     public ResultMessage<Object> delAllByIds(@PathVariable List<String> ids) {
         adminUserService.deleteCompletely(ids);

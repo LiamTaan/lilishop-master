@@ -91,7 +91,8 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    version: openapi_3_0
   swagger-ui:
     enabled: false
   packages-to-scan: cn.lili.controller.common
@@ -102,6 +103,7 @@ springdoc:
 # 忽略鉴权url
 ignored:
   urls:
+    - /v3/api-docs
     - /editor-app/**
     - /source/**
     - /common/common/slider/**
@@ -206,3 +208,8 @@ lili:
       notice-group: lili_notice_group
       notice-send-topic: lili_send_notice_topic
       notice-send-group: lili_send_notice_group
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:19876}
+  producer:
+    group: lili_group
+    send-message-timeout: 30000

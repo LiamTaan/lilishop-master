@@ -71,7 +71,13 @@ public class OpenApiConfig {
     @Bean
     public OpenApiCustomizer globalSwaggerOpenApiCustomizer() {
         return openApi -> {
-            if (openApi == null || openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
+            if (openApi == null) {
+                return;
+            }
+
+            openApi.setOpenapi("3.0.3");
+
+            if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
                 return;
             }
 

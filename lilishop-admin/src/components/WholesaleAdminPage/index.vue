@@ -23,6 +23,7 @@ const props = withDefaults(
     primaryActionText?: string;
     secondaryActionText?: string;
     showStatusFilter?: boolean;
+    selectable?: boolean;
     pageSize?: number;
     pageSizes?: number[];
   }>(),
@@ -33,6 +34,7 @@ const props = withDefaults(
     primaryActionText: "查询",
     secondaryActionText: "重置",
     showStatusFilter: true,
+    selectable: false,
     pageSize: 20,
     pageSizes: () => [20, 50, 100],
     statusOptions: () => [
@@ -48,6 +50,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   search: [payload: { keyword: string; status: string }];
   reset: [];
+  selectionChange: [rows: Record<string, any>[]];
 }>();
 
 const slots = useSlots();
@@ -58,6 +61,19 @@ const queryForm = reactive({
 const pagination = reactive({
   pageSize: props.pageSize,
   currentPage: 1
+});
+
+const tableColumns = computed(() => {
+  if (!props.selectable) return props.columns;
+  return [
+    {
+      type: "selection",
+      width: 54,
+      reserveSelection: true,
+      align: "center"
+    },
+    ...props.columns
+  ] as TableColumnList;
 });
 
 const pagedData = computed(() => {
@@ -161,7 +177,7 @@ function handlePageCurrentChange(page: number) {
         showOverflowTooltip
         table-layout="auto"
         :data="pagedData"
-        :columns="props.columns"
+        :columns="tableColumns"
         :pagination="tablePagination"
         :header-cell-style="{
           background: '#f5f6f8',
@@ -170,6 +186,7 @@ function handlePageCurrentChange(page: number) {
         }"
         @page-size-change="handlePageSizeChange"
         @page-current-change="handlePageCurrentChange"
+        @selection-change="rows => emit('selectionChange', rows)"
       >
         <template v-if="slots.operation" #operation="scope">
           <slot name="operation" v-bind="scope" />

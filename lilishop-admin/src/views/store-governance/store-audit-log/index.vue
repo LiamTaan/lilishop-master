@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getStoreApplyPage, getStoreAuditLog } from "@/api/store-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
-import { extractApiPayload, extractApiRecords } from "@/utils/admin-governance";
+import {
+  extractApiPayload,
+  extractApiRecords,
+  formatAdminDateTime,
+  getStoreAuditStatusLabel
+} from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -36,17 +43,26 @@ const summaryCards = computed(() => [
 
 const detailItems = computed(() => [
   { label: "店铺名称", value: detail.value.storeName || "-" },
-  { label: "审核动作", value: detail.value.auditAction || "-" },
-  { label: "审核结果", value: detail.value.auditResult || "-" },
+  { label: "审核动作", value: detail.value.auditActionLabel || "-" },
+  { label: "审核结果", value: detail.value.auditResultLabel || "-" },
   { label: "审核备注", value: detail.value.auditRemark || "-" },
   { label: "操作人", value: detail.value.operatorName || "-" },
   { label: "操作时间", value: detail.value.operateTime || "-" }
 ]);
 
+function getAuditActionLabel(fromAuditStatus: unknown, toAuditStatus: unknown) {
+  const fromLabel = getStoreAuditStatusLabel(fromAuditStatus);
+  const toLabel = getStoreAuditStatusLabel(toAuditStatus);
+  if (String(fromLabel || "").trim() === "-" || !fromLabel) {
+    return `流转至${toLabel}`;
+  }
+  return `${fromLabel} -> ${toLabel}`;
+}
+
 async function loadData() {
   const storeRes = await getStoreApplyPage({
     pageNumber: 1,
-    pageSize: 20,
+    pageSize: 200,
     ...(query.keyword ? { storeName: query.keyword } : {}),
     ...(query.status
       ? { storeDisable: query.status, storeStatus: query.status }
@@ -67,11 +83,18 @@ async function loadData() {
       return logs.map((item: Record<string, any>, index: number) => ({
         id: item.id || `${storeId}-${index}`,
         storeName: store.storeName || "-",
-        auditAction: item.auditType || item.auditAction || "-",
-        auditResult: item.auditStatus || item.auditResult || "-",
+        auditAction: item.fromAuditStatus || "-",
+        auditActionLabel: getAuditActionLabel(
+          item.fromAuditStatus,
+          item.toAuditStatus || item.auditStatus || item.auditResult
+        ),
+        auditResult: item.toAuditStatus || item.auditStatus || item.auditResult || "-",
+        auditResultLabel: getStoreAuditStatusLabel(
+          item.toAuditStatus || item.auditStatus || item.auditResult
+        ),
         auditRemark: item.remark || item.auditRemark || "-",
         operatorName: item.operatorName || item.createBy || "-",
-        operateTime: item.createTime || item.operateTime || "-"
+        operateTime: formatAdminDateTime(item.createTime || item.operateTime)
       }));
     })
   );
@@ -96,6 +119,26 @@ function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportAuditLogs() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的店铺审核记录", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    店铺名称: item.storeName,
+    审核动作: item.auditAction,
+    审核结果: item.auditResult,
+    审核备注: item.auditRemark,
+    操作人: item.operatorName,
+    操作时间: item.operateTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "店铺审核记录");
+  writeFile(workbook, "店铺审核记录.xlsx");
+  message("店铺审核记录导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -117,6 +160,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!filteredData.length" @click="exportAuditLogs">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

@@ -112,18 +112,50 @@ public class UserContext {
         if (request == null) {
             return null;
         }
-        String accessToken = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
+        String accessToken = normalizeTokenCandidate(request.getHeader(SecurityEnum.HEADER_TOKEN.getValue()));
+        String authorization = request.getHeader("Authorization");
+        String authorizationToken = normalizeTokenCandidate(extractAuthorizationToken(authorization));
+
+        if (isLikelyJwt(accessToken)) {
+            return accessToken;
+        }
+        if (isLikelyJwt(authorizationToken)) {
+            return authorizationToken;
+        }
         if (StringUtils.isNotEmpty(accessToken)) {
             return accessToken;
         }
-        String authorization = request.getHeader("Authorization");
+        return authorizationToken;
+    }
+
+    private static String extractAuthorizationToken(String authorization) {
         if (StringUtils.isEmpty(authorization)) {
             return null;
         }
         if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            return authorization.substring(7).trim();
+            return authorization.substring(7);
         }
-        return authorization.trim();
+        return authorization;
+    }
+
+    private static String normalizeTokenCandidate(String token) {
+        if (StringUtils.isEmpty(token)) {
+            return null;
+        }
+        return token.trim();
+    }
+
+    private static boolean isLikelyJwt(String token) {
+        if (StringUtils.isEmpty(token)) {
+            return false;
+        }
+        int dotCount = 0;
+        for (int i = 0; i < token.length(); i++) {
+            if (token.charAt(i) == '.') {
+                dotCount++;
+            }
+        }
+        return dotCount == 2;
     }
 
     private static AuthUser resolveFromSecurityContext() {

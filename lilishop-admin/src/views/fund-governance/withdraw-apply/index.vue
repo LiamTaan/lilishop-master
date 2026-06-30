@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getWithdrawApplyPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
@@ -59,7 +60,7 @@ const summaryCards = computed(() => {
 });
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = { pageNumber: 1, pageSize: 200 };
   if (query.keyword) params.applySn = query.keyword;
   if (query.status) params.applyStatus = query.status;
   const res = await getWithdrawApplyPage(params);
@@ -77,6 +78,24 @@ function handleReset() {
   query.status = "";
   extraFilters.accountKeyword = "";
   loadData();
+}
+
+function exportWithdrawApplies() {
+  if (!filteredData.value.length) {
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    申请单号: item.applySn,
+    会员名称: item.memberName,
+    提现金额: item.withdrawAmount,
+    收款方式: item.accountType,
+    申请状态: getWithdrawApplyStatusLabel(item.applyStatus),
+    提交时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "提现申请");
+  writeFile(workbook, "提现申请.xlsx");
 }
 
 onMounted(() => {
@@ -118,6 +137,9 @@ onMounted(() => {
           clearable
         />
       </el-form-item>
+    </template>
+    <template #table-extra>
+      <el-button @click="exportWithdrawApplies">导出</el-button>
     </template>
   </WholesaleAdminPage>
 </template>

@@ -54,6 +54,9 @@ export interface AgentStoreBindVO {
 export interface StoreAuditDTO {
   auditStatus: "APPROVED" | "REJECTED" | "FROZEN";
   auditRemark?: string;
+  agentLevel?: string;
+  agentRegionId?: string;
+  agentRegionName?: string;
 }
 
 export interface AgentStoreBindAuditDTO {

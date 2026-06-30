@@ -9,8 +9,6 @@ import cn.lili.modules.agent.entity.vos.ProfitSharingRuleVO;
 import cn.lili.modules.agent.entity.vos.ProfitSharingSummaryVO;
 import cn.lili.modules.agent.service.ProfitSharingService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,38 +23,32 @@ import java.util.List;
  * @since 2026/6/17
  */
 @RestController
-@Tag(name = "管理端,平台分账治理接口")
 @RequestMapping("/manager/profitsharing")
 public class ProfitSharingManagerController {
 
     @Autowired
     private ProfitSharingService profitSharingService;
 
-    @Operation(summary = "分账规则列表")
     @GetMapping("/rule/list")
     public ResultMessage<List<ProfitSharingRuleVO>> ruleList() {
         return ResultUtil.data(profitSharingService.ruleList());
     }
 
-    @Operation(summary = "分账记录分页")
     @GetMapping("/record")
     public ResultMessage<IPage<ProfitSharingRecordVO>> recordPage(ProfitSharingRecordSearchParams searchParams) {
         return ResultUtil.data(profitSharingService.recordPage(searchParams));
     }
 
-    @Operation(summary = "分账记录导出查询")
     @GetMapping("/record/list")
     public ResultMessage<List<ProfitSharingRecordVO>> recordList(ProfitSharingRecordSearchParams searchParams) {
         return ResultUtil.data(profitSharingService.recordList(searchParams));
     }
 
-    @Operation(summary = "分账余额概览")
     @GetMapping("/balance")
     public ResultMessage<ProfitSharingBalanceVO> balance() {
         return ResultUtil.data(profitSharingService.balance());
     }
 
-    @Operation(summary = "分账治理汇总")
     @GetMapping("/summary")
     public ResultMessage<ProfitSharingSummaryVO> summary(ProfitSharingRecordSearchParams searchParams) {
         return ResultUtil.data(profitSharingService.summary(searchParams));

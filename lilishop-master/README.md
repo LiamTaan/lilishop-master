@@ -42,6 +42,8 @@
 
 - [DB/patch_missing_im_seat_tables.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB/patch_missing_im_seat_tables.sql)
 - [DB/patch_missing_procurement_inventory_damage_tables.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB/patch_missing_procurement_inventory_damage_tables.sql)
+- [DB/patch_wholesale_role_semantics.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB/patch_wholesale_role_semantics.sql)：
+  用于补齐 `li_store` / `li_store_detail` / `agent_role_relation` 的代理等级与代理区域字段；若启动时报 `Unknown column 'agent_level' in 'field list'`，优先执行此补丁
 
 ## Dev 环境说明
 

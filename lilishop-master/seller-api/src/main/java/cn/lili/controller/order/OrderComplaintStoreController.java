@@ -9,6 +9,7 @@ import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.order.order.entity.dos.OrderComplaint;
 import cn.lili.modules.order.order.entity.enums.CommunicationOwnerEnum;
+import cn.lili.modules.order.order.entity.dto.OrderComplaintCommunicationDTO;
 import cn.lili.modules.order.order.entity.vo.*;
 import cn.lili.modules.order.order.service.OrderComplaintCommunicationService;
 import cn.lili.modules.order.order.service.OrderComplaintService;
@@ -64,20 +65,17 @@ public class OrderComplaintStoreController {
 
 
     @Operation(summary = "添加交易投诉对话")
-    @Parameter(name = "complainId", description = "投诉单ID", required = true)
-    @Parameter(name = "content", description = "内容", required = true)
     @PostMapping("/communication")
-    public ResultMessage<OrderComplaintCommunicationVO> addCommunication(@RequestParam String complainId, @RequestParam String content) {
+    public ResultMessage<OrderComplaintCommunicationVO> addCommunication(@RequestBody OrderComplaintCommunicationDTO communicationDTO) {
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
-        OrderComplaintCommunicationVO communicationVO = new OrderComplaintCommunicationVO(complainId, content, CommunicationOwnerEnum.STORE.name(), currentUser.getUsername(), currentUser.getStoreId());
+        OrderComplaintCommunicationVO communicationVO = new OrderComplaintCommunicationVO(communicationDTO.getComplainId(), communicationDTO.getContent(), CommunicationOwnerEnum.STORE.name(), currentUser.getUsername(), currentUser.getStoreId());
         orderComplaintCommunicationService.addCommunication(communicationVO);
         return ResultUtil.success();
     }
 
     @Operation(summary = "修改申诉信息")
-    @Parameter(name = "orderComplainVO", description = "投诉信息")
     @PutMapping
-    public ResultMessage<OrderComplaintVO> update(OrderComplaintVO orderComplainVO) {
+    public ResultMessage<OrderComplaintVO> update(@RequestBody OrderComplaintVO orderComplainVO) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         orderComplainVO.setStoreId(storeId);
         orderComplaintService.updateOrderComplain(orderComplainVO);
@@ -86,18 +84,16 @@ public class OrderComplaintStoreController {
 
     @PreventDuplicateSubmissions
     @Operation(summary = "申诉")
-    @Parameter(name = "storeAppealVO", description = "申诉信息")
     @PutMapping("/appeal")
-    public ResultMessage<OrderComplaintVO> appeal(StoreAppealVO storeAppealVO) {
+    public ResultMessage<OrderComplaintVO> appeal(@RequestBody StoreAppealVO storeAppealVO) {
         orderComplaintService.appeal(storeAppealVO);
         return ResultUtil.data(orderComplaintService.getOrderComplainById(storeAppealVO.getOrderComplaintId()));
     }
 
     @PreventDuplicateSubmissions
     @Operation(summary = "修改状态")
-    @Parameter(name = "orderComplainVO", description = "投诉状态参数")
     @PutMapping("/status")
-    public ResultMessage<Object> updateStatus(OrderComplaintOperationParams orderComplainVO) {
+    public ResultMessage<Object> updateStatus(@RequestBody OrderComplaintOperationParams orderComplainVO) {
         orderComplaintService.updateOrderComplainByStatus(orderComplainVO);
         return ResultUtil.success();
     }

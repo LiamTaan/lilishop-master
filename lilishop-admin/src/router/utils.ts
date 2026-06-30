@@ -66,13 +66,28 @@ function filterTree(data: RouteComponent[]) {
   return newTree;
 }
 
-/** 过滤children长度为0的的目录，当目录下没有菜单时，会过滤此目录，目录没有赋予roles权限，当目录下只要有一个菜单有显示权限，那么此目录就会显示 */
-function filterChildrenTree(data: RouteComponent[]) {
-  const newTree = cloneDeep(data).filter((v: any) => v?.children?.length !== 0);
-  newTree.forEach(
-    (v: { children }) => v.children && (v.children = filterTree(v.children))
-  );
-  return newTree;
+/** 过滤children长度为0的目录。
+ * 当 `respectShowLink=false` 时，不再依据前端 `showLink` 隐藏业务菜单，
+ * 让后端返回的菜单树决定左侧展示范围。
+ */
+function filterChildrenTree(
+  data: RouteComponent[],
+  respectShowLink = true
+) {
+  const newTree = cloneDeep(data);
+  newTree.forEach((v: any) => {
+    v.__hadChildren = Array.isArray(v?.children) && v.children.length > 0;
+    if (!v.__hadChildren) return;
+    v.children = respectShowLink
+      ? filterTree(v.children)
+      : filterChildrenTree(v.children, false);
+  });
+  return newTree
+    .filter((v: any) => !v.__hadChildren || v.children.length !== 0)
+    .map((v: any) => {
+      delete v.__hadChildren;
+      return v;
+    });
 }
 
 /** 判断两个数组彼此是否存在相同值 */
@@ -372,10 +387,13 @@ function handleTopMenu(route) {
 
 /** 获取所有菜单中的第一个菜单（顶级菜单）*/
 function getTopMenu(tag = false): menuType {
-  const topMenu = handleTopMenu(
-    usePermissionStoreHook().wholeMenus[0]?.children[0]
-  );
-  tag && useMultiTagsStoreHook().handleTags("push", topMenu);
+  const wholeMenus = usePermissionStoreHook().wholeMenus;
+  const firstCandidate =
+    wholeMenus[0]?.children?.[0] ?? wholeMenus[0] ?? routerArrays[0] ?? { path: "/welcome" };
+  const topMenu = handleTopMenu(firstCandidate) ?? { path: "/welcome" };
+  if (tag && topMenu?.path) {
+    useMultiTagsStoreHook().handleTags("push", topMenu);
+  }
   return topMenu;
 }
 

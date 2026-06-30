@@ -5,7 +5,7 @@ const Layout = () => import("@/layout/index.vue");
 export default {
   path: "/content-center",
   component: Layout,
-  redirect: "/content-center/home-config",
+  redirect: "/content-center/advertisement",
   meta: {
     icon: "ep:document",
     title: "内容与运营",
@@ -13,11 +13,25 @@ export default {
   },
   children: [
     {
-      path: "/content-center/home-config",
-      name: "ContentHomeConfig",
+      path: "/content-center/advertisement",
+      name: "ContentAdvertisement",
       component: () =>
-        import("@/views/super-admin/content-center/home-config.vue"),
-      meta: { title: "首页配置" }
+        import("@/views/super-admin/content-center/advertisement.vue"),
+      meta: { title: "广告位管理" }
+    },
+    {
+      path: "/content-center/special-manage",
+      name: "ContentSpecialManage",
+      component: () =>
+        import("@/views/super-admin/content-center/special-manage.vue"),
+      meta: { title: "专题管理" }
+    },
+    {
+      path: "/content-center/recommendation-strategy",
+      name: "ContentRecommendationStrategy",
+      component: () =>
+        import("@/views/super-admin/content-center/recommendation-strategy.vue"),
+      meta: { title: "推荐策略" }
     },
     {
       path: "/content-center/article",
@@ -30,7 +44,7 @@ export default {
       name: "ContentArticleCategory",
       component: () =>
         import("@/views/super-admin/content-center/article-category.vue"),
-      meta: { title: "帮助分类", showLink: false }
+      meta: { title: "帮助分类" }
     },
     {
       path: "/content-center/sensitive-words",
@@ -44,20 +58,13 @@ export default {
       name: "ContentCustomWords",
       component: () =>
         import("@/views/super-admin/content-center/custom-words.vue"),
-      meta: { title: "自定义词库", showLink: false }
-    },
-    {
-      path: "/content-center/hot-words-manage",
-      name: "ContentHotWordsManage",
-      component: () =>
-        import("@/views/super-admin/content-center/hot-words-manage.vue"),
-      meta: { title: "搜索治理" }
+      meta: { title: "自定义词库" }
     },
     {
       path: "/content-center/app-version",
       name: "ContentAppVersion",
       component: () => import("@/views/super-admin/content-center/app-version.vue"),
-      meta: { title: "APP版本", showLink: false }
+      meta: { title: "APP版本" }
     }
   ]
 } satisfies RouteConfigsTable;

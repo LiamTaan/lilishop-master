@@ -35,7 +35,10 @@ UPDATE li_menu SET permission = '/manager/agent/role*,/manager/agent/store*' WHE
 UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-audit-log';
 
 -- [商品管理] 商品列表 -> /goods-governance/goods-manage
-UPDATE li_menu SET permission = '/manager/goods/goods/up*,/manager/goods/goods/get*,/manager/goods/goods/auth*,/manager/goods/goods/under*,/manager/goods/goods/wholesale/list*,/manager/goods/goodsUnit*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-manage';
+UPDATE li_menu
+SET permission = '/manager/goods/goods*,/manager/goods/goodsUnit*,/manager/goods/categoryParameters*,/manager/goods/freightTemplate/store*,/manager/goods/category/allChildren*,/manager/goods/brand/all*,/manager/store/store/all*,/common/common/upload/file*'
+WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110
+  AND path = '/goods-governance/goods-manage';
 
 -- [商品管理] 品牌管理 -> /goods-governance/brand-manage
 UPDATE li_menu SET permission = '/manager/goods/brand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/brand-manage';
@@ -160,9 +163,6 @@ UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/
 -- [平台配置] 积分设置 -> /platform-config/point-setting
 UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/point-setting';
 
--- [平台配置] 经验值设置 -> /platform-config/experience-setting
-UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/experience-setting';
-
 -- [平台配置] 秒杀设置 -> /platform-config/seckill-setting
 UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/seckill-setting';
 
@@ -184,23 +184,11 @@ UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/
 -- [平台配置] 银联支付配置 -> /platform-config/unionpay-setting
 UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/unionpay-setting';
 
--- [平台配置] 微信登录配置 -> /platform-config/wechat-connect-setting
-UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/wechat-connect-setting';
-
--- [平台配置] QQ登录配置 -> /platform-config/qq-connect-setting
-UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/qq-connect-setting';
-
--- [平台配置] 热词设置 -> /platform-config/hot-words-setting
-UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/hot-words-setting';
-
 -- [平台配置] 视频号配置 -> /platform-config/wx-channels-setting
 UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/platform-config/wx-channels-setting';
 
 -- [用户中心] 前台用户管理 -> /member-center/member-list
 UPDATE li_menu SET permission = '/manager/passport/member*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-list';
-
--- [用户中心] 会员等级 -> /member-center/member-grade
-UPDATE li_menu SET permission = '/manager/member/memberGrade*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-grade';
 
 -- [用户中心] 会员分组 -> /member-center/member-group
 UPDATE li_menu SET permission = '/manager/passport/member*,/manager/member/memberGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-group';
@@ -244,8 +232,14 @@ UPDATE li_menu SET permission = '/manager/other/memberMessage*' WHERE id BETWEEN
 -- [通知与消息] 店铺消息 -> /message-center/store-message
 UPDATE li_menu SET permission = '/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/store-message';
 
--- [内容与运营] 首页配置 -> /content-center/home-config
-UPDATE li_menu SET permission = '/manager/other/platformHomeConfig*,/manager/goods/category/allChildren*,/manager/goods/goods/wholesale/list*,/manager/goods/goods/get*,/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/home-config';
+-- [内容与运营] 广告位管理 -> /content-center/advertisement
+UPDATE li_menu SET permission = '/manager/other/homeAdvertisement*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/advertisement';
+
+-- [内容与运营] 专题管理 -> /content-center/special-manage
+UPDATE li_menu SET permission = '/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/special-manage';
+
+-- [内容与运营] 推荐策略 -> /content-center/recommendation-strategy
+UPDATE li_menu SET permission = '/manager/other/homeRecommendationStrategy*,/manager/goods/category/allChildren*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/recommendation-strategy';
 
 -- [内容与运营] 帮助与公告 -> /content-center/article
 UPDATE li_menu SET permission = '/manager/other/article*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article';
@@ -258,9 +252,6 @@ UPDATE li_menu SET permission = '/manager/other/sensitiveWords*' WHERE id BETWEE
 
 -- [内容与运营] 自定义词库 -> /content-center/custom-words
 UPDATE li_menu SET permission = '/manager/other/customWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/custom-words';
-
--- [内容与运营] 热词治理 -> /content-center/hot-words-manage
-UPDATE li_menu SET permission = '/manager/hotwords/hotwords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/hot-words-manage';
 
 -- [内容与运营] APP版本 -> /content-center/app-version
 UPDATE li_menu SET permission = '/manager/other/appVersion*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/app-version';

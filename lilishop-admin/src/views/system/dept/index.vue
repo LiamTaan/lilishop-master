@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import dayjs from "dayjs";
+import { utils, writeFile } from "xlsx";
 import { useDept } from "./utils/hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -25,6 +27,8 @@ const {
   resetForm,
   openDialog,
   handleDelete,
+  onbatchDel,
+  selectedNum,
   handleSelectionChange
 } = useDept();
 
@@ -58,6 +62,31 @@ const summaryCards = computed(() => [
 function onFullscreen() {
   // 重置表格高度
   tableRef.value.setAdaptive();
+}
+
+function flattenDepartments(list: Record<string, any>[], parentName = "") {
+  return list.flatMap(item => [
+    {
+      部门名称: item.title,
+      上级部门: parentName || "-",
+      部门ID: item.id,
+      排序: item.sortOrder,
+      创建时间: item.createTime
+        ? dayjs(item.createTime).format("YYYY-MM-DD HH:mm:ss")
+        : "-"
+    },
+    ...flattenDepartments(item.children ?? [], item.title || parentName)
+  ]);
+}
+
+function exportDepartments() {
+  if (!dataList.value.length) return;
+  const worksheet = utils.json_to_sheet(
+    flattenDepartments(dataList.value as any[])
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "组织架构配置");
+  writeFile(workbook, "组织架构配置.xlsx");
 }
 </script>
 
@@ -107,6 +136,12 @@ function onFullscreen() {
       @fullscreen="onFullscreen"
     >
       <template #buttons>
+        <el-button :disabled="!dataList.length" @click="exportDepartments">导出</el-button>
+        <el-popconfirm title="是否确认批量删除已选部门?" @confirm="onbatchDel">
+          <template #reference>
+            <el-button type="danger" :disabled="!selectedNum">批量删除</el-button>
+          </template>
+        </el-popconfirm>
         <el-button
           type="primary"
           :icon="useRenderIcon(AddFill)"

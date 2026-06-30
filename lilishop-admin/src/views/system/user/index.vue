@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import dayjs from "dayjs";
+import { utils, writeFile } from "xlsx";
 import tree from "./tree.vue";
 import { useUser } from "./utils/hook";
 import { PureTableBar } from "@/components/RePureTableBar";
@@ -77,6 +79,31 @@ const summaryCards = computed(() => [
     hint: "支持角色授权与密码重置"
   }
 ]);
+
+function exportUsers() {
+  if (!dataList.value.length) return;
+  const worksheet = utils.json_to_sheet(
+    dataList.value.map(item => ({
+      账号ID: item.id,
+      登录账号: item.username,
+      用户昵称: item.nickname || "-",
+      权限级别: item.isSuper ? "超级管理员" : "普通管理员",
+      绑定角色:
+        Array.isArray(item.roles) && item.roles.length > 0
+          ? item.roles.map(role => role?.name).filter(Boolean).join(" / ")
+          : "-",
+      部门: item.dept?.name || "-",
+      手机号码: item.phone || "-",
+      状态: item.status ? "已启用" : "已停用",
+      创建时间: item.createTime
+        ? dayjs(item.createTime).format("YYYY-MM-DD HH:mm:ss")
+        : "-"
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "平台账号台账");
+  writeFile(workbook, "平台账号台账.xlsx");
+}
 </script>
 
 <template>
@@ -173,6 +200,7 @@ const summaryCards = computed(() => [
         @refresh="onSearch"
       >
         <template #buttons>
+          <el-button :disabled="!dataList.length" @click="exportUsers">导出</el-button>
           <el-button
             type="primary"
             :icon="useRenderIcon(AddFill)"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import {
   getBillDetail,
   getBillPage,
@@ -164,6 +165,26 @@ function handleDownload(row: Record<string, any>) {
   window.open(`/manager/order/bill/downLoad/${row.id}`, "_blank");
 }
 
+function exportBills() {
+  if (!filteredRows.value.length) {
+    message("暂无可导出的结算单数据", { type: "warning" });
+    return;
+  }
+  const table = filteredRows.value.map(item => ({
+    结算单号: item.sn,
+    店铺名称: item.storeName,
+    结算金额: item.billPriceDisplay,
+    账期: item.billRange,
+    状态: item.billStatusLabel,
+    出账时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "结算单");
+  writeFile(workbook, "结算单.xlsx");
+  message("结算单导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -188,6 +209,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportBills">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button

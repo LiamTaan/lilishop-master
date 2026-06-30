@@ -82,8 +82,7 @@ public class ClerkStoreController {
 
     @PostMapping
     @Operation(description = "添加店员")
-    @Parameter(name = "clerkAddDTO", description = "店员添加参数", required = true)
-    public ResultMessage<Object> add(@Valid ClerkAddDTO clerkAddDTO) {
+    public ResultMessage<Object> add(@Valid @RequestBody ClerkAddDTO clerkAddDTO) {
         int rolesMaxSize = 10;
         try {
             if (clerkAddDTO.getRoles() != null && clerkAddDTO.getRoles().size() >= rolesMaxSize) {
@@ -130,8 +129,7 @@ public class ClerkStoreController {
     @PutMapping("/{id}")
     @Operation(description = "修改店员")
     @Parameter(name = "id", description = "店员id", required = true)
-    @Parameter(name = "clerkEditDTO", description = "店员修改参数", required = true)
-    public ResultMessage<Clerk> edit(@PathVariable String id, @Valid ClerkEditDTO clerkEditDTO) {
+    public ResultMessage<Clerk> edit(@PathVariable String id, @Valid @RequestBody ClerkEditDTO clerkEditDTO) {
         clerkEditDTO.setId(id);
         return ResultUtil.data(clerkService.updateClerk(clerkEditDTO));
     }

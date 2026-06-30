@@ -83,13 +83,6 @@ export default {
       meta: { title: "积分设置" }
     },
     {
-      path: "/platform-config/experience-setting",
-      name: "PlatformExperienceSetting",
-      component: () =>
-        import("@/views/super-admin/platform-config/experience-setting.vue"),
-      meta: { title: "经验值设置" }
-    },
-    {
       path: "/platform-config/seckill-setting",
       name: "PlatformSeckillSetting",
       component: () =>
@@ -137,27 +130,6 @@ export default {
       component: () =>
         import("@/views/super-admin/platform-config/unionpay-setting.vue"),
       meta: { title: "银联支付配置" }
-    },
-    {
-      path: "/platform-config/wechat-connect-setting",
-      name: "PlatformWechatConnectSetting",
-      component: () =>
-        import("@/views/super-admin/platform-config/wechat-connect-setting.vue"),
-      meta: { title: "微信登录配置" }
-    },
-    {
-      path: "/platform-config/qq-connect-setting",
-      name: "PlatformQqConnectSetting",
-      component: () =>
-        import("@/views/super-admin/platform-config/qq-connect-setting.vue"),
-      meta: { title: "QQ登录配置" }
-    },
-    {
-      path: "/platform-config/hot-words-setting",
-      name: "PlatformHotWordsSetting",
-      component: () =>
-        import("@/views/super-admin/platform-config/hot-words-setting.vue"),
-      meta: { title: "热词设置" }
     },
     {
       path: "/platform-config/wx-channels-setting",

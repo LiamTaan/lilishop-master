@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { getCardCouponGoodsPage } from "@/api/goods-governance";
+import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
+import {
+  deleteCardCouponGoods,
+  getCardCouponGoodsPage
+} from "@/api/goods-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiRecords,
   getPromotionStatusLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -13,6 +19,9 @@ defineOptions({
 });
 
 const data = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
+const detailVisible = ref(false);
+const detailRow = ref<Record<string, any> | null>(null);
 const query = reactive({
   keyword: "",
   status: ""
@@ -49,6 +58,19 @@ const filteredData = computed(() =>
     );
   })
 );
+const selectedIds = computed(() =>
+  [...new Set(selectedRows.value.map(item => String(item.id || "")).filter(Boolean))]
+);
+const pageColumns = computed<TableColumnList>(() => [
+  ...columns,
+  {
+    label: "操作",
+    prop: "operation",
+    fixed: "right",
+    width: 160,
+    slot: "operation"
+  }
+]);
 
 const summaryCards = computed(() => {
   const total = filteredData.value.length;
@@ -139,9 +161,16 @@ function normalizeCardCouponGoodsRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   const res = await getCardCouponGoodsPage(params);
   data.value = extractApiRecords(res).map(normalizeCardCouponGoodsRecord);
+}
+
+function handleSelectionChange(selection: Record<string, any>[]) {
+  selectedRows.value = selection;
 }
 
 function handleSearch(payload: { keyword: string; status: string }) {
@@ -159,6 +188,60 @@ function handleReset() {
   loadData();
 }
 
+function openDetail(row: Record<string, any>) {
+  detailRow.value = row;
+  detailVisible.value = true;
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先选择要删除的卡券商品", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除选中的 ${selectedIds.value.length} 个卡券商品关联吗？`,
+    "删除确认",
+    {
+      type: "warning"
+    }
+  );
+  try {
+    await deleteCardCouponGoods(selectedIds.value);
+    message("卡券商品批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("卡券商品批量删除失败", { type: "error" });
+  }
+}
+
+async function handleSingleDelete(row: Record<string, any>) {
+  selectedRows.value = [row];
+  await handleBatchDelete();
+}
+
+function exportCardCouponGoods() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的卡券商品", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    filteredData.value.map(item => ({
+      卡券名称: item.cardCouponName,
+      卡券编码: item.cardCouponCode,
+      卡券类型: item.cardCouponType,
+      适用商品: item.goodsName,
+      面值: item.faceValue,
+      库存: item.stock,
+      领取上限: item.receiveLimit,
+      状态: item.promotionStatusLabel
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "卡券商品");
+  writeFile(workbook, "卡券商品.xlsx");
+  message("卡券商品导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -169,10 +252,11 @@ onMounted(() => {
     title="卡券商品治理"
     description="承接卡券商品绑定、列表查询与治理动作。"
     api-path="/manager/promotion/cardCouponGoods"
-    :columns="columns"
+    :columns="pageColumns"
     :data="filteredData"
     :summary-cards="summaryCards"
     :quick-actions="quickActions"
+    :selectable="true"
     :status-options="[
       { label: '待开始', value: 'NEW' },
       { label: '进行中', value: 'START' },
@@ -183,7 +267,20 @@ onMounted(() => {
     keyword-placeholder="请输入卡券名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
+    <template #table-extra>
+      <el-button :disabled="!filteredData.length" @click="exportCardCouponGoods">
+        导出
+      </el-button>
+      <el-button
+        type="danger"
+        :disabled="!selectedIds.length"
+        @click="handleBatchDelete"
+      >
+        批量删除
+      </el-button>
+    </template>
     <template #filters-extra>
       <el-form-item label="卡券类型">
         <el-input
@@ -207,7 +304,40 @@ onMounted(() => {
         />
       </el-form-item>
     </template>
+    <template #operation="{ row }">
+      <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+      <el-button link type="danger" @click="handleSingleDelete(row)">删除</el-button>
+    </template>
   </WholesaleAdminPage>
+
+  <el-drawer v-model="detailVisible" title="卡券商品详情" size="42%">
+    <el-descriptions v-if="detailRow" :column="1" border>
+      <el-descriptions-item label="卡券名称">
+        {{ detailRow.cardCouponName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="卡券编码">
+        {{ detailRow.cardCouponCode }}
+      </el-descriptions-item>
+      <el-descriptions-item label="卡券类型">
+        {{ detailRow.cardCouponType }}
+      </el-descriptions-item>
+      <el-descriptions-item label="适用商品">
+        {{ detailRow.goodsName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="面值">
+        {{ detailRow.faceValue }}
+      </el-descriptions-item>
+      <el-descriptions-item label="库存">
+        {{ detailRow.stock }}
+      </el-descriptions-item>
+      <el-descriptions-item label="领取上限">
+        {{ detailRow.receiveLimit }}
+      </el-descriptions-item>
+      <el-descriptions-item label="状态">
+        {{ detailRow.promotionStatusLabel }}
+      </el-descriptions-item>
+    </el-descriptions>
+  </el-drawer>
 </template>
 
 <style scoped>

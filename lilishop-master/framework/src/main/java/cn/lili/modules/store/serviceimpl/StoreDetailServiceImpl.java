@@ -9,6 +9,7 @@ import cn.lili.common.properties.RocketmqCustomProperties;
 import cn.lili.common.security.AuthUser;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.utils.BeanUtil;
+import cn.lili.modules.member.service.StoreCollectionService;
 import cn.lili.modules.goods.entity.dos.Category;
 import cn.lili.modules.goods.service.CategoryService;
 import cn.lili.modules.goods.service.GoodsService;
@@ -26,6 +27,7 @@ import cn.lili.modules.store.entity.vos.StoreManagementCategoryVO;
 import cn.lili.modules.store.entity.vos.StoreOtherVO;
 import cn.lili.modules.store.mapper.StoreDetailMapper;
 import cn.lili.modules.store.service.StoreDetailService;
+import cn.lili.modules.store.service.StoreSettlementProfileService;
 import cn.lili.modules.store.service.StoreService;
 import cn.lili.rocketmq.RocketmqSendCallbackBuilder;
 import cn.lili.rocketmq.tags.GoodsTagsEnum;
@@ -72,6 +74,12 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
     @Autowired
     private Cache cache;
 
+    @Autowired
+    private StoreCollectionService storeCollectionService;
+
+    @Autowired
+    private StoreSettlementProfileService storeSettlementProfileService;
+
     @Override
     public StoreDetailVO getStoreDetailVO(String storeId) {
         StoreDetailVO storeDetailVO = (StoreDetailVO) cache.get(CachePrefix.STORE.getPrefix() + storeId);
@@ -80,6 +88,11 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
             cache.put(CachePrefix.STORE.getPrefix() + storeId, storeDetailVO, 7200L);
         }
         return storeDetailVO;
+    }
+
+    @Override
+    public StoreDetailVO getStoreDetailVOFresh(String storeId) {
+        return this.baseMapper.getStoreDetail(storeId);
     }
 
     @Override
@@ -146,7 +159,7 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
      */
     @Override
     public List<StoreSettlementDay> getSettlementStore(int day) {
-        return this.baseMapper.getSettlementStore(day);
+        return storeSettlementProfileService.getSettlementStore(day);
     }
 
     @Override
@@ -189,12 +202,18 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
     @Override
     public void updateSettlementDay(String storeId, DateTime dateTime) {
         this.removeCache(storeId);
-        this.baseMapper.updateSettlementDay(storeId, dateTime);
+        storeSettlementProfileService.updateSettlementDay(storeId, dateTime);
     }
 
     @Override
     public StoreBasicInfoVO getStoreBasicInfoDTO(String storeId) {
-        return this.baseMapper.getStoreBasicInfoDTO(storeId);
+        StoreBasicInfoVO storeBasicInfoVO = this.baseMapper.getStoreBasicInfoDTO(storeId);
+        if (storeBasicInfoVO == null) {
+            return null;
+        }
+        AuthUser currentUser = UserContext.getCurrentUser();
+        storeBasicInfoVO.setIsCollection(currentUser != null && storeCollectionService.isCollection(storeId));
+        return storeBasicInfoVO;
     }
 
     @Override

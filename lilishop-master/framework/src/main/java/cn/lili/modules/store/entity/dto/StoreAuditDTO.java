@@ -19,4 +19,13 @@ public class StoreAuditDTO {
 
     @Schema(description = "审核备注")
     private String auditRemark;
+
+    @Schema(description = "代理等级，仅代理商审核通过时填写：CITY/COUNTY/TOWNSHIP/WHOLESALER")
+    private String agentLevel;
+
+    @Schema(description = "代理区域ID，仅代理商审核通过时填写")
+    private String agentRegionId;
+
+    @Schema(description = "代理区域名称，仅代理商审核通过时填写")
+    private String agentRegionName;
 }

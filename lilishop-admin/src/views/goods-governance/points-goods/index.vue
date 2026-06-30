@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { getPointsGoodsPage } from "@/api/goods-governance";
+import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
+import {
+  deletePointsGoods,
+  getPointsGoodsDetail,
+  getPointsGoodsPage
+} from "@/api/goods-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
+  extractApiPayload,
   extractApiRecords,
   getPromotionStatusLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -13,6 +21,9 @@ defineOptions({
 });
 
 const data = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
+const detailVisible = ref(false);
+const detailRow = ref<Record<string, any> | null>(null);
 const query = reactive({
   keyword: "",
   status: ""
@@ -43,6 +54,19 @@ const filteredData = computed(() =>
     return keywordMatched && statusMatched && codeMatched && categoryMatched && limitMatched;
   })
 );
+const selectedIds = computed(() =>
+  [...new Set(selectedRows.value.map(item => String(item.id || "")).filter(Boolean))]
+);
+const pageColumns = computed<TableColumnList>(() => [
+  ...columns,
+  {
+    label: "操作",
+    prop: "operation",
+    fixed: "right",
+    width: 160,
+    slot: "operation"
+  }
+]);
 
 const summaryCards = computed(() => {
   const total = filteredData.value.length;
@@ -110,11 +134,18 @@ function normalizePointsGoodsRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.goodsName = query.keyword;
   if (query.status) params.promotionStatus = query.status;
   const res = await getPointsGoodsPage(params);
   data.value = extractApiRecords(res).map(normalizePointsGoodsRecord);
+}
+
+function handleSelectionChange(selection: Record<string, any>[]) {
+  selectedRows.value = selection;
 }
 
 function handleSearch(payload: { keyword: string; status: string }) {
@@ -132,6 +163,67 @@ function handleReset() {
   loadData();
 }
 
+async function openDetail(row: Record<string, any>) {
+  try {
+    const res = await getPointsGoodsDetail(String(row.id));
+    detailRow.value = normalizePointsGoodsRecord(
+      extractApiPayload<Record<string, any>>(res) || row
+    );
+    detailVisible.value = true;
+  } catch (_error) {
+    message("积分商品详情加载失败", { type: "error" });
+  }
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先选择要删除的积分商品", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除选中的 ${selectedIds.value.length} 个积分商品吗？`,
+    "删除确认",
+    {
+      type: "warning"
+    }
+  );
+  try {
+    await deletePointsGoods(selectedIds.value);
+    message("积分商品批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("积分商品批量删除失败", { type: "error" });
+  }
+}
+
+async function handleSingleDelete(row: Record<string, any>) {
+  selectedRows.value = [row];
+  await handleBatchDelete();
+}
+
+function exportPointsGoods() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的积分商品", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    filteredData.value.map(item => ({
+      积分商品: item.goodsName,
+      商品编码: item.goodsCode,
+      商品分类: item.categoryName,
+      所需积分: item.points,
+      库存: item.stock,
+      兑换上限: item.exchangeLimit,
+      适用店铺: item.storeName,
+      状态: item.promotionStatusLabel
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "积分商品");
+  writeFile(workbook, "积分商品.xlsx");
+  message("积分商品导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -142,10 +234,11 @@ onMounted(() => {
     title="积分商品治理"
     description="承接积分商品查询、上下架与兑换配置。"
     api-path="/manager/promotion/pointsGoods"
-    :columns="columns"
+    :columns="pageColumns"
     :data="filteredData"
     :summary-cards="summaryCards"
     :quick-actions="quickActions"
+    :selectable="true"
     :status-options="[
       { label: '待开始', value: 'NEW' },
       { label: '进行中', value: 'START' },
@@ -156,7 +249,18 @@ onMounted(() => {
     keyword-placeholder="请输入积分商品名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
+    <template #table-extra>
+      <el-button :disabled="!filteredData.length" @click="exportPointsGoods">导出</el-button>
+      <el-button
+        type="danger"
+        :disabled="!selectedIds.length"
+        @click="handleBatchDelete"
+      >
+        批量删除
+      </el-button>
+    </template>
     <template #filters-extra>
       <el-form-item label="商品编码">
         <el-input
@@ -180,7 +284,40 @@ onMounted(() => {
         />
       </el-form-item>
     </template>
+    <template #operation="{ row }">
+      <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+      <el-button link type="danger" @click="handleSingleDelete(row)">删除</el-button>
+    </template>
   </WholesaleAdminPage>
+
+  <el-drawer v-model="detailVisible" title="积分商品详情" size="42%">
+    <el-descriptions v-if="detailRow" :column="1" border>
+      <el-descriptions-item label="积分商品">
+        {{ detailRow.goodsName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="商品编码">
+        {{ detailRow.goodsCode }}
+      </el-descriptions-item>
+      <el-descriptions-item label="商品分类">
+        {{ detailRow.categoryName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="适用店铺">
+        {{ detailRow.storeName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="所需积分">
+        {{ detailRow.points }}
+      </el-descriptions-item>
+      <el-descriptions-item label="库存">
+        {{ detailRow.stock }}
+      </el-descriptions-item>
+      <el-descriptions-item label="兑换上限">
+        {{ detailRow.exchangeLimit }}
+      </el-descriptions-item>
+      <el-descriptions-item label="状态">
+        {{ detailRow.promotionStatusLabel }}
+      </el-descriptions-item>
+    </el-descriptions>
+  </el-drawer>
 </template>
 
 <style scoped>

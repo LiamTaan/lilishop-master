@@ -30,6 +30,8 @@ import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.entity.dos.PointsGoods;
 import cn.lili.modules.promotion.entity.vos.CouponVO;
 import cn.lili.modules.promotion.service.PromotionGoodsService;
+import cn.lili.modules.store.entity.dos.Store;
+import cn.lili.modules.store.service.StoreService;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +71,9 @@ public class CheckDataRender implements CartRenderStep {
      */
     @Autowired
     private PromotionGoodsService promotionGoodsService;
+
+    @Autowired
+    private StoreService storeService;
 
     @Override
     public RenderStepEnums step() {
@@ -171,9 +176,12 @@ public class CheckDataRender implements CartRenderStep {
         if (tradeDTO.getCartList() == null || tradeDTO.getCartList().size() == 0) {
             //根据店铺分组
             Map<String, List<CartSkuVO>> storeCollect = tradeDTO.getSkuList().stream().collect(Collectors.groupingBy(CartSkuVO::getStoreId));
+            Map<String, String> storeLogoMap = storeService.listByIds(storeCollect.keySet()).stream()
+                    .collect(Collectors.toMap(Store::getId, Store::getStoreLogo, (left, right) -> left));
             for (Map.Entry<String, List<CartSkuVO>> storeCart : storeCollect.entrySet()) {
                 if (!storeCart.getValue().isEmpty()) {
                     CartVO cartVO = new CartVO(storeCart.getValue().get(0));
+                    cartVO.setStoreLogo(storeLogoMap.get(storeCart.getKey()));
                     if (CharSequenceUtil.isEmpty(cartVO.getDeliveryMethod())) {
                         cartVO.setDeliveryMethod(DeliveryMethodEnum.LOGISTICS.name());
                     }

@@ -8,9 +8,11 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.vos.StoreGoodsLabelVO;
 import cn.lili.modules.goods.service.StoreGoodsLabelService;
 import cn.lili.modules.store.entity.dos.Store;
-import cn.lili.modules.store.entity.dto.StoreBankDTO;
-import cn.lili.modules.store.entity.dto.StoreCompanyDTO;
-import cn.lili.modules.store.entity.dto.StoreOtherInfoDTO;
+import cn.lili.modules.store.entity.dto.StoreApplyTypeSelectDTO;
+import cn.lili.modules.store.entity.dto.StoreCompanyAuthorizedApplyDTO;
+import cn.lili.modules.store.entity.dto.StoreCompanyLegalApplyDTO;
+import cn.lili.modules.store.entity.dto.StoreIndividualApplyDTO;
+import cn.lili.modules.store.entity.dto.StorePersonalApplyDTO;
 import cn.lili.modules.store.entity.vos.*;
 import cn.lili.modules.store.service.StoreDetailService;
 import cn.lili.modules.store.service.StoreService;
@@ -21,7 +23,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -103,30 +104,48 @@ public class StoreBuyerController {
         return ResultUtil.data(storeGoodsLabelService.listByStoreId(id));
     }
 
-    @Operation(summary = "申请店铺第一步-填写企业信息")
-    @PutMapping("/apply/first")
-    public ResultMessage<Object> applyFirstStep(@Valid @ModelAttribute StoreCompanyDTO storeCompanyDTO) {
-        storeService.applyFirstStep(storeCompanyDTO);
+    @Operation(summary = "选择入驻主体类型")
+    @PutMapping("/apply/type")
+    public ResultMessage<Object> selectApplyType(@Valid @RequestBody StoreApplyTypeSelectDTO applyTypeSelectDTO) {
+        storeService.selectApplyType(applyTypeSelectDTO);
         return ResultUtil.success();
     }
 
-    @Operation(summary = "申请店铺第二步-填写银行信息")
-    @PutMapping("/apply/second")
-    public ResultMessage<Object> applySecondStep(@Valid @ModelAttribute StoreBankDTO storeBankDTO) {
-        storeService.applySecondStep(storeBankDTO);
+    @Operation(summary = "个人主体提交入驻资料")
+    @PutMapping("/apply/personal")
+    public ResultMessage<Object> applyPersonal(@Valid @RequestBody StorePersonalApplyDTO personalApplyDTO,
+                                               @RequestHeader String uuid) {
+        storeService.applyPersonal(personalApplyDTO, uuid);
         return ResultUtil.success();
     }
 
-    @Operation(summary = "申请店铺第三步-填写其他信息")
-    @PutMapping("/apply/third")
-    public ResultMessage<Object> applyThirdStep(@Valid @ModelAttribute StoreOtherInfoDTO storeOtherInfoDTO) {
-        storeService.applyThirdStep(storeOtherInfoDTO);
+    @Operation(summary = "个体户提交入驻资料")
+    @PutMapping("/apply/individual")
+    public ResultMessage<Object> applyIndividual(@Valid @RequestBody StoreIndividualApplyDTO individualApplyDTO,
+                                                 @RequestHeader String uuid) {
+        storeService.applyIndividual(individualApplyDTO, uuid);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "企业法人提交入驻资料")
+    @PutMapping("/apply/company/legal")
+    public ResultMessage<Object> applyCompanyLegal(@Valid @RequestBody StoreCompanyLegalApplyDTO companyLegalApplyDTO,
+                                                   @RequestHeader String uuid) {
+        storeService.applyCompanyLegal(companyLegalApplyDTO, uuid);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "企业被授权人提交入驻资料")
+    @PutMapping("/apply/company/authorized")
+    public ResultMessage<Object> applyCompanyAuthorized(@Valid @RequestBody StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO,
+                                                        @RequestHeader String uuid) {
+        storeService.applyCompanyAuthorized(companyAuthorizedApplyDTO, uuid);
         return ResultUtil.success();
     }
 
     @Operation(summary = "获取当前登录客户的店铺信息-入驻店铺")
     @GetMapping("/apply")
-    public ResultMessage<StoreDetailVO> apply() {
-        return ResultUtil.data(storeDetailService.getStoreDetailVOByMemberId(UserContext.getCurrentUser().getId()));
+    public ResultMessage<StoreApplyVO> apply() {
+        return ResultUtil.data(storeDetailService.getStoreApplyVOByMemberId(UserContext.getCurrentUser().getId()));
     }
 }

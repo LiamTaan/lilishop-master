@@ -24,35 +24,35 @@ export default {
       name: "SupportRegionManage",
       component: () =>
         import("@/views/super-admin/support-center/region-manage.vue"),
-      meta: { title: "区域管理", showLink: false }
+      meta: { title: "区域管理" }
     },
     {
       path: "/support-center/logistics-manage",
       name: "SupportLogisticsManage",
       component: () =>
         import("@/views/super-admin/support-center/logistics-manage.vue"),
-      meta: { title: "物流公司", showLink: false }
+      meta: { title: "物流公司" }
     },
     {
       path: "/support-center/after-sale-reason",
       name: "SupportAfterSaleReason",
       component: () =>
         import("@/views/super-admin/support-center/after-sale-reason.vue"),
-      meta: { title: "售后原因", showLink: false }
+      meta: { title: "售后原因" }
     },
     {
       path: "/support-center/feedback-manage",
       name: "SupportFeedbackManage",
       component: () =>
         import("@/views/super-admin/support-center/feedback-manage.vue"),
-      meta: { title: "意见反馈", showLink: false }
+      meta: { title: "意见反馈" }
     },
     {
       path: "/support-center/setting-log",
       name: "SupportSettingLog",
       component: () =>
         import("@/views/super-admin/support-center/setting-log.vue"),
-      meta: { title: "配置日志", showLink: false }
+      meta: { title: "配置日志" }
     }
   ]
 } satisfies RouteConfigsTable;

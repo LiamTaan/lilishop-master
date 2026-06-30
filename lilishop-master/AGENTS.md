@@ -95,6 +95,12 @@
   - 买家端：`/buyer/...`
   - 公共端：`/common/...`
 
+### 5.6 接口传参约定
+
+- `GET` 接口只承载查询语义，参数放 `path/query`，不使用 `requestBody` 表达写操作。
+- `POST`、`PUT`、`PATCH`、`DELETE` 等写接口，多个业务字段或结构化参数默认使用 `@RequestBody DTO`；不要继续把主体业务参数散落在 query/form 中。
+- 同一接口在文档中只保留一种正式传参方式；如果为了兼容历史调用保留旧入口，应在 OpenAPI 文档中隐藏旧写法，避免同时暴露 `Params + Body` 两套契约。
+
 ## 6. 对历史代码的处理原则
 
 - 本仓库已有不少历史接口直接返回 `Entity`、`IPage<Entity>`、`Map<String, Object>`，这属于现状，不代表后续新增仍应复制。

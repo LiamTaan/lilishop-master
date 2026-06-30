@@ -12,9 +12,6 @@ import cn.lili.modules.message.entity.dto.NoticeMessageDetailDTO;
 import cn.lili.modules.message.entity.enums.NoticeMessageParameterEnum;
 import cn.lili.modules.message.service.NoticeMessageService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;  
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,22 +29,17 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@Tag(name = "管理端,客户站内信管理接口")
 @RequestMapping("/manager/setting/noticeMessage")
 public class NoticeMessageManagerController {
     @Autowired
     private NoticeMessageService noticeMessageService;
 
-    @Operation(summary = "消息模板分页")
-    @Parameter(name = "type", description = "消息类型", required = false)
     @GetMapping
     public ResultMessage<IPage<NoticeMessage>> getPage(PageVO pageVO, String type) {
         return ResultUtil.data(noticeMessageService.getMessageTemplate(pageVO, type));
     }
 
 
-    @Operation(summary = "根据id获取通知详情")
-    @Parameter(name = "id", description = "模板id", required = true)
     @GetMapping("/{id}")
     public ResultMessage<NoticeMessageDetailDTO> get(@PathVariable String id) {
         //根据id获取当前消息模板
@@ -75,10 +67,6 @@ public class NoticeMessageManagerController {
     }
 
 
-    @Operation(summary = "修改站内信模板")
-    @Parameter(name = "noticeContent", description = "站内信内容", required = true)
-    @Parameter(name = "noticeTitle", description = "站内信模板标题", required = true)
-    @Parameter(name = "id", description = "模板id", required = true)
     @PutMapping("/{id}")
     public ResultMessage<NoticeMessage> updateNoticeTemplate(@RequestParam String noticeContent,
                                                              @RequestParam String noticeTitle,
@@ -94,9 +82,6 @@ public class NoticeMessageManagerController {
         throw new ServiceException(ResultCode.NOTICE_NOT_EXIST.message());
     }
 
-    @Operation(summary = "修改站内信状态")
-    @Parameter(name = "id", description = "站内信状态", required = true)
-    @Parameter(name = "status", description = "站内信状态", required = true)
     @PutMapping("/{id}/{status}")
     public ResultMessage<NoticeMessage> status(@PathVariable String id, @PathVariable String status) {
         //根据id获取当前消息模板
@@ -115,7 +100,6 @@ public class NoticeMessageManagerController {
         throw new ServiceException(ResultCode.NOTICE_NOT_EXIST.message());
     }
 
-    @Operation(summary = "修改邮箱渠道状态")
     @PutMapping("/{id}/email/{status}")
     public ResultMessage<NoticeMessage> emailStatus(@PathVariable String id, @PathVariable String status) {
         NoticeMessage messageTemplate = noticeMessageService.getById(id);

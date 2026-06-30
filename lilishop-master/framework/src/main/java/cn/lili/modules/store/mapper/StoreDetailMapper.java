@@ -36,7 +36,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
             @Result(property = "auditStatus", column = "auditStatus"),
             @Result(property = "auditRemark", column = "auditRemark")
     })
-    @Select("select s.store_logo,s.member_name,s.store_name,s.store_disable,s.audit_status as auditStatus,s.audit_remark as auditRemark,s.self_operated,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.store_center,s.store_desc,s.yzf_sign,s.yzf_mp_sign,s.apply_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name," +
+    @Select("select s.member_id as memberId,s.store_logo,s.member_name,s.store_name,s.store_disable,s.audit_status as auditStatus,s.audit_remark as auditRemark,s.self_operated,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.store_center,s.store_desc,s.yzf_sign,s.yzf_mp_sign,s.merchant_euid,s.subject_type,s.company_identity_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name," +
             "d.* from li_store s inner join li_store_detail d on s.id=d.store_id where s.id=#{storeId}")
     StoreDetailVO getStoreDetail(String storeId);
 
@@ -47,7 +47,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @return 店铺详情
      */
     @ResultMap("storeDetailVoResult")
-    @Select("select s.member_name,s.store_name,s.store_disable,s.audit_status as auditStatus,s.audit_remark as auditRemark,s.self_operated,s.store_center,s.store_logo,s.store_desc,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.apply_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name,d.* " +
+    @Select("select s.member_id as memberId,s.member_name,s.store_name,s.store_disable,s.audit_status as auditStatus,s.audit_remark as auditRemark,s.self_operated,s.store_center,s.store_logo,s.store_desc,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.subject_type,s.company_identity_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name,d.* " +
             "from li_store s inner join li_store_detail d on s.id=d.store_id where s.member_id=#{memberId}")
     StoreDetailVO getStoreDetailByMemberId(String memberId);
 
@@ -57,7 +57,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @param memberId 客户ID
      * @return 店铺申请详情
      */
-    @Select("select s.member_name,s.store_name,s.store_disable,s.self_operated,s.store_center,s.store_logo,s.store_desc,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.audit_status,s.audit_remark,s.apply_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name,d.* " +
+    @Select("select s.store_name,s.store_center,s.store_logo,s.store_desc,s.store_address_detail,s.store_address_path,s.store_address_id_path,s.audit_status,s.audit_remark,s.subject_type,s.company_identity_type,s.store_type,s.agent_level,s.agent_region_id,s.agent_region_name,d.* " +
             "from li_store s inner join li_store_detail d on s.id=d.store_id where s.member_id=#{memberId}")
     StoreApplyVO getStoreApplyByMemberId(String memberId);
 
@@ -67,7 +67,8 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @param storeId 店铺ID
      * @return 店铺基础信息DTO
      */
-    @Select("SELECT s.id as storeId,s.* FROM li_store s WHERE s.id=#{storeId}")
+    @Select("SELECT s.id as storeId,s.store_name,s.store_disable,s.store_address_path,s.store_logo,s.store_desc,s.self_operated,s.goods_num,s.collection_num,s.description_score,s.service_score,s.delivery_score,s.yzf_sign,s.yzf_mp_sign,s.merchant_euid,s.page_show " +
+            "FROM li_store s WHERE s.id=#{storeId}")
     StoreBasicInfoVO getStoreBasicInfoDTO(String storeId);
 
     /**
@@ -86,7 +87,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @param day 结算日
      * @return 待结算店铺列表
      */
-    @Select("SELECT store_id,settlement_day FROM li_store_detail " +
+    @Select("SELECT store_id,settlement_day FROM li_store_settlement_profile " +
             "WHERE settlement_cycle LIKE concat(#{day},',%')  " +
             "OR settlement_cycle LIKE concat('%,',#{day},',%') " +
             "OR settlement_cycle LIKE concat('%,',#{day})"+
@@ -99,7 +100,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @param storeId  店铺ID
      * @param dateTime 结算日
      */
-    @Update("UPDATE li_store_detail SET settlement_day=#{dateTime} WHERE store_id=#{storeId}")
+    @Update("UPDATE li_store_settlement_profile SET settlement_day=#{dateTime} WHERE store_id=#{storeId}")
     void updateSettlementDay(String storeId, DateTime dateTime);
 
     /**
@@ -107,7 +108,7 @@ public interface StoreDetailMapper extends BaseMapper<StoreDetail> {
      * @param storeId 店铺ID
      * @return 店铺营业执照
      */
-    @Select("SELECT * FROM li_store_detail WHERE store_id=#{storeId}")
+    @Select("SELECT business_license_url,credit_code,business_license_expire_type,business_license_expire_date,facade_image_url,indoor_image_urls FROM li_store_detail WHERE store_id=#{storeId}")
     StoreOtherVO getLicencePhoto(String storeId);
 
     /***

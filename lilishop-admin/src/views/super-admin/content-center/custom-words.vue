@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createCustomWord,
@@ -11,7 +12,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "CustomWordsManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -39,6 +45,12 @@ const summaryCards = computed(() => [
   { label: "已配词性", value: rows.value.filter(item => item.displayNature !== "-").length, accent: "blue" as const, hint: "已配置词性的词条" },
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接真实词库接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
@@ -70,6 +82,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -137,6 +153,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的词条", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个词条吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteCustomWord(id)));
+    selectedRows.value = [];
+    message("自定义词条批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("自定义词条批量删除失败", { type: "error" });
+  }
+}
+
+function exportCustomWords() {
+  if (!rows.value.length) {
+    message("暂无可导出的自定义词条数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    词条: item.displayName,
+    分词器: item.displayAnalysis,
+    词性: item.displayNature,
+    更新时间: item.displayTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "自定义词库");
+  writeFile(workbook, "自定义词库.xlsx");
+  message("自定义词条导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -147,6 +201,7 @@ onMounted(loadData);
     api-path="/manager/other/customWords/page"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -158,8 +213,11 @@ onMounted(loadData);
     keyword-placeholder="请输入词条"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportCustomWords">导出</el-button>
       <el-button type="primary" @click="openCreate">新增词条</el-button>
     </template>
     <template #operation="{ row }">

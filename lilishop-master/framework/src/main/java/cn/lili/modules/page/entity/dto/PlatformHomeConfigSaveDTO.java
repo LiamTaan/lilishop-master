@@ -37,4 +37,16 @@ public class PlatformHomeConfigSaveDTO {
 
     @Schema(description = "首页楼层列表")
     private List<PlatformHomeConfigFloorDTO> floorModules;
+
+    @Schema(description = "常买店铺配置")
+    private PlatformHomeRecommendationConfigDTO frequentStoresConfig;
+
+    @Schema(description = "猜你喜欢配置")
+    private PlatformHomeRecommendationConfigDTO guessYouLikeConfig;
+
+    @Schema(description = "低价专区配置")
+    private PlatformHomeRecommendationConfigDTO lowPriceZoneConfig;
+
+    @Schema(description = "今日特惠配置")
+    private PlatformHomeRecommendationConfigDTO todaySpecialConfig;
 }

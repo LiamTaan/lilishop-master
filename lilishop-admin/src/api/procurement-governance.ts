@@ -127,3 +127,10 @@ export const deleteStockReason = (id: string) => {
     `/manager/procurement/reason/${id}`
   );
 };
+
+export const deleteStockReasons = (ids: string[]) => {
+  return http.request<ResultMessage<any>>(
+    "delete",
+    `/manager/procurement/reason/${ids.join(",")}`
+  );
+};

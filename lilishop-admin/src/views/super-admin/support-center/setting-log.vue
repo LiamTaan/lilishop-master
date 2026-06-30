@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   deleteAllSettingLog,
@@ -11,6 +12,7 @@ import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const detailVisible = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const query = reactive({ keyword: "", operatorName: "", type: "" });
@@ -31,6 +33,12 @@ const summaryCards = computed(() => [
   { label: "治理动作", value: "查看/删除/清空", accent: "purple" as const, hint: "承接真实日志接口" }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -46,12 +54,15 @@ function normalizeRecord(item: Record<string, any>): Record<string, any> {
 async function loadData() {
   try {
     const params = {
+      pageNumber: 1,
+      pageSize: 200,
       searchKey: query.keyword || "all",
       operatorName: query.operatorName || undefined,
       type: query.type ? Number(query.type) : undefined
     };
     const res = await getSettingLogPage(params);
     rows.value = extractApiRecords(res).map(normalizeRecord);
+    selectedRows.value = [];
   } catch (_error) {
     message("配置日志加载失败，请稍后重试", { type: "error" });
   }
@@ -70,6 +81,10 @@ function handleReset() {
   loadData();
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
 function openDetail(row: Record<string, any>) {
   currentRow.value = row;
   detailVisible.value = true;
@@ -86,6 +101,26 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的配置日志", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条配置日志吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteSettingLog(selectedIds.value);
+    selectedRows.value = [];
+    message("配置日志批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("配置日志批量删除失败", { type: "error" });
+  }
+}
+
 async function handleDeleteAll() {
   await ElMessageBox.confirm("确认清空全部配置日志吗？", "清空确认", { type: "warning" });
   try {
@@ -95,6 +130,25 @@ async function handleDeleteAll() {
   } catch (_error) {
     message("配置日志清空失败", { type: "error" });
   }
+}
+
+function exportSettingLogs() {
+  if (!rows.value.length) {
+    message("暂无可导出的配置日志", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    操作人: item.displayName,
+    日志类型: item.displayStatus,
+    关键字: item.displayKeyword,
+    操作时间: item.displayTime,
+    操作内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "系统维护记录");
+  writeFile(workbook, "系统维护记录.xlsx");
+  message("配置日志导出成功", { type: "success" });
 }
 
 onMounted(loadData);
@@ -107,6 +161,7 @@ onMounted(loadData);
     api-path="/manager/setting/log/getAllByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :status-options="[
       { label: '类型 0', value: '0' },
@@ -122,6 +177,7 @@ onMounted(loadData);
     keyword-placeholder="请输入搜索关键字"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #filters-extra>
       <el-form-item label="操作人">
@@ -129,6 +185,8 @@ onMounted(loadData);
       </el-form-item>
     </template>
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportSettingLogs">导出</el-button>
       <el-button type="danger" plain @click="handleDeleteAll">清空日志</el-button>
     </template>
     <template #operation="{ row }">

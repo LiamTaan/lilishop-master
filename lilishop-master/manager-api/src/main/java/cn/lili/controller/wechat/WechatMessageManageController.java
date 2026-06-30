@@ -8,10 +8,6 @@ import cn.lili.modules.wechat.entity.dos.WechatMessage;
 import cn.lili.modules.wechat.service.WechatMessageService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,9 +24,7 @@ import java.nio.file.StandardOpenOption;
  * @author Chopper
  * @since 2020/12/2 10:40
  */
-@Hidden
 @RestController
-@Tag(name = "管理端,微信消息接口")
 @RequestMapping("/manager/wechat/wechatMessage")
 public class WechatMessageManageController {
     @Autowired
@@ -38,7 +32,6 @@ public class WechatMessageManageController {
 
 
     @GetMapping("/init")
-    @Operation(summary = "初始化微信消息")
     @DemoSite
     public ResultMessage init() {
         wechatMessageService.init();
@@ -46,8 +39,6 @@ public class WechatMessageManageController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "查看微信消息详情")
-    @Parameter(name = "id", description = "微信消息ID", required = true)
     public ResultMessage<WechatMessage> get(@PathVariable String id) {
 
         WechatMessage wechatMessage = wechatMessageService.getById(id);
@@ -55,8 +46,6 @@ public class WechatMessageManageController {
     }
 
     @GetMapping
-    @Operation(summary = "分页获取微信消息")
-    @Parameter(name = "page", description = "分页参数", required = true)
     public ResultMessage<IPage<WechatMessage>> getByPage(PageVO page) {
         IPage<WechatMessage> data = wechatMessageService.page(PageUtil.initPage(page));
         return ResultUtil.data(data);
@@ -64,8 +53,7 @@ public class WechatMessageManageController {
 
     @DemoSite
     @PostMapping
-    @Operation(summary = "新增微信消息")
-    public ResultMessage<WechatMessage> save(WechatMessage wechatMessage) {
+    public ResultMessage<WechatMessage> save(@RequestBody WechatMessage wechatMessage) {
 
         wechatMessageService.save(wechatMessage);
         return ResultUtil.data(wechatMessage);
@@ -73,9 +61,8 @@ public class WechatMessageManageController {
 
     @DemoSite
     @PutMapping("/{id}")
-    @Operation(summary = "更新微信消息")
-    @Parameter(name = "id", description = "微信消息ID", required = true)
-    public ResultMessage<WechatMessage> update(@PathVariable String id, WechatMessage wechatMessage) {
+    public ResultMessage<WechatMessage> update(@PathVariable String id, @RequestBody WechatMessage wechatMessage) {
+        wechatMessage.setId(id);
         // #region agent log: wechat message update entry
         try {
             String logPath = "d:\\lilishop_source\\lilishop\\debug-ade6ce.log";
@@ -103,8 +90,6 @@ public class WechatMessageManageController {
 
     @DemoSite
     @DeleteMapping("/{ids}")
-    @Operation(summary = "删除微信消息")
-    @Parameter(name = "ids", description = "微信消息ID列表", required = true)
     public ResultMessage<Object> delAllByIds(@PathVariable List ids) {
         wechatMessageService.removeByIds(ids);
         return ResultUtil.success();

@@ -60,12 +60,29 @@ public interface GoodsService extends IService<Goods> {
     void addGoods(GoodsOperationDTO goodsOperationDTO);
 
     /**
+     * 管理端添加商品
+     *
+     * @param goodsOperationDTO 商品信息
+     * @param storeId           归属店铺ID
+     */
+    void addGoodsByManager(GoodsOperationDTO goodsOperationDTO, String storeId);
+
+    /**
      * 修改商品
      *
      * @param goodsOperationDTO 商品查询条件
      * @param goodsId           商品ID
      */
     void editGoods(GoodsOperationDTO goodsOperationDTO, String goodsId);
+
+    /**
+     * 管理端修改商品
+     *
+     * @param goodsOperationDTO 商品信息
+     * @param goodsId           商品ID
+     * @param storeId           归属店铺ID
+     */
+    void editGoodsByManager(GoodsOperationDTO goodsOperationDTO, String goodsId, String storeId);
 
     /**
      * 查询商品VO

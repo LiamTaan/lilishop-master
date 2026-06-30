@@ -14,18 +14,13 @@ import cn.lili.modules.member.entity.enums.MemberBenefitTypeEnum;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dos.MemberBenefit;
-import cn.lili.modules.member.entity.dos.MemberGrade;
-import cn.lili.modules.member.entity.dos.MemberGradeBenefitGrant;
 import cn.lili.modules.member.entity.vo.EnumValueVO;
 import cn.lili.modules.member.entity.vo.MemberBenefitCouponItemVO;
 import cn.lili.modules.member.entity.vo.MemberBenefitDetailVO;
 import cn.lili.modules.member.entity.vo.MemberBenefitGrantRecordVO;
 import cn.lili.modules.member.entity.vo.MemberCurrentBenefitVO;
 import cn.lili.modules.member.mapper.MemberBenefitMapper;
-import cn.lili.modules.member.mapper.MemberGradeBenefitGrantMapper;
-import cn.lili.modules.member.mapper.MemberGradeMapper;
 import cn.lili.modules.member.service.MemberBenefitService;
-import cn.lili.modules.member.service.MemberGradeService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.promotion.entity.dos.Coupon;
 import cn.lili.modules.promotion.entity.enums.CouponRangeDayEnum;
@@ -40,7 +35,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,22 +57,13 @@ public class MemberBenefitServiceImpl extends ServiceImpl<MemberBenefitMapper, M
     private static final int COUPON_PKG_QTY_MAX = 10;
 
     @Autowired
-    private MemberGradeMapper memberGradeMapper;
-
-    @Autowired
     private MemberService memberService;
-
-    @Autowired
-    private MemberGradeService memberGradeService;
 
     @Autowired
     private CouponService couponService;
 
     @Autowired
     private MemberCouponService memberCouponService;
-
-    @Autowired
-    private MemberGradeBenefitGrantMapper memberGradeBenefitGrantMapper;
 
     @Override
     public void saveBenefit(MemberBenefit memberBenefit) {
@@ -138,13 +123,6 @@ public class MemberBenefitServiceImpl extends ServiceImpl<MemberBenefitMapper, M
         if (memberBenefit == null) {
             throw new ServiceException(ResultCode.ERROR, "客户权益不存在");
         }
-        LambdaQueryWrapper<MemberGrade> gradeWrapper = new LambdaQueryWrapper<MemberGrade>()
-                .isNotNull(MemberGrade::getBenefitIds)
-                .apply("FIND_IN_SET({0}, benefit_ids)", id);
-        Long count = memberGradeMapper.selectCount(gradeWrapper);
-        if (count != null && count > 0) {
-            throw new ServiceException(ResultCode.PARAMS_ERROR, "权益已被等级引用，无法删除");
-        }
         if (!this.removeById(id)) {
             throw new ServiceException(ResultCode.ERROR, "客户权益删除失败");
         }
@@ -189,27 +167,7 @@ public class MemberBenefitServiceImpl extends ServiceImpl<MemberBenefitMapper, M
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
         }
-
-        MemberGrade grade = null;
-        if (CharSequenceUtil.isNotBlank(member.getGradeId())) {
-            grade = memberGradeService.getById(member.getGradeId());
-        }
-        if (grade == null) {
-            grade = memberGradeService.getCurrentGradeByExperience(member.getExperience());
-        }
-        List<String> benefitIds = new ArrayList<>();
-        if (grade != null && CharSequenceUtil.isNotBlank(grade.getBenefitIds())) {
-            List<String> parts = CharSequenceUtil.splitTrim(grade.getBenefitIds(), ',');
-            if (CollUtil.isNotEmpty(parts)) {
-                for (String part : parts) {
-                    if (CharSequenceUtil.isNotBlank(part)) {
-                        benefitIds.add(part);
-                    }
-                }
-            }
-        }
-        List<MemberBenefit> benefits = this.listByIdList(benefitIds, true);
-        return new MemberCurrentBenefitVO(grade == null ? null : grade.getId(), grade, benefits);
+        return new MemberCurrentBenefitVO(Collections.emptyList());
     }
 
     @Override
@@ -228,61 +186,16 @@ public class MemberBenefitServiceImpl extends ServiceImpl<MemberBenefitMapper, M
 
     @Override
     public IPage<MemberBenefitGrantRecordVO> pageBenefitGrantRecords(String mobile, String gradeId, PageVO page) {
-        QueryWrapper<Object> wrapper = new QueryWrapper<>();
-        wrapper.eq("g.delete_flag", 0);
-        if (CharSequenceUtil.isNotBlank(gradeId)) {
-            wrapper.eq("g.grade_id", gradeId.trim());
-        }
-        if (CharSequenceUtil.isNotBlank(mobile)) {
-            Member m = this.memberService.findByMobile(mobile.trim());
-            if (m == null) {
-                wrapper.eq("g.member_id", "__NO_SUCH_MEMBER_FOR_GRANT_LOG__");
-            } else {
-                wrapper.eq("g.member_id", m.getId());
-            }
-        }
-        wrapper.orderByDesc("g.create_time");
         Page<MemberBenefitGrantRecordVO> p = PageUtil.initPage(page);
-        return this.memberGradeBenefitGrantMapper.pageGrantRecords(p, wrapper);
+        p.setRecords(Collections.emptyList());
+        p.setTotal(0);
+        return p;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void tryGrantBenefitsForGradeReached(String memberId, String gradeId) {
-        if (CharSequenceUtil.isBlank(memberId) || CharSequenceUtil.isBlank(gradeId)) {
-            return;
-        }
-        Member member = memberService.getById(memberId);
-        if (member == null) {
-            throw new ServiceException(ResultCode.USER_NOT_EXIST);
-        }
-        MemberGrade grade = memberGradeService.getById(gradeId);
-        if (grade == null) {
-            return;
-        }
-        MemberGradeBenefitGrant claim = new MemberGradeBenefitGrant();
-        claim.setMemberId(memberId);
-        claim.setGradeId(gradeId);
-        try {
-            this.memberGradeBenefitGrantMapper.insert(claim);
-        } catch (DuplicateKeyException e) {
-            return;
-        }
-        String memberName = CharSequenceUtil.blankToDefault(member.getUsername(), member.getNickName());
-        if (CharSequenceUtil.isBlank(grade.getBenefitIds())) {
-            return;
-        }
-        List<String> benefitIds = CharSequenceUtil.splitTrim(grade.getBenefitIds(), ',');
-        for (String bid : benefitIds) {
-            if (CharSequenceUtil.isBlank(bid)) {
-                continue;
-            }
-            MemberBenefit benefit = this.getById(bid.trim());
-            if (benefit == null || !SwitchEnum.OPEN.name().equals(benefit.getBenefitState())) {
-                continue;
-            }
-            this.grantBenefitToMember(member, memberName, benefit);
-        }
+        // 会员成长体系已移除，不再基于等级发放权益。
     }
 
     /**

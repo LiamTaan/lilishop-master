@@ -23,6 +23,9 @@ public class CartBase implements Serializable {
     @Schema(description = "卖家姓名")
     private String storeName;
 
+    @Schema(description = "店铺logo")
+    private String storeLogo;
+
     @Schema(description = "此商品价格流水计算")
     private PriceDetailDTO priceDetailDTO;
 

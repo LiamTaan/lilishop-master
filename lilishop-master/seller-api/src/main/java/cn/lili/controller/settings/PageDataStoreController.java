@@ -58,7 +58,7 @@ public class PageDataStoreController {
 
     @Operation(description = "添加页面")
     @PostMapping("/save")
-    public ResultMessage<PageData> addPageData(@Valid PageData pageData) {
+    public ResultMessage<PageData> addPageData(@Valid @RequestBody PageData pageData) {
         //添加店铺类型，填写店铺ID
         pageData.setPageType(PageEnum.STORE.name());
         pageData.setNum(UserContext.getCurrentUser().getStoreId());
@@ -67,9 +67,8 @@ public class PageDataStoreController {
 
     @Operation(description = "修改页面")
     @Parameter(name = "id", description = "页面ID", required = true)
-    @Parameter(name = "pageData", description = "页面数据")
     @PutMapping("/update/{id}")
-    public ResultMessage<PageData> updatePageData(@Valid PageData pageData, @NotNull @PathVariable String id) {
+    public ResultMessage<PageData> updatePageData(@Valid @RequestBody PageData pageData, @NotNull @PathVariable String id) {
         this.checkAuthority(id);
         pageData.setId(id);
         //添加店铺类型，填写店铺ID

@@ -73,12 +73,15 @@ const onLogin = async (formEl: FormInstance | undefined) => {
       // 获取后端路由
       await initRouter();
       disabled.value = true;
-      router.push(getTopMenu(true).path).then(() => {
+      const targetPath = getTopMenu(true)?.path || "/welcome";
+      router.push(targetPath).then(() => {
         message(t("login.pureLoginSuccess"), { type: "success" });
       });
     })
-    .catch(_err => {
-      message(t("login.pureLoginFail"), { type: "error" });
+    .catch(error => {
+      const errorMessage =
+        error?.message || (typeof error === "string" ? error : "") || t("login.pureLoginFail");
+      message(errorMessage, { type: "error" });
     })
     .finally(() => {
       disabled.value = false;
@@ -162,9 +165,9 @@ watch(loginDay, value => {
         <div class="login-form">
           <Motion>
             <div class="login-brand">
-              <img :src="logo" alt="PF 批发商城" class="brand-mark" />
+              <img :src="logo" alt="批发商城" class="brand-mark" />
               <div class="brand-copy">
-                <p class="brand-kicker">PF 批发商城管理端</p>
+                <p class="brand-kicker">批发商城管理端</p>
                 <h2 class="outline-hidden">
                   <TypeIt
                     :options="{ strings: [title], cursor: false, speed: 100 }"

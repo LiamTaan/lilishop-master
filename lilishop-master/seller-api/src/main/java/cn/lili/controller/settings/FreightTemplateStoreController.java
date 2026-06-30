@@ -45,7 +45,6 @@ public class FreightTemplateStoreController {
     }
 
     @Operation(description = "添加商家运费模板")
-    @Parameter(name = "freightTemplateVO", description = "运费模板VO", required = true)
     @PostMapping
     public ResultMessage<FreightTemplateVO> add(@Valid @RequestBody FreightTemplateVO freightTemplateVO) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
@@ -55,7 +54,6 @@ public class FreightTemplateStoreController {
 
     @Operation(description = "修改商家运费模板")
     @Parameter(name = "id", description = "商家模板ID", required = true)
-    @Parameter(name = "freightTemplateVO", description = "运费模板VO", required = true)
     @PutMapping("/{id}")
     public ResultMessage<FreightTemplateVO> edit(@PathVariable String id, @RequestBody @Valid FreightTemplateVO freightTemplateVO) {
         OperationalJudgment.judgment(freightTemplateService.getFreightTemplate(id));

@@ -122,7 +122,6 @@ const backendMenuAliasMap: Record<string, string> = {
   "procurement-reason": "/procurement-governance/reason",
   "manager/procurement/reason": "/procurement-governance/reason",
   "member-list": "/member-center/member-list",
-  "member-grade": "/member-center/member-grade",
   "member-group": "/member-center/member-group",
   "member-benefit": "/member-center/member-benefit",
   "member-points-history": "/member-center/member-points-history",
@@ -140,21 +139,18 @@ const backendMenuAliasMap: Record<string, string> = {
   "member-message": "/message-center/member-message",
   "store-message": "/message-center/store-message",
   article: "/content-center/article",
-  "home-config": "/content-center/home-config",
-  "platform-home-config": "/content-center/home-config",
-  "operation/shortcut-nav/index": "/content-center/home-config",
-  "page-decoration/floorlist": "/content-center/home-config",
-  "page-decoration/wap/waplist": "/content-center/home-config",
-  "page-data": "/content-center/home-config",
-  "shortcut-nav": "/content-center/home-config",
-  pcfloor: "/content-center/home-config",
-  waplist: "/content-center/home-config",
-  floor: "/content-center/home-config",
-  special: "/content-center/home-config",
+  advertisement: "/content-center/advertisement",
+  advert: "/content-center/advertisement",
+  banner: "/content-center/advertisement",
+  "home-advertisement": "/content-center/advertisement",
+  special: "/content-center/special-manage",
+  "content-center/special": "/content-center/special-manage",
+  "special-manage": "/content-center/special-manage",
+  recommendation: "/content-center/recommendation-strategy",
+  "recommendation-strategy": "/content-center/recommendation-strategy",
   "article-category": "/content-center/article-category",
   "sensitive-words": "/content-center/sensitive-words",
   "custom-words": "/content-center/custom-words",
-  "hot-words": "/content-center/hot-words-manage",
   "app-version": "/content-center/app-version",
   "verification-source": "/support-center/verification-source",
   "region-manage": "/support-center/region-manage",
@@ -205,7 +201,7 @@ function collectRouteRecords(
       title: String(route.meta?.title ?? ""),
       parentPath: parent?.path ?? "",
       parentTitle: String(parent?.meta?.title ?? ""),
-      visibleInSidebar: route.meta?.showLink !== false
+      visibleInSidebar: true
     };
     flatRouteRecords.push(record);
 
@@ -298,10 +294,16 @@ function filterCurrentRoutesByAllowedPaths(
         return null;
       }
 
-      return {
-        ...route,
-        children
+      const nextRoute = {
+        ...route
       };
+      if (children.length > 0) {
+        nextRoute.children = children;
+      } else {
+        delete nextRoute.children;
+      }
+
+      return nextRoute;
     })
     .filter(Boolean) as CurrentRouteNode[];
 }

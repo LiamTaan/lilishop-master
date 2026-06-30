@@ -20,6 +20,7 @@ import cn.lili.modules.system.entity.enums.SettingEnum;
 import cn.lili.modules.system.service.SettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -53,13 +54,14 @@ public class UploadController {
     @PostMapping("/file")
     public ResultMessage<Object> upload(MultipartFile file,
                                         String base64,
-                                        @RequestHeader String accessToken, @RequestParam String directoryPath) {
+                                        @RequestParam String directoryPath,
+                                        HttpServletRequest request) {
 
         if(StrUtil.isBlank(directoryPath)){
             directoryPath = "default";
         }
 
-        AuthUser authUser = UserContext.getAuthUser(cache, accessToken);
+        AuthUser authUser = UserContext.getAuthUser(cache, UserContext.resolveAccessToken(request));
         //如果用户未登录，则无法上传图片
         if (authUser == null) {
             throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);

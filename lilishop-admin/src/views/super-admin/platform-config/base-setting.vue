@@ -11,12 +11,12 @@ import SettingCenter from "./setting-center.vue";
     :fields="[
       { key: 'siteName', label: '站点名称' },
       { key: 'icp', label: 'ICP备案号' },
-      { key: 'domainLogo', label: '平台管理 Logo' },
-      { key: 'domainIcon', label: '平台管理 Icon' },
-      { key: 'buyerSideLogo', label: '买家端 Logo' },
-      { key: 'buyerSideIcon', label: '买家端 Icon' },
-      { key: 'storeSideLogo', label: '商家端 Logo' },
-      { key: 'storeSideIcon', label: '商家端 Icon' },
+      { key: 'domainLogo', label: '平台管理 Logo', type: 'image' },
+      { key: 'domainIcon', label: '平台管理 Icon', type: 'image' },
+      { key: 'buyerSideLogo', label: '买家端 Logo', type: 'image' },
+      { key: 'buyerSideIcon', label: '买家端 Icon', type: 'image' },
+      { key: 'storeSideLogo', label: '商家端 Logo', type: 'image' },
+      { key: 'storeSideIcon', label: '商家端 Icon', type: 'image' },
       { key: 'staticPageAddress', label: 'PC 站点地址' },
       { key: 'staticPageWapAddress', label: 'WAP 站点地址' }
     ]"

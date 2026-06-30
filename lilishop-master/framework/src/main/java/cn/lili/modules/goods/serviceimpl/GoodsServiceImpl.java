@@ -37,6 +37,7 @@ import cn.lili.modules.member.service.MemberEvaluationService;
 import cn.lili.modules.search.utils.EsIndexUtil;
 import cn.lili.modules.store.entity.dos.FreightTemplate;
 import cn.lili.modules.store.entity.dos.Store;
+import cn.lili.modules.store.entity.enums.StoreStatusEnum;
 import cn.lili.modules.store.entity.vos.StoreVO;
 import cn.lili.modules.store.service.FreightTemplateService;
 import cn.lili.modules.store.service.StoreService;
@@ -223,6 +224,43 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         this.generateEs(goods);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @SystemLogPoint(description = "管理端添加商品", customerLog = "'新增商品名称:['+#goodsOperationDTO.goodsName+']，归属店铺:['+#storeId+']'")
+    public void addGoodsByManager(GoodsOperationDTO goodsOperationDTO, String storeId) {
+        Goods goods = new Goods(goodsOperationDTO);
+        this.bindManagedStore(goods, storeId);
+        this.checkGoods(goods);
+        this.checkDuplicateBarcodes(goods, goodsOperationDTO);
+        if (goodsOperationDTO.getGoodsGalleryList().size() > 0) {
+            this.setGoodsGalleryParam(goodsOperationDTO.getGoodsGalleryList().get(0), goods);
+        }
+        if (goodsOperationDTO.getGoodsParamsDTOList() != null && !goodsOperationDTO.getGoodsParamsDTOList().isEmpty()) {
+            goods.setParams(JSON.toJSONString(goodsOperationDTO.getGoodsParamsDTOList()));
+        }
+
+        int totalStock = 0;
+        if (goodsOperationDTO.getSkuList() != null && !goodsOperationDTO.getSkuList().isEmpty()) {
+            for (Map<String, Object> sku : goodsOperationDTO.getSkuList()) {
+                Object quantityObj = sku.get("quantity");
+                if (quantityObj != null) {
+                    totalStock += Integer.parseInt(quantityObj.toString());
+                }
+            }
+        }
+
+        if (totalStock == 0) {
+            goods.setMarketEnable(GoodsStatusEnum.DOWN.name());
+        }
+
+        this.save(goods);
+        this.goodsSkuService.add(goods, goodsOperationDTO);
+        if (goodsOperationDTO.getGoodsGalleryList() != null && !goodsOperationDTO.getGoodsGalleryList().isEmpty()) {
+            this.goodsGalleryService.add(goodsOperationDTO.getGoodsGalleryList(), goods.getId());
+        }
+        this.generateEs(goods);
+    }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -261,6 +299,46 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         //修改商品sku信息
         this.goodsSkuService.update(goods, goodsOperationDTO);
         //添加相册
+        if (goodsOperationDTO.getGoodsGalleryList() != null && !goodsOperationDTO.getGoodsGalleryList().isEmpty()) {
+            this.goodsGalleryService.add(goodsOperationDTO.getGoodsGalleryList(), goods.getId());
+        }
+        if (GoodsAuthEnum.TOBEAUDITED.name().equals(goods.getAuthFlag())) {
+            this.deleteEsGoods(Collections.singletonList(goodsId));
+        }
+        cache.remove(CachePrefix.GOODS.getPrefix() + goodsId);
+        this.generateEs(goods);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @SystemLogPoint(description = "管理端修改商品", customerLog = "'操作的商品ID:['+#goodsId+']，归属店铺:['+#storeId+']'")
+    public void editGoodsByManager(GoodsOperationDTO goodsOperationDTO, String goodsId, String storeId) {
+        Goods goods = new Goods(goodsOperationDTO);
+        goods.setId(goodsId);
+        this.bindManagedStore(goods, storeId);
+        this.checkGoods(goods);
+        this.checkDuplicateBarcodes(goods, goodsOperationDTO);
+        this.setGoodsGalleryParam(goodsOperationDTO.getGoodsGalleryList().get(0), goods);
+        if (goodsOperationDTO.getGoodsParamsDTOList() != null && !goodsOperationDTO.getGoodsParamsDTOList().isEmpty()) {
+            goods.setParams(JSON.toJSONString(goodsOperationDTO.getGoodsParamsDTOList()));
+        }
+
+        int totalStock = 0;
+        if (goodsOperationDTO.getSkuList() != null && !goodsOperationDTO.getSkuList().isEmpty()) {
+            for (Map<String, Object> sku : goodsOperationDTO.getSkuList()) {
+                Object quantityObj = sku.get("quantity");
+                if (quantityObj != null) {
+                    totalStock += Integer.parseInt(quantityObj.toString());
+                }
+            }
+        }
+
+        if (totalStock == 0) {
+            goods.setMarketEnable(GoodsStatusEnum.DOWN.name());
+        }
+
+        this.updateById(goods);
+        this.goodsSkuService.update(goods, goodsOperationDTO);
         if (goodsOperationDTO.getGoodsGalleryList() != null && !goodsOperationDTO.getGoodsGalleryList().isEmpty()) {
             this.goodsGalleryService.add(goodsOperationDTO.getGoodsGalleryList(), goods.getId());
         }
@@ -874,6 +952,9 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         GoodsSetting goodsSetting = JSON.parseObject(setting.getSettingValue(), GoodsSetting.class);
         //是否需要审核
         goods.setAuthFlag(Boolean.TRUE.equals(goodsSetting.getGoodsCheck()) ? GoodsAuthEnum.TOBEAUDITED.name() : GoodsAuthEnum.PASS.name());
+        if (CharSequenceUtil.isNotBlank(goods.getStoreId()) && CharSequenceUtil.isNotBlank(goods.getStoreName())) {
+            return;
+        }
         //判断当前用户是否为店铺
         if (Objects.requireNonNull(UserContext.getCurrentUser()).getRole().equals(UserEnums.STORE)) {
             StoreVO storeDetail = this.storeService.getStoreDetail();
@@ -886,6 +967,19 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         } else {
             throw new ServiceException(ResultCode.STORE_NOT_LOGIN_ERROR);
         }
+    }
+
+    private void bindManagedStore(Goods goods, String storeId) {
+        Store store = storeService.getById(storeId);
+        if (store == null || Boolean.TRUE.equals(store.getDeleteFlag())) {
+            throw new ServiceException(ResultCode.STORE_NOT_EXIST);
+        }
+        if (!StoreStatusEnum.OPEN.name().equals(store.getStoreDisable())) {
+            throw new ServiceException(ResultCode.STORE_NOT_OPEN);
+        }
+        goods.setStoreId(store.getId());
+        goods.setStoreName(store.getStoreName());
+        goods.setSelfOperated(store.getSelfOperated());
     }
 
     /**

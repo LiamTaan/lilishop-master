@@ -8,7 +8,12 @@ import cn.lili.common.exception.ServiceException;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.dos.Goods;
 import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.dto.ManagerGoodsOperationDTO;
+import cn.lili.modules.goods.entity.dto.GoodsAuthUpdateDTO;
+import cn.lili.modules.goods.entity.dto.GoodsBatchOperationDTO;
+import cn.lili.modules.goods.entity.dto.GoodsBatchUnderDTO;
 import cn.lili.modules.goods.entity.dto.GoodsSearchParams;
+import cn.lili.modules.goods.entity.dto.GoodsVirtualSalesSingleDTO;
 import cn.lili.modules.goods.entity.dto.GoodsVirtualSalesDTO;
 import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
 import cn.lili.modules.goods.entity.enums.GoodsSalesModeEnum;
@@ -18,9 +23,6 @@ import cn.lili.modules.goods.entity.vos.GoodsVO;
 import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.goods.service.GoodsSkuService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -30,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -40,7 +43,6 @@ import java.util.List;
  */
 @RestController
 @Validated
-@Tag(name = "管理端,商品管理接口")
 @RequestMapping("/manager/goods/goods")
 public class GoodsManagerController {
     /**
@@ -54,22 +56,16 @@ public class GoodsManagerController {
     @Autowired
     private GoodsSkuService goodsSkuService;
 
-    @Operation(summary = "分页获取")
-    @Parameter(name = "goodsSearchParams", description = "商品查询参数")
     @GetMapping("/list")
     public ResultMessage<IPage<Goods>> getByPage(GoodsSearchParams goodsSearchParams) {
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
-    @Operation(summary = "获取商品数量")
-    @Parameter(name = "goodsSearchParams", description = "商品查询参数")
     @GetMapping("/goodsNumber")
     public ResultMessage<GoodsNumVO> getGoodsNumVO(GoodsSearchParams goodsSearchParams) {
         return ResultUtil.data(goodsService.getGoodsNumVO(goodsSearchParams));
     }
 
-    @Operation(summary = "分页获取规格列表")
-    @Parameter(name = "goodsSearchParams", description = "商品查询参数")
     @GetMapping("/sku/list")
     public ResultMessage<IPage<GoodsSku>> getSkuByPage(GoodsSearchParams goodsSearchParams) {
         goodsSearchParams.setSort("create_time");
@@ -77,30 +73,35 @@ public class GoodsManagerController {
         return ResultUtil.data(goodsSkuService.getGoodsSkuByPage(goodsSearchParams));
     }
 
-    @Operation(summary = "分页获取待审核商品")
-    @Parameter(name = "goodsSearchParams", description = "商品查询参数")
     @GetMapping("/auth/list")
     public ResultMessage<IPage<Goods>> getAuthPage(GoodsSearchParams goodsSearchParams) {
         goodsSearchParams.setAuthFlag(GoodsAuthEnum.TOBEAUDITED.name());
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
-    @Operation(summary = "分页获取批发商品治理列表")
-    @Parameter(name = "goodsSearchParams", description = "商品查询参数")
     @GetMapping("/wholesale/list")
     public ResultMessage<IPage<Goods>> getWholesalePage(GoodsSearchParams goodsSearchParams) {
         goodsSearchParams.setSalesModel(GoodsSalesModeEnum.WHOLESALE.name());
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
+    @PostMapping(consumes = "application/json", produces = "application/json")
+    public ResultMessage<Object> create(@Valid @RequestBody ManagerGoodsOperationDTO goodsOperationDTO) {
+        goodsService.addGoodsByManager(goodsOperationDTO, goodsOperationDTO.getStoreId());
+        return ResultUtil.success();
+    }
+
+    @PutMapping(value = "/{goodsId}", consumes = "application/json", produces = "application/json")
+    public ResultMessage<Object> update(@PathVariable String goodsId, @Valid @RequestBody ManagerGoodsOperationDTO goodsOperationDTO) {
+        goodsService.editGoodsByManager(goodsOperationDTO, goodsId, goodsOperationDTO.getStoreId());
+        return ResultUtil.success();
+    }
+
     @PreventDuplicateSubmissions
-    @Operation(description = "管理员审核商品")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
-    @Parameter(name = "authFlag", description = "审核结果", required = true)
     @PutMapping("/auth")
-    public ResultMessage<Object> auth(@RequestParam List<String> goodsIds, @RequestParam String authFlag) {
+    public ResultMessage<Object> auth(@RequestBody @Valid GoodsAuthUpdateDTO updateDTO) {
         //校验商品是否存在
-        if (goodsService.auditGoods(goodsIds, GoodsAuthEnum.valueOf(authFlag))) {
+        if (goodsService.auditGoods(updateDTO.getGoodsIds(), GoodsAuthEnum.valueOf(updateDTO.getAuthFlag()))) {
             return ResultUtil.success();
         }
         throw new ServiceException(ResultCode.GOODS_AUTH_ERROR);
@@ -108,34 +109,27 @@ public class GoodsManagerController {
 
 
     @PreventDuplicateSubmissions
-    @Operation(description = "管理员上架商品")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
     @PutMapping("/up")
-    public ResultMessage<Object> unpGoods(@RequestParam List<String> goodsId) {
-        if (Boolean.TRUE.equals(goodsService.updateGoodsMarketAble(goodsId, GoodsStatusEnum.UPPER, ""))) {
+    public ResultMessage<Object> unpGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
+        if (Boolean.TRUE.equals(goodsService.updateGoodsMarketAble(updateDTO.getGoodsId(), GoodsStatusEnum.UPPER, ""))) {
             return ResultUtil.success();
         }
         throw new ServiceException(ResultCode.GOODS_UPPER_ERROR);
     }
 
     @PreventDuplicateSubmissions
-    @Operation(description = "管理员下架商品")
-    @Parameter(name = "goodsId", description = "商品ID", required = true)
-    @Parameter(name = "reason", description = "下架理由", required = true)
 
     @DemoSite
     @PutMapping("/under")
-    public ResultMessage<Object> underGoods(@RequestParam List<String> goodsId, @NotEmpty(message = "下架原因不能为空") @RequestParam String reason) {
+    public ResultMessage<Object> underGoods(@RequestBody @Valid GoodsBatchUnderDTO updateDTO) {
 
-        if (Boolean.TRUE.equals(goodsService.managerUpdateGoodsMarketAble(goodsId, GoodsStatusEnum.DOWN, reason))) {
+        if (Boolean.TRUE.equals(goodsService.managerUpdateGoodsMarketAble(updateDTO.getGoodsId(), GoodsStatusEnum.DOWN, updateDTO.getReason()))) {
             return ResultUtil.success();
         }
         throw new ServiceException(ResultCode.GOODS_UNDER_ERROR);
     }
 
 
-    @Operation(description = "通过id获取商品详情")
-    @Parameter(name = "id", description = "商品ID", required = true)
     @GetMapping("/get/{id}")
     public ResultMessage<GoodsVO> get(@PathVariable String id) {
         GoodsVO goods = goodsService.getGoodsVO(id);
@@ -143,24 +137,25 @@ public class GoodsManagerController {
     }
 
     @PreventDuplicateSubmissions
-    @Operation(description = "设置商品虚拟销量")
-    @Parameter(name = "skuId", description = "商品规格ID", required = true)
-    @Parameter(name = "virtualSales", description = "虚拟销量", required = true)
     @PutMapping("/virtualSales/{skuId}")
     public ResultMessage<Object> updateVirtualSales(@PathVariable String skuId,
-                                                    @NotNull(message = "虚拟销量不能为空")
-                                                    @Min(value = 0, message = "虚拟销量不能小于0")
-                                                    @Max(value = 99999999, message = "虚拟销量不能超过99999999")
-                                                    @RequestParam Integer virtualSales) {
-        goodsSkuService.updateGoodsSkuVirtualSales(skuId, virtualSales);
+                                                    @RequestBody @Valid GoodsVirtualSalesSingleDTO updateDTO) {
+        goodsSkuService.updateGoodsSkuVirtualSales(skuId, updateDTO.getVirtualSales());
         return ResultUtil.success();
     }
 
     @PreventDuplicateSubmissions
-    @Operation(description = "批量设置商品虚拟销量")
     @PutMapping("/virtualSales")
     public ResultMessage<Object> batchUpdateVirtualSales(@Valid @RequestBody GoodsVirtualSalesDTO goodsVirtualSalesDTO) {
         goodsSkuService.batchUpdateGoodsSkuVirtualSales(goodsVirtualSalesDTO.getSkuIds(), goodsVirtualSalesDTO.getVirtualSales());
+        return ResultUtil.success();
+    }
+
+    @DemoSite
+    @PreventDuplicateSubmissions
+    @DeleteMapping("/{ids}")
+    public ResultMessage<Object> delete(@PathVariable String ids) {
+        goodsService.deleteGoods(Arrays.asList(ids.split(",")));
         return ResultUtil.success();
     }
 

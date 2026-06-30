@@ -64,7 +64,7 @@ export const getOrderComplaintDetail = (id: string) => {
 
 export const updateOrderComplaint = (params: Record<string, any>) => {
   return http.request<ResultMessage<any>>("put", "/manager/order/complain", {
-    params
+    data: params
   });
 };
 
@@ -75,7 +75,7 @@ export const createOrderComplaintCommunication = (
   return http.request<ResultMessage<any>>(
     "post",
     "/manager/order/complain/communication",
-    { params: { complainId, content } }
+    { data: { complainId, content } }
   );
 };
 
@@ -83,7 +83,7 @@ export const updateOrderComplaintStatus = (params: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "put",
     "/manager/order/complain/status",
-    { params }
+    { data: params }
   );
 };
 

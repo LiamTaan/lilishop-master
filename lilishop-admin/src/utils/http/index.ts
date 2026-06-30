@@ -11,6 +11,7 @@ import type {
 } from "./types.d";
 import { stringify } from "qs";
 import { message } from "@/utils/message";
+import { recordRecentRequestError } from "@/utils/error";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -29,6 +30,104 @@ const defaultConfig: AxiosRequestConfig = {
     serialize: stringify as unknown as CustomParamsSerializer
   }
 };
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function extractErrorPayload(data: unknown) {
+  if (!data) return null;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return {
+        message: data
+      };
+    }
+  }
+  return typeof data === "object" ? data : null;
+}
+
+function resolveHttpErrorMessage(error: PureHttpError) {
+  const payload = extractErrorPayload(error.response?.data) as
+    | {
+        message?: unknown;
+        msg?: unknown;
+        error?: unknown;
+      }
+    | null;
+  const serverMessage = [
+    payload?.message,
+    payload?.msg,
+    payload?.error
+  ].find(isNonEmptyString);
+
+  if (serverMessage) {
+    return serverMessage;
+  }
+
+  if (error.code === "ECONNABORTED") {
+    return "请求超时，请稍后重试";
+  }
+
+  if (error.message === "Network Error") {
+    return "网络异常，请检查服务或网络连接";
+  }
+
+  const status = error.response?.status;
+  if (status) {
+    const statusMessageMap: Record<number, string> = {
+      400: "请求参数错误",
+      401: "登录状态已失效，请重新登录",
+      403: "没有权限执行该操作",
+      404: "请求的接口不存在",
+      405: "请求方法不被允许",
+      408: "请求超时，请稍后重试",
+      422: "提交的数据校验未通过",
+      429: "请求过于频繁，请稍后再试",
+      500: "服务异常，请稍后重试",
+      502: "网关异常，请稍后重试",
+      503: "服务暂不可用，请稍后重试",
+      504: "网关超时，请稍后重试"
+    };
+    return statusMessageMap[status] || `请求失败（${status}）`;
+  }
+
+  return error.message;
+}
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return Object.prototype.toString.call(value) === "[object Object]";
+}
+
+function isBusinessSuccess(payload: Record<string, any>) {
+  if (payload.success === true) {
+    return true;
+  }
+  if (typeof payload.code === "number") {
+    return payload.code === 0 || payload.code === 200;
+  }
+  return true;
+}
+
+function resolveBusinessErrorMessage(payload: Record<string, any>) {
+  const serverMessage = [payload.message, payload.msg, payload.error].find(
+    isNonEmptyString
+  );
+  return serverMessage || "请求处理失败";
+}
+
+function buildBusinessError(
+  response: PureHttpResponse,
+  payload: Record<string, any>
+): PureHttpError {
+  const error = new Error(resolveBusinessErrorMessage(payload)) as PureHttpError;
+  error.name = "BusinessError";
+  error.config = response.config as any;
+  error.response = response as any;
+  return error;
+}
 
 class PureHttp {
   constructor() {
@@ -142,6 +241,16 @@ class PureHttp {
     instance.interceptors.response.use(
       (response: PureHttpResponse) => {
         const $config = response.config;
+        const payload = response.data;
+        if (
+          $config.enableBusinessErrorReject !== false &&
+          isPlainObject(payload) &&
+          ("success" in payload || "code" in payload) &&
+          !isBusinessSuccess(payload)
+        ) {
+          recordRecentRequestError(resolveBusinessErrorMessage(payload));
+          return Promise.reject(buildBusinessError(response, payload));
+        }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {
           $config.beforeResponseCallback(response);
@@ -156,6 +265,10 @@ class PureHttp {
       (error: PureHttpError) => {
         const $error = error;
         $error.isCancelRequest = Axios.isCancel($error);
+        if (!$error.isCancelRequest) {
+          $error.message = resolveHttpErrorMessage($error);
+          recordRecentRequestError($error.message);
+        }
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
       }

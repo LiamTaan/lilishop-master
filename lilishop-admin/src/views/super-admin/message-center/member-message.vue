@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { getMemberMessagePage } from "@/api/super-admin";
 import { extractApiRecords } from "@/utils/admin-governance";
@@ -38,7 +39,10 @@ function normalizeRecord(item: Record<string, any>) {
 
 async function loadData() {
   try {
-    const params: Record<string, any> = {};
+    const params: Record<string, any> = {
+      pageNumber: 1,
+      pageSize: 200
+    };
     if (query.keyword) params.content = query.keyword;
     const res = await getMemberMessagePage(params);
     let list = extractApiRecords(res).map(normalizeRecord);
@@ -66,6 +70,24 @@ function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportMessages() {
+  if (!rows.value.length) {
+    message("暂无可导出的客户消息数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    会员名称: item.displayName,
+    消息类型: item.displayStatus,
+    发送时间: item.displayTime,
+    消息内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "客户消息");
+  writeFile(workbook, "客户消息.xlsx");
+  message("客户消息导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -81,13 +103,16 @@ onMounted(loadData);
     :quick-actions="[
       { label: '分页查询', value: '已接入', type: 'primary' },
       { label: '消息详情', value: '已接入', type: 'success' },
-      { label: '治理动作', value: '待后端扩展', type: 'warning' }
+      { label: '台账导出', value: '已接入', type: 'warning' }
     ]"
     keyword-label="消息内容"
     keyword-placeholder="请输入消息内容"
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportMessages">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

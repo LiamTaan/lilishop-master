@@ -5,11 +5,15 @@ export const columns: TableColumnList = [
     label: "会员名称",
     prop: "memberName",
     minWidth: 180,
-    cellRenderer: ({ row }) =>
-      h("div", { class: "biz-title" }, [
-        h("div", { class: "biz-title__main" }, row.memberName || "-"),
-        h("div", { class: "biz-title__sub" }, row.mobile || "-")
-      ])
+    cellRenderer: ({ row }) => {
+      const memberName = row.memberName || "-";
+      const mobile = row.mobile || "";
+      const children = [h("div", { class: "biz-title__main" }, memberName)];
+      if (mobile && mobile !== memberName) {
+        children.push(h("div", { class: "biz-title__sub" }, mobile));
+      }
+      return h("div", { class: "biz-title" }, children);
+    }
   },
   { label: "余额", prop: "balance", minWidth: 120, cellRenderer: ({ row }) => h("span", { class: "money-text" }, `¥ ${row.balance || "-"}`) },
   {

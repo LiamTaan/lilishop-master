@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import cn.lili.cache.Cache;
 import cn.lili.cache.CachePrefix;
 import cn.lili.common.security.AuthUser;
+import cn.lili.common.security.context.UserContext;
 import cn.lili.common.security.enums.PermissionEnum;
 import cn.lili.common.security.enums.SecurityEnum;
 import cn.lili.common.security.enums.UserEnums;
@@ -29,7 +30,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.util.PatternMatchUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.naming.NoPermissionException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,7 +70,7 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException,
             ServletException {
         //从header中获取jwt
-        String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
+        String jwt = UserContext.resolveAccessToken(request);
         //如果没有token 则return
         if (StrUtil.isBlank(jwt)) {
             chain.doFilter(request, response);
@@ -78,11 +78,14 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
         }
         //获取用户信息，存入context
         UsernamePasswordAuthenticationToken authentication = getAuthentication(jwt, response);
-        //自定义权限过滤
-        if (authentication != null) {
-            customAuthentication(request, response, authentication);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (authentication == null) {
+            return;
         }
+        //自定义权限过滤
+        if (!customAuthentication(request, response, authentication)) {
+            return;
+        }
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         chain.doFilter(request, response);
     }
 
@@ -121,8 +124,10 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
             return null;
         } catch (ExpiredJwtException e) {
             log.debug("user analysis exception:", e);
+            ResponseUtil.output(response, 403, ResponseUtil.resultMap(false, 403, "登录已失效，请重新登录"));
         } catch (Exception e) {
             log.error("user analysis exception:", e);
+            ResponseUtil.output(response, 403, ResponseUtil.resultMap(false, 403, "未登录或token失效"));
         }
         return null;
     }
@@ -135,7 +140,7 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
      * @param response       响应
      * @param authentication 用户信息
      */
-    private void customAuthentication(HttpServletRequest request, HttpServletResponse response, UsernamePasswordAuthenticationToken authentication) throws NoPermissionException {
+    private boolean customAuthentication(HttpServletRequest request, HttpServletResponse response, UsernamePasswordAuthenticationToken authentication) {
         AuthUser authUser = (AuthUser) authentication.getDetails();
         String requestUrl = request.getRequestURI();
 
@@ -163,7 +168,7 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
                 } else {
                     ResponseUtil.output(response, ResponseUtil.resultMap(false, 400, "权限不足"));
                     log.error("当前请求路径：{},所拥有权限：{}", requestUrl, JSONUtil.toJsonStr(permission));
-                    throw new NoPermissionException("权限不足");
+                    return false;
                 }
             }
             //非get请求（数据操作） 判定鉴权
@@ -171,10 +176,11 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
                 if (!match(permission.get(PermissionEnum.SUPER.name()), requestUrl)) {
                     ResponseUtil.output(response, ResponseUtil.resultMap(false, 400, "权限不足"));
                     log.error("当前请求路径：{},所拥有权限：{}", requestUrl, JSONUtil.toJsonStr(permission));
-                    throw new NoPermissionException("权限不足");
+                    return false;
                 }
             }
         }
+        return true;
     }
 
     /**
@@ -192,4 +198,3 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
 }
-

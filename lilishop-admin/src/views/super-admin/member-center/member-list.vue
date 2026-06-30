@@ -1,25 +1,38 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import dayjs from "dayjs";
+import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import {
   createMember,
   getMemberDetail,
   getMemberPage,
+  getRegionChildren,
+  getRegionDetail,
+  getRegionRootList,
   updateMember,
   updateMemberPoint,
   updateMemberStatus
 } from "@/api/super-admin";
-import { extractApiRecords } from "@/utils/admin-governance";
+import { extractApiPayload, extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 import { getAgentLevelLabel, getStoreBizTypeLabel } from "@/utils/admin-governance";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const detailVisible = ref(false);
 const editVisible = ref(false);
 const pointVisible = ref(false);
 const saving = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const editingRow = ref<Record<string, any> | null>(null);
+const regionOptions = ref<Record<string, any>[]>([]);
+const regionNameMap = ref(new Map<string, string>());
+const rootRegionId = ref("");
+const rootRegionParentId = ref("0");
+const selectedRegionIds = ref<string[]>([]);
 const query = reactive({ keyword: "", status: "" });
 const form = reactive({
   username: "",
@@ -56,8 +69,25 @@ const summaryCards = computed(() => [
   { label: "冻结账号", value: rows.value.filter(item => item.isDisabled).length, accent: "blue" as const, hint: "基础账号已冻结" }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function asBoolean(value: unknown) {
   return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function normalizeId(value: unknown) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function normalizeBirthday(value: unknown) {
+  if (value === undefined || value === null || value === "") return "";
+  const parsed = dayjs(value as any);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : String(value);
 }
 
 function buildAccountOwnershipLabel(item: Record<string, any>) {
@@ -123,7 +153,10 @@ function normalizeRecord(item: Record<string, any>) {
 
 async function loadData() {
   try {
-    const params: Record<string, any> = {};
+    const params: Record<string, any> = {
+      pageNumber: 1,
+      pageSize: 200
+    };
     if (query.keyword) {
       const searchText = query.keyword.trim();
       const isFullMobile = /^1\d{10}$/.test(searchText);
@@ -137,6 +170,7 @@ async function loadData() {
     let list = extractApiRecords(res).map(normalizeRecord);
     if (query.status) list = list.filter(item => item.displayStatus === query.status);
     rows.value = list;
+    selectedRows.value = [];
   } catch (_error) {
     message("用户账号数据加载失败，请稍后重试", { type: "error" });
   }
@@ -154,6 +188,166 @@ function handleReset() {
   loadData();
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
+function normalizeRegionNode(item: Record<string, any>, parentPath = "") {
+  const value = normalizeId(item.id || item.regionId);
+  const label = String(item.name || item.regionName || "-");
+  const currentPath = parentPath ? `${parentPath},${label}` : label;
+  if (value) {
+    regionNameMap.value.set(value, currentPath);
+  }
+  const level = String(item.level || "").trim();
+  return {
+    label,
+    value,
+    level,
+    leaf: level === "street",
+    children: [] as Record<string, any>[]
+  };
+}
+
+function findRegionNode(nodes: Record<string, any>[], value: string): Record<string, any> | null {
+  for (const node of nodes) {
+    if (node.value === value) return node;
+    if (Array.isArray(node.children) && node.children.length) {
+      const childMatch = findRegionNode(node.children, value);
+      if (childMatch) return childMatch;
+    }
+  }
+  return null;
+}
+
+async function fetchRegionChildren(parentId: string, parentPath = "") {
+  try {
+    const res = await getRegionChildren(parentId);
+    const list = extractApiRecords<Record<string, any>>(res) || [];
+    return list.map(item => normalizeRegionNode(item, parentPath));
+  } catch (_error) {
+    return [];
+  }
+}
+
+async function loadRegionNode(
+  node: Record<string, any>,
+  resolve: (data: Record<string, any>[]) => void
+) {
+  if (!rootRegionParentId.value) {
+    resolve([]);
+    return;
+  }
+  const isRoot = node.level === 0;
+  const parentId = isRoot ? rootRegionParentId.value : normalizeId(node.data?.value);
+  const fallbackPath = Array.isArray(node.pathLabels)
+    ? node.pathLabels.join(",")
+    : String(node.pathLabels || "");
+  const parentPath = isRoot
+    ? ""
+    : regionNameMap.value.get(parentId) || fallbackPath;
+  const children = await fetchRegionChildren(parentId, parentPath);
+  if (!isRoot && node.data) {
+    node.data.children = children;
+  }
+  resolve(children);
+}
+
+const regionCascaderProps = {
+  value: "value",
+  label: "label",
+  children: "children",
+  emitPath: true,
+  checkStrictly: true,
+  lazy: true,
+  lazyLoad: loadRegionNode
+};
+
+async function loadRegionOptions() {
+  try {
+    const rootRes = await getRegionRootList();
+    const rootList = extractApiRecords<Record<string, any>>(rootRes) || [];
+    const rootRegion =
+      rootList.find(item => String(item.level || "").trim() === "country") || rootList[0];
+    const hasCountryRoot = String(rootRegion?.level || "").trim() === "country";
+    rootRegionId.value = hasCountryRoot ? normalizeId(rootRegion?.id) : "";
+    rootRegionParentId.value = hasCountryRoot ? normalizeId(rootRegion?.id) : "0";
+    regionNameMap.value = new Map();
+    regionOptions.value = hasCountryRoot
+      ? await fetchRegionChildren(rootRegionId.value)
+      : rootList.map(item => normalizeRegionNode(item));
+  } catch (_error) {
+    regionOptions.value = [];
+    regionNameMap.value = new Map();
+    rootRegionParentId.value = "0";
+    message("地区选项加载失败，用户账号表单暂无法自动选择地区", {
+      type: "warning"
+    });
+  }
+}
+
+function syncRegionForm(ids: string[]) {
+  const values = ids.map(item => item.trim()).filter(Boolean);
+  selectedRegionIds.value = values;
+  const leafId = values.at(-1) || "";
+  form.regionId = leafId;
+  form.region = leafId ? regionNameMap.value.get(leafId) || "" : "";
+}
+
+async function ensureRegionPathLoaded(ids: string[]) {
+  if (!ids.length || !rootRegionParentId.value) return;
+  let parentId = rootRegionParentId.value;
+  let parentPath = "";
+  for (const currentId of ids) {
+    const siblings = await fetchRegionChildren(parentId, parentPath);
+    if (parentId === rootRegionParentId.value) {
+      regionOptions.value = siblings;
+    } else {
+      const parentNode = findRegionNode(regionOptions.value, parentId);
+      if (parentNode) {
+        parentNode.children = siblings;
+      }
+    }
+    const currentNode = findRegionNode(regionOptions.value, currentId);
+    if (!currentNode) break;
+    parentId = currentId;
+    parentPath = regionNameMap.value.get(currentId) || parentPath;
+  }
+}
+
+async function restoreMemberRegionSelection(regionId?: string, regionName?: string) {
+  const targetId = normalizeId(regionId);
+  if (!targetId) {
+    selectedRegionIds.value = [];
+    form.regionId = "";
+    form.region = String(regionName || "");
+    return;
+  }
+  try {
+    const res = await getRegionDetail(targetId);
+    const detail = extractApiPayload<Record<string, any>>(res) || {};
+    const pathIds = String(detail.path || "")
+      .split(",")
+      .map(item => item.trim())
+      .filter(item => item && item !== "0");
+    const ids = [...new Set([...pathIds, targetId])];
+    await ensureRegionPathLoaded(ids);
+    syncRegionForm(ids);
+  } catch (_error) {
+    selectedRegionIds.value = [targetId];
+    form.regionId = targetId;
+    form.region = String(regionName || "");
+  }
+}
+
+function handleRegionChange(values: string[]) {
+  syncRegionForm(values);
+}
+
+function disableFutureDate(date: Date) {
+  return date.getTime() > Date.now();
+}
+
 function resetForm() {
   form.username = "";
   form.password = "";
@@ -164,6 +358,7 @@ function resetForm() {
   form.sex = 1;
   form.birthday = "";
   form.face = "";
+  selectedRegionIds.value = [];
 }
 
 function openCreate() {
@@ -180,10 +375,9 @@ async function openEdit(row: Record<string, any>) {
     const detail = (res as any).result || (res as any).data || row;
     form.nickName = detail.nickName || detail.nickname || row.displayName || "";
     form.mobile = detail.mobile || row.displayMobile || "";
-    form.region = detail.region || "";
-    form.regionId = detail.regionId || "";
+    await restoreMemberRegionSelection(detail.regionId, detail.region);
     form.sex = Number(detail.sex ?? 1);
-    form.birthday = detail.birthday || "";
+    form.birthday = normalizeBirthday(detail.birthday);
     form.face = detail.face || "";
   } catch (_error) {
     form.nickName = row.displayName || "";
@@ -255,6 +449,28 @@ async function handleToggleStatus(row: Record<string, any>) {
   }
 }
 
+async function handleBatchStatus(enable: boolean) {
+  if (!selectedIds.value.length) {
+    message(`请先勾选需要${enable ? "恢复" : "冻结"}的基础账号`, {
+      type: "warning"
+    });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认将已勾选的 ${selectedIds.value.length} 个基础账号批量${enable ? "恢复" : "冻结"}吗？`,
+    "批量状态确认",
+    { type: "warning" }
+  );
+  try {
+    await updateMemberStatus(selectedIds.value, enable);
+    selectedRows.value = [];
+    message(`基础账号批量${enable ? "恢复" : "冻结"}成功`, { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message(`基础账号批量${enable ? "恢复" : "冻结"}失败`, { type: "error" });
+  }
+}
+
 function openPointDialog(row: Record<string, any>) {
   editingRow.value = row;
   pointForm.point = 0;
@@ -284,7 +500,32 @@ async function handlePointSave() {
   }
 }
 
-onMounted(loadData);
+function exportMembers() {
+  if (!rows.value.length) {
+    message("暂无可导出的用户账号数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    登录账号: item.displayUsername,
+    用户昵称: item.displayName,
+    手机号: item.displayMobile,
+    账号归属: item.displayAccountOwnership,
+    商家侧身份: item.displayClerkIdentity,
+    主店铺: item.displayMainStore,
+    账号状态: item.displayStatus,
+    注册时间: item.displayTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "用户账号");
+  writeFile(workbook, "用户账号.xlsx");
+  message("用户账号导出成功", { type: "success" });
+}
+
+onMounted(() => {
+  loadData();
+  loadRegionOptions();
+});
 </script>
 
 <template>
@@ -302,6 +543,7 @@ onMounted(loadData);
       api-path="/manager/passport/member"
       :columns="columns"
       :data="rows"
+      selectable
       :summary-cards="summaryCards"
       :status-options="[
         { label: '正常', value: '正常' },
@@ -316,8 +558,12 @@ onMounted(loadData);
       keyword-placeholder="请输入昵称，或输入 11 位手机号精确匹配"
       @search="handleSearch"
       @reset="handleReset"
+      @selection-change="handleSelectionChange"
     >
       <template #table-extra>
+        <el-button type="success" plain @click="handleBatchStatus(true)">批量恢复</el-button>
+        <el-button type="warning" plain @click="handleBatchStatus(false)">批量冻结</el-button>
+        <el-button @click="exportMembers">导出</el-button>
         <el-button type="primary" @click="openCreate">新增基础账号</el-button>
       </template>
       <template #operation="{ row }">
@@ -369,16 +615,48 @@ onMounted(loadData);
           </el-radio-group>
         </el-form-item>
         <el-form-item label="地区">
-          <el-input v-model="form.region" placeholder="请输入地区名称" />
+          <el-cascader
+            v-model="selectedRegionIds"
+            :options="regionOptions"
+            :props="regionCascaderProps"
+            clearable
+            filterable
+            style="width: 100%"
+            placeholder="请选择所在地区"
+            @change="handleRegionChange"
+          />
         </el-form-item>
         <el-form-item label="地区ID">
-          <el-input v-model="form.regionId" placeholder="请输入地区ID" />
+          <el-input
+            :model-value="form.regionId"
+            placeholder="选择地区后自动生成"
+            readonly
+          />
         </el-form-item>
         <el-form-item label="生日">
-          <el-input v-model="form.birthday" placeholder="yyyy-MM-dd" />
+          <el-date-picker
+            v-model="form.birthday"
+            type="date"
+            value-format="YYYY-MM-DD"
+            format="YYYY-MM-DD"
+            clearable
+            style="width: 100%"
+            placeholder="请选择生日"
+            :disabled-date="disableFutureDate"
+          />
         </el-form-item>
-        <el-form-item label="头像地址">
-          <el-input v-model="form.face" placeholder="请输入头像地址" />
+        <el-form-item label="地区路径">
+          <el-input
+            :model-value="form.region"
+            placeholder="选择地区后自动生成"
+            readonly
+          />
+        </el-form-item>
+        <el-form-item label="头像">
+          <ImageUploadField
+            v-model="form.face"
+            tip="用户头像统一走上传组件维护"
+          />
         </el-form-item>
       </template>
     </el-form>

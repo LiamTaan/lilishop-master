@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   addMemberGroupUsers,
@@ -17,7 +18,12 @@ import {
 import { extractApiPayload, extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "MemberGroupManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const userOptions = ref<
   Array<{
     label: string;
@@ -54,6 +60,12 @@ const summaryCards = computed(() => [
   { label: "空分组", value: rows.value.filter(item => item.displayCount === 0).length, accent: "blue" as const, hint: "待补充运营成员的分组" },
   { label: "治理动作", value: "新增/编辑/成员维护", accent: "purple" as const, hint: "分组与成员关系已承接" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>) {
   return {
@@ -105,6 +117,29 @@ function replaceUserOptions(list: Record<string, any>[], preserveValues: string[
   userOptions.value = Array.from(optionMap.values());
 }
 
+function getUserOption(memberId: string) {
+  const targetId = memberId.trim();
+  return userOptions.value.find(item => item.value === targetId);
+}
+
+function normalizeGroupUserRecord(item: Record<string, any>) {
+  const memberId = String(item.memberId || item.id || "").trim();
+  const userOption = memberId ? getUserOption(memberId) : undefined;
+  return {
+    ...item,
+    memberId,
+    memberName:
+      item.memberName ||
+      item.nickName ||
+      item.nickname ||
+      item.memberNickname ||
+      userOption?.nickName ||
+      "-",
+    mobile: item.mobile || userOption?.mobile || "-",
+    createTime: item.createTime || item.updateTime || "-"
+  };
+}
+
 async function searchUsers(keyword: string) {
   const searchText = keyword.trim();
   if (!searchText) {
@@ -141,6 +176,16 @@ async function ensureUserOption(memberId: string) {
   }
 }
 
+async function refreshCurrentUsers(groupId: string) {
+  const res = await getMemberGroupUsers(groupId);
+  const rawUsers = extractApiRecords(res);
+  const memberIds = rawUsers
+    .map(item => String(item.memberId || item.id || "").trim())
+    .filter(Boolean);
+  await Promise.all(memberIds.map(ensureUserOption));
+  currentUsers.value = rawUsers.map(normalizeGroupUserRecord);
+}
+
 async function loadData() {
   try {
     const res = await getMemberGroupPage();
@@ -160,6 +205,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -187,8 +236,7 @@ async function openDetail(row: Record<string, any>) {
   currentRow.value = row;
   selectedMemberIds.value = [];
   try {
-    const res = await getMemberGroupUsers(String(row.id));
-    currentUsers.value = extractApiRecords(res);
+    await refreshCurrentUsers(String(row.id));
     mergeUserOptions(currentUsers.value);
   } catch (_error) {
     currentUsers.value = [];
@@ -236,6 +284,28 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的会员分组", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个会员分组吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteMemberGroup(id)));
+    selectedRows.value = [];
+    message("会员分组批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("会员分组批量删除失败，可能存在仍含成员的分组", {
+      type: "error"
+    });
+  }
+}
+
 async function handleAppendUsers() {
   if (!currentRow.value) return;
   const memberIds = selectedMemberIds.value.map(item => item.trim()).filter(Boolean);
@@ -249,8 +319,7 @@ async function handleAppendUsers() {
     await addMemberGroupUsers(String(currentRow.value.id), memberIds);
     message("分组成员更新成功", { type: "success" });
     selectedMemberIds.value = [];
-    const res = await getMemberGroupUsers(String(currentRow.value.id));
-    currentUsers.value = extractApiRecords(res);
+    await refreshCurrentUsers(String(currentRow.value.id));
     mergeUserOptions(currentUsers.value);
     await loadData();
   } catch (_error) {
@@ -265,12 +334,29 @@ async function handleRemoveUser(memberId: string) {
   try {
     await removeMemberGroupUser(String(currentRow.value.id), memberId);
     message("分组成员移除成功", { type: "success" });
-    const res = await getMemberGroupUsers(String(currentRow.value.id));
-    currentUsers.value = extractApiRecords(res);
+    await refreshCurrentUsers(String(currentRow.value.id));
     await loadData();
   } catch (_error) {
     message("分组成员移除失败", { type: "error" });
   }
+}
+
+function exportMemberGroups() {
+  if (!rows.value.length) {
+    message("暂无可导出的会员分组数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    分组名称: item.displayName,
+    分组描述: item.displayRemark,
+    创建时间: item.displayTime,
+    成员数量: item.displayCount
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "会员分组");
+  writeFile(workbook, "会员分组.xlsx");
+  message("会员分组导出成功", { type: "success" });
 }
 
 onMounted(loadData);
@@ -283,6 +369,7 @@ onMounted(loadData);
     api-path="/manager/member/memberGroup/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -294,8 +381,11 @@ onMounted(loadData);
     keyword-placeholder="请输入分组名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportMemberGroups">导出</el-button>
       <el-button type="primary" @click="openCreate">新增分组</el-button>
     </template>
     <template #operation="{ row }">

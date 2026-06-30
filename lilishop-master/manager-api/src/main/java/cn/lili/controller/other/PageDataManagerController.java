@@ -9,10 +9,6 @@ import cn.lili.modules.page.entity.dto.PageDataDTO;
 import cn.lili.modules.page.entity.vos.PageDataListVO;
 import cn.lili.modules.page.service.PageDataService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,56 +21,48 @@ import jakarta.validation.constraints.NotNull;
  * @author paulGao
  * @since 2020-05-06 15:18:56
  */
-@Hidden
 @RestController
-@Tag(name = "管理端,页面设置管理接口（内部配置，不对普通运营开放）")
 @RequestMapping("/manager/other/pageData")
 public class PageDataManagerController {
 
     @Autowired
     private PageDataService pageDataService;
 
-    @Operation(summary = "获取页面信息")
     @GetMapping("/{id}")
     public ResultMessage<PageData> getPageData(
-            @Parameter(description = "页面ID", required = true) @PathVariable String id) {
+ @PathVariable String id) {
         return ResultUtil.data(pageDataService.getById(id));
     }
 
-    @Operation(summary = "添加页面")
     @PostMapping("/add")
     public ResultMessage<PageData> addPageData(@Valid PageData pageData) {
         return ResultUtil.data(pageDataService.addPageData(pageData));
     }
 
-    @Operation(summary = "修改页面")
     @DemoSite
     @PutMapping("/update/{id}")
     public ResultMessage<PageData> updatePageData(@Valid PageData pageData, 
-            @Parameter(description = "页面ID", required = true) @NotNull @PathVariable String id) {
+ @NotNull @PathVariable String id) {
         pageData.setId(id);
         return ResultUtil.data(pageDataService.updatePageData(pageData));
     }
 
-    @Operation(summary = "页面列表")
     @GetMapping("/pageDataList")
     public ResultMessage<IPage<PageDataListVO>> pageDataList(PageVO pageVO, PageDataDTO pageDataDTO) {
         return ResultUtil.data(pageDataService.getPageDataList(pageVO, pageDataDTO));
     }
 
-    @Operation(summary = "发布页面")
     @PutMapping("/release/{id}")
     @DemoSite
     public ResultMessage<PageData> release(
-            @Parameter(description = "页面ID", required = true) @PathVariable String id) {
+ @PathVariable String id) {
         return ResultUtil.data(pageDataService.releasePageData(id));
     }
 
-    @Operation(summary = "删除页面")
     @DemoSite
     @DeleteMapping("/remove/{id}")
     public ResultMessage<Object> remove(
-            @Parameter(description = "页面ID", required = true) @PathVariable String id) {
+ @PathVariable String id) {
         return ResultUtil.data(pageDataService.removePageData(id));
     }
 }

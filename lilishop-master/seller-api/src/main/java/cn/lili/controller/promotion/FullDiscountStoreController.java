@@ -67,7 +67,6 @@ public class FullDiscountStoreController {
     }
 
     @Operation(description = "修改满优惠活动")
-    @Parameter(name = "fullDiscountVO", description = "满优惠活动VO", required = true)
     @PutMapping(consumes = "application/json", produces = "application/json")
     public ResultMessage<String> editFullDiscount(@RequestBody FullDiscountVO fullDiscountVO) {
         OperationalJudgment.judgment(fullDiscountService.getFullDiscount(fullDiscountVO.getId()));

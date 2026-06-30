@@ -40,21 +40,21 @@ public class MemberReceiptController {
     @PreventDuplicateSubmissions
     @Operation(summary = "新增客户发票")
     @PostMapping
-    public ResultMessage<Object> add(MemberReceiptAddVO memberReceiptAddVO) {
+    public ResultMessage<Object> add(@RequestBody MemberReceiptAddVO memberReceiptAddVO) {
         return ResultUtil.data(memberReceiptService.addMemberReceipt(memberReceiptAddVO, UserContext.getCurrentUser().getId()));
     }
 
     @Operation(summary = "修改客户发票")
     @Parameter(name = "id", description = "客户发票id", required = true)
-    @PutMapping
-    public ResultMessage<Object> update(@PathVariable String id, MemberReceiptAddVO memberReceiptAddVO) {
+    @PutMapping("/{id}")
+    public ResultMessage<Object> update(@PathVariable String id, @RequestBody MemberReceiptAddVO memberReceiptAddVO) {
         memberReceiptAddVO.setId(id);
         return ResultUtil.data(memberReceiptService.editMemberReceipt(memberReceiptAddVO, id));
     }
 
     @Operation(summary = "客户发票删除")
     @Parameter(name = "id", description = "客户发票id", required = true)
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResultMessage<Boolean> deleteMessage(@PathVariable String id) {
         return ResultUtil.data(memberReceiptService.deleteMemberReceipt(id));
     }

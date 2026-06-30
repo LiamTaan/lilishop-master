@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getVerificationRecordPage } from "@/api/order-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
@@ -72,7 +73,7 @@ const detailItems = computed(() => [
 async function loadData() {
   const params: Record<string, any> = {
     pageNumber: 1,
-    pageSize: 10
+    pageSize: 200
   };
   if (query.keyword) params.orderSn = query.keyword;
   if (query.status) params.resultType = query.status;
@@ -96,6 +97,24 @@ function handleReset() {
 function openDetail(row: Record<string, any>) {
   detail.value = row;
   detailVisible.value = true;
+}
+
+function exportVerificationRecords() {
+  if (!filteredData.value.length) {
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    订单号: item.orderSn,
+    核销码: item.verificationCode,
+    核销状态: getVerifyStatusLabel(item.verifyStatus),
+    核销门店: item.storeName,
+    核销人: item.operatorName,
+    核销时间: item.verifyTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "核销记录台账");
+  writeFile(workbook, "核销记录台账.xlsx");
 }
 
 onMounted(() => {
@@ -125,6 +144,11 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!filteredData.length" @click="exportVerificationRecords">
+        导出
+      </el-button>
+    </template>
     <template #filters-extra>
       <el-form-item label="核销门店">
         <el-input

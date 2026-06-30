@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getAfterSalePage } from "@/api/order-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiRecords,
   getAfterSaleStatusLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -71,7 +73,7 @@ const detailItems = computed(() => [
 async function loadData() {
   const params: Record<string, any> = {
     pageNumber: 1,
-    pageSize: 10
+    pageSize: 200
   };
   if (query.keyword) params.sn = query.keyword;
   if (query.status) params.serviceStatus = query.status;
@@ -95,6 +97,26 @@ function handleReset() {
 function openDetail(row: Record<string, any>) {
   detail.value = row;
   detailVisible.value = true;
+}
+
+function exportAfterSales() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的售后数据", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    售后单号: item.afterSaleSn,
+    订单号: item.orderSn,
+    商品名称: item.goodsName,
+    售后类型: item.applyType,
+    售后状态: getAfterSaleStatusLabel(item.status),
+    申请金额: item.applyAmount
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "售后治理");
+  writeFile(workbook, "售后治理.xlsx");
+  message("售后数据导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -128,6 +150,9 @@ onMounted(() => {
           clearable
         />
       </el-form-item>
+    </template>
+    <template #table-extra>
+      <el-button @click="exportAfterSales">导出</el-button>
     </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>

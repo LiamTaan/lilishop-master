@@ -33,6 +33,7 @@ import cn.lili.trigger.model.TimeTriggerMsg;
 import cn.lili.trigger.util.DelayQueueTools;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -194,6 +195,34 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
     public void updateEsGoodsIndex(Pintuan promotions) {
         Pintuan pintuan = promotions;
         super.updateEsGoodsIndex(pintuan);
+    }
+
+    /**
+     * 删除拼团活动前保护正在进行的活动和已有有效订单的活动。
+     *
+     * @param ids 促销活动id集合
+     * @return 是否移除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removePromotions(List<String> ids) {
+        for (String id : ids) {
+            Pintuan pintuan = this.getById(id);
+            if (pintuan == null) {
+                throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+            }
+            if (PromotionsStatusEnum.START.name().equals(pintuan.getPromotionStatus())) {
+                throw new ServiceException("进行中的拼团活动不能直接删除，请先关闭活动");
+            }
+            OrderSearchParams searchParams = new OrderSearchParams();
+            searchParams.setPromotionId(id);
+            searchParams.setOrderPromotionType(PromotionTypeEnum.PINTUAN.name());
+            searchParams.setPayStatus(PayStatusEnum.PAID.name());
+            if (!orderService.queryListByParams(searchParams).isEmpty()) {
+                throw new ServiceException("已有有效订单的拼团活动不能删除");
+            }
+        }
+        return super.removePromotions(ids);
     }
 
     /**

@@ -34,6 +34,38 @@ export const getPintuanMembers = (pintuanId: string) => {
   );
 };
 
+export const createPintuan = (data: Record<string, any>) => {
+  return http.request<ResultMessage<any>>("post", "/manager/promotion/pintuan", {
+    data
+  });
+};
+
+export const updatePintuan = (id: string, data: Record<string, any>) => {
+  return http.request<ResultMessage<any>>(
+    "put",
+    `/manager/promotion/pintuan/${id}`,
+    { data }
+  );
+};
+
+export const deletePintuan = (ids: string[]) => {
+  return http.request<ResultMessage<any>>(
+    "delete",
+    `/manager/promotion/pintuan/${ids.join(",")}`
+  );
+};
+
+export const updatePintuanStatus = (
+  pintuanIds: string,
+  params?: Record<string, any>
+) => {
+  return http.request<ResultMessage<any>>(
+    "put",
+    `/manager/promotion/pintuan/status/${pintuanIds}`,
+    { params }
+  );
+};
+
 export const getCouponPage = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "get",
@@ -185,10 +217,14 @@ export const deleteSeckill = (id: string) => {
   );
 };
 
-export const updateSeckillStatus = (id: string) => {
+export const updateSeckillStatus = (
+  id: string,
+  params?: Record<string, any>
+) => {
   return http.request<ResultMessage<any>>(
     "put",
-    `/manager/promotion/seckill/status/${id}`
+    `/manager/promotion/seckill/status/${id}`,
+    { params }
   );
 };
 

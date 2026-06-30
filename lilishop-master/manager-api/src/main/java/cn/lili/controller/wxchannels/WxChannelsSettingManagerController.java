@@ -7,15 +7,10 @@ import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.enums.SettingEnum;
 import cn.lili.modules.system.service.SettingService;
 import cn.lili.modules.wxchannels.entity.dto.WxChannelsSetting;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-@Hidden
 @RestController
-@Tag(name = "管理端,微信视频号设置接口")
 @RequestMapping("/manager/wxchannels/setting")
 public class WxChannelsSettingManagerController {
 
@@ -23,7 +18,6 @@ public class WxChannelsSettingManagerController {
     private SettingService settingService;
 
     @GetMapping
-    @Operation(summary = "获取视频号小店配置")
     public ResultMessage<WxChannelsSetting> get() {
         Setting s = settingService.get(SettingEnum.WX_CHANNELS.name());
         if (s == null || s.getSettingValue() == null) {
@@ -33,7 +27,6 @@ public class WxChannelsSettingManagerController {
     }
 
     @PostMapping
-    @Operation(summary = "保存视频号小店配置")
     public ResultMessage<Object> save(@RequestBody WxChannelsSetting setting) {
         Setting s = new Setting();
         s.setId(SettingEnum.WX_CHANNELS.name());

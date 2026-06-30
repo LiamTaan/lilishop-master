@@ -19,12 +19,6 @@ export default {
       meta: { title: "用户账号管理" }
     },
     {
-      path: "/member-center/member-grade",
-      name: "MemberGrade",
-      component: () => import("@/views/super-admin/member-center/member-grade.vue"),
-      meta: { title: "会员等级" }
-    },
-    {
       path: "/member-center/member-group",
       name: "MemberGroup",
       component: () => import("@/views/super-admin/member-center/member-group.vue"),

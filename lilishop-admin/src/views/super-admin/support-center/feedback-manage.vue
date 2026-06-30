@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { getFeedbackDetail, getFeedbackPage } from "@/api/super-admin";
 import { extractApiRecords } from "@/utils/admin-governance";
@@ -38,7 +39,7 @@ function normalizeRecord(item: Record<string, any>): Record<string, any> {
 
 async function loadData() {
   try {
-    const res = await getFeedbackPage();
+    const res = await getFeedbackPage({ pageNumber: 1, pageSize: 200 });
     let list = extractApiRecords(res).map(normalizeRecord);
     if (query.keyword) {
       list = list.filter(
@@ -76,6 +77,24 @@ async function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportFeedbacks() {
+  if (!rows.value.length) {
+    message("暂无可导出的意见反馈数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    反馈用户: item.displayName,
+    联系方式: item.displayContact,
+    提交时间: item.displayTime,
+    反馈内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "意见反馈");
+  writeFile(workbook, "意见反馈.xlsx");
+  message("意见反馈导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -91,13 +110,16 @@ onMounted(loadData);
     :quick-actions="[
       { label: '反馈台账', value: '已接入', type: 'primary' },
       { label: '反馈详情', value: '已接入', type: 'success' },
-      { label: '治理动作', value: '待后端扩展', type: 'warning' }
+      { label: '台账导出', value: '已接入', type: 'warning' }
     ]"
     keyword-label="用户/联系方式/内容"
     keyword-placeholder="请输入反馈用户、联系方式或反馈内容"
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportFeedbacks">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

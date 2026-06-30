@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   getMemberPointsHistoryPage,
@@ -49,7 +50,10 @@ function normalizeRecord(item: Record<string, any>) {
 
 async function loadData() {
   try {
-    const params: Record<string, any> = {};
+    const params: Record<string, any> = {
+      pageNumber: 1,
+      pageSize: 200
+    };
     if (query.keyword) params.memberName = query.keyword;
     const res = await getMemberPointsHistoryPage(params);
     let list = extractApiRecords(res).map(normalizeRecord);
@@ -97,6 +101,25 @@ async function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportPointsHistory() {
+  if (!rows.value.length) {
+    message("暂无可导出的积分记录", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    会员名称: item.displayName,
+    积分类型: item.displayStatus,
+    积分变动: item.displayPoint,
+    变动时间: item.displayTime,
+    来源说明: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "积分记录");
+  writeFile(workbook, "积分记录.xlsx");
+  message("积分记录导出成功", { type: "success" });
+}
+
 onMounted(async () => {
   await Promise.all([loadData(), loadStatistics()]);
 });
@@ -113,13 +136,16 @@ onMounted(async () => {
     :quick-actions="[
       { label: '统计汇总', value: '已承接', type: 'primary' },
       { label: '积分概览', value: '已接入', type: 'success' },
-      { label: '流水查询', value: '真实接口', type: 'warning' }
+      { label: '流水导出', value: '已接入', type: 'warning' }
     ]"
     keyword-label="会员名称"
     keyword-placeholder="请输入会员名称"
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportPointsHistory">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">概览</el-button>
     </template>

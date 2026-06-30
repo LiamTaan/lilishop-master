@@ -8,7 +8,7 @@ import {
   updateManagerMenu
 } from "@/api/system";
 import { addDialog } from "@/components/ReDialog";
-import { reactive, ref, onMounted, h } from "vue";
+import { reactive, ref, onMounted, h, computed } from "vue";
 import type { FormItemProps } from "../utils/types";
 import { cloneDeep, deviceDetection } from "@pureadmin/utils";
 import { extractApiRecords } from "@/utils/admin-governance";
@@ -86,10 +86,18 @@ export function useMenu() {
 
   const formRef = ref();
   const dataList = ref<MenuRow[]>([]);
+  const selectedRows = ref<MenuRow[]>([]);
   const sourceTree = ref<MenuRow[]>([]);
   const loading = ref(true);
+  const selectedNum = computed(() => selectedRows.value.length);
 
   const columns: TableColumnList = [
+    {
+      type: "selection",
+      width: 54,
+      reserveSelection: true,
+      align: "center"
+    },
     {
       label: "后端菜单",
       prop: "title",
@@ -156,7 +164,7 @@ export function useMenu() {
   ];
 
   function handleSelectionChange(val) {
-    console.log("handleSelectionChange", val);
+    selectedRows.value = Array.isArray(val) ? val : [];
   }
 
   function resetForm(formEl) {
@@ -266,6 +274,24 @@ export function useMenu() {
     }
   }
 
+  async function onbatchDel() {
+    const ids = selectedRows.value.map(item => item.id).filter(Boolean);
+    if (!ids.length) return;
+    try {
+      const response = await deleteManagerMenus(ids);
+      if (!isSuccessResult(response)) {
+        throw new Error(response?.message || "批量删除菜单失败");
+      }
+      selectedRows.value = [];
+      message(`已删除菜单编号为 ${ids.join(", ")} 的数据`, {
+        type: "success"
+      });
+      await onSearch();
+    } catch (error: any) {
+      message(getErrorMessage(error, "批量删除菜单失败"), { type: "error" });
+    }
+  }
+
   onMounted(() => {
     onSearch();
   });
@@ -279,6 +305,8 @@ export function useMenu() {
     resetForm,
     openDialog,
     handleDelete,
+    onbatchDel,
+    selectedNum,
     handleSelectionChange
   };
 }

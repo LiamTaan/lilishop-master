@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   deleteMemberNoticeLog,
@@ -10,7 +11,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "MemberNoticeLogManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const detailVisible = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const query = reactive({
@@ -53,6 +59,12 @@ const summaryCards = computed(() => [
   }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -93,6 +105,10 @@ function handleReset() {
   loadData();
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
 async function openDetail(row: Record<string, any>) {
   try {
     const res = await getMemberNoticeLogDetail(String(row.id));
@@ -118,6 +134,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的通知日志", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条通知日志吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteMemberNoticeLog(selectedIds.value);
+    selectedRows.value = [];
+    message("通知日志批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("通知日志批量删除失败", { type: "error" });
+  }
+}
+
+function exportNoticeLogs() {
+  if (!rows.value.length) {
+    message("暂无可导出的通知日志数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    通知对象: item.displayName,
+    发送结果: item.displayStatus,
+    发送时间: item.displayTime,
+    失败原因: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "通知日志");
+  writeFile(workbook, "通知日志.xlsx");
+  message("通知日志导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -130,6 +184,7 @@ onMounted(() => {
     api-path="/manager/message/memberNoticeLog/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :quick-actions="[
       { label: '日志详情', value: '已接入', type: 'primary' },
@@ -140,7 +195,12 @@ onMounted(() => {
     keyword-placeholder="请输入会员昵称或通知标题"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
+    <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportNoticeLogs">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="danger" @click="handleDelete(row)">删除</el-button>

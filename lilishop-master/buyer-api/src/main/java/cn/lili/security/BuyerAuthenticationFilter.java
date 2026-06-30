@@ -73,6 +73,11 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
                 chain.doFilter(request, response);
                 return;
             }
+            if (!isLikelyJwt(jwt)) {
+                log.warn("BuyerAuthenticationFilter-> ignore malformed token, uri: {}, tokenPreview: {}", request.getRequestURI(), jwt);
+                chain.doFilter(request, response);
+                return;
+            }
             //获取用户信息，存入context
             UsernamePasswordAuthenticationToken authentication = getAuthentication(jwt, response);
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -119,6 +124,19 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
             log.error("user analysis exception:", e);
         }
         return null;
+    }
+
+    private boolean isLikelyJwt(String jwt) {
+        if (StrUtil.isBlank(jwt)) {
+            return false;
+        }
+        int dotCount = 0;
+        for (int i = 0; i < jwt.length(); i++) {
+            if (jwt.charAt(i) == '.') {
+                dotCount++;
+            }
+        }
+        return dotCount == 2;
     }
 
 }

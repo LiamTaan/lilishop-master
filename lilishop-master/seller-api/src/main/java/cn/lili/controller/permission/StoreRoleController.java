@@ -33,7 +33,7 @@ public class StoreRoleController {
 
     @Operation(description = "添加角色")
     @PostMapping
-    public ResultMessage<StoreRole> add(StoreRole storeRole) {
+    public ResultMessage<StoreRole> add(@RequestBody StoreRole storeRole) {
         storeRoleService.saveStoreRole(storeRole);
         return ResultUtil.data(storeRole);
     }
@@ -49,7 +49,7 @@ public class StoreRoleController {
     @Operation(description = "编辑店铺角色")
     @Parameter(name = "roleId", description = "角色ID", required = true)
     @PutMapping("/{roleId}")
-    public ResultMessage<StoreRole> edit(@PathVariable String roleId, StoreRole storeRole) {
+    public ResultMessage<StoreRole> edit(@PathVariable String roleId, @RequestBody StoreRole storeRole) {
         storeRole.setId(roleId);
         storeRoleService.update(storeRole);
         return ResultUtil.data(storeRole);

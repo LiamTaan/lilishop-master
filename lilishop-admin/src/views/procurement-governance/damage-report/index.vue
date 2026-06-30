@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   getDamageReportDetail,
@@ -133,6 +134,29 @@ function handleReset() {
   loadData();
 }
 
+function exportDamageReports() {
+  if (!rows.value.length) {
+    message("暂无可导出的报损单", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    rows.value.map(item => ({
+      报损单号: item.sn,
+      店铺ID: item.storeId,
+      报损金额: item.totalAmount,
+      报损数量: item.totalQuantity,
+      状态: getDamageStatusLabel(item.status),
+      报损日期: formatAdminDateTime(item.damageDate),
+      创建时间: formatAdminDateTime(item.createTime),
+      备注: item.remark
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "报损管理");
+  writeFile(workbook, "报损管理.xlsx");
+  message("报损管理导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -162,6 +186,9 @@ onMounted(loadData);
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!rows.length" @click="exportDamageReports">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

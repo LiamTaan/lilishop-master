@@ -48,7 +48,6 @@ public class StoreDepartmentController {
 
     @PostMapping
     @Operation(description = "新增部门")
-    @Parameter(name = "storeDepartment", description = "部门信息", required = true)
     public ResultMessage<StoreDepartment> save(@RequestBody StoreDepartment storeDepartment) {
         storeDepartment.setStoreId(UserContext.getCurrentUser().getStoreId());
         storeDepartmentService.save(storeDepartment);
@@ -58,7 +57,7 @@ public class StoreDepartmentController {
     @PutMapping("/{id}")
     @Operation(description = "更新部门")
     @Parameter(name = "id", description = "部门ID", required = true)
-    public ResultMessage<StoreDepartment> update(@PathVariable String id, StoreDepartment storeDepartment) {
+    public ResultMessage<StoreDepartment> update(@PathVariable String id, @RequestBody StoreDepartment storeDepartment) {
         storeDepartment.setId(id);
         storeDepartmentService.update(storeDepartment);
         return ResultUtil.data(storeDepartment);

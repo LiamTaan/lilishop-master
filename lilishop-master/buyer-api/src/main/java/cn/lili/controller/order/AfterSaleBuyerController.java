@@ -9,6 +9,7 @@ import cn.lili.modules.order.aftersale.entity.dos.AfterSale;
 import cn.lili.modules.order.aftersale.entity.dos.AfterSaleLog;
 import cn.lili.modules.order.aftersale.entity.dos.AfterSaleReason;
 import cn.lili.modules.order.aftersale.entity.dto.AfterSaleDTO;
+import cn.lili.modules.order.aftersale.entity.dto.AfterSaleBuyerDeliveryDTO;
 import cn.lili.modules.order.aftersale.entity.vo.AfterSaleApplyVO;
 import cn.lili.modules.order.aftersale.entity.vo.AfterSaleSearchParams;
 import cn.lili.modules.order.aftersale.entity.vo.AfterSaleVO;
@@ -21,11 +22,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.constraints.NotNull;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -79,24 +78,18 @@ public class AfterSaleBuyerController {
 
     @PreventDuplicateSubmissions
     @Operation(summary = "申请售后")
-    @Parameter(name = "orderItemSn", description = "订单货物编号", required = true)
     @PostMapping("/save/{orderItemSn}")
-    public ResultMessage<AfterSale> save(AfterSaleDTO afterSaleDTO) {
+    public ResultMessage<AfterSale> save(@RequestBody AfterSaleDTO afterSaleDTO) {
         return ResultUtil.data(afterSaleService.saveAfterSale(afterSaleDTO));
 
     }
 
     @Operation(summary = "买家 退回 物流信息")
     @Parameter(name = "afterSaleSn", description = "售后sn", required = true)
-    @Parameter(name = "logisticsNo", description = "发货单号", required = true)
-    @Parameter(name = "logisticsId", description = "物流公司id", required = true)
-    @Parameter(name = "mDeliverTime", description = "买家发货时间", required = true)
     @PostMapping("/delivery/{afterSaleSn}")
     public ResultMessage<AfterSale> delivery(@NotNull(message = "售后编号不能为空") @PathVariable("afterSaleSn") String afterSaleSn,
-                                             @NotNull(message = "发货单号不能为空") @RequestParam String logisticsNo,
-                                             @NotNull(message = "请选择物流公司") @RequestParam String logisticsId,
-                                             @NotNull(message = "请选择发货时间") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date mDeliverTime) {
-        return ResultUtil.data(afterSaleService.buyerDelivery(afterSaleSn, logisticsNo, logisticsId, mDeliverTime));
+                                             @RequestBody @jakarta.validation.Valid AfterSaleBuyerDeliveryDTO deliveryDTO) {
+        return ResultUtil.data(afterSaleService.buyerDelivery(afterSaleSn, deliveryDTO.getLogisticsNo(), deliveryDTO.getLogisticsId(), deliveryDTO.getMDeliverTime()));
     }
 
     @PreventDuplicateSubmissions

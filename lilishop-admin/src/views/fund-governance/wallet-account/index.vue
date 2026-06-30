@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getWalletAccountPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { extractApiRecords } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -57,7 +59,7 @@ function normalizeWalletRecord(item: Record<string, any>) {
 async function loadData() {
   const params: Record<string, any> = {
     pageNumber: 1,
-    pageSize: 10
+    pageSize: 200
   };
   if (query.keyword) {
     params.memberName = query.keyword;
@@ -82,6 +84,25 @@ function handleReset() {
 function openDetail(row: Record<string, any>) {
   detail.value = row;
   detailVisible.value = true;
+}
+
+function exportWalletAccounts() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的钱包账户数据", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    会员名称: item.memberName,
+    手机号: item.mobile,
+    账户余额: item.balance,
+    可提现金额: item.withdrawableAmount,
+    冻结金额: item.frozenAmount
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "钱包账户台账");
+  writeFile(workbook, "钱包账户台账.xlsx");
+  message("钱包账户导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -109,6 +130,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportWalletAccounts">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

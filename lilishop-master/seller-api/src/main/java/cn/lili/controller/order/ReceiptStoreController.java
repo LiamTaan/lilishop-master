@@ -58,7 +58,7 @@ public class ReceiptStoreController {
     @Operation(description = "开发票")
     @Parameter(name = "id", description = "发票ID", required = true)
     @PostMapping("/{id}/invoicing")
-    public ResultMessage<Receipt> invoicing(@PathVariable String id, @Valid ReceiptInvoicingDTO receiptInvoicingDTO) {
+    public ResultMessage<Receipt> invoicing(@PathVariable String id, @Valid @RequestBody ReceiptInvoicingDTO receiptInvoicingDTO) {
         OperationalJudgment.judgment(receiptService.getById(id));
         return ResultUtil.data(receiptService.invoicing(id, receiptInvoicingDTO));
     }

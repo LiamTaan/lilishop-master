@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createArticle,
@@ -18,7 +19,12 @@ import {
 } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "ArticleManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const categoryOptions = ref<Array<{ id: string; label: string }>>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
@@ -48,6 +54,12 @@ const summaryCards = computed(() => [
   { label: "未发布", value: rows.value.filter(item => !item.isPublished).length, accent: "blue" as const, hint: "草稿或下线公告" },
   { label: "治理动作", value: "新增/编辑/上下线/删除", accent: "purple" as const, hint: "承接真实公告接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   const statusValue =
@@ -121,6 +133,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -228,6 +244,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的公告", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条公告吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteArticle(id)));
+    selectedRows.value = [];
+    message("公告批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("公告批量删除失败", { type: "error" });
+  }
+}
+
+function exportArticles() {
+  if (!rows.value.length) {
+    message("暂无可导出的公告数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    公告标题: item.displayName,
+    发布状态: item.displayStatus,
+    公告分类: item.displayCategory,
+    发布时间: item.displayTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "公告管理");
+  writeFile(workbook, "公告管理.xlsx");
+  message("公告数据导出成功", { type: "success" });
+}
+
 onMounted(async () => {
   await loadCategories();
   await loadData();
@@ -241,6 +295,7 @@ onMounted(async () => {
     api-path="/manager/other/article/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :status-options="[
       { label: '已发布', value: '已发布' },
@@ -255,8 +310,11 @@ onMounted(async () => {
     keyword-placeholder="请输入公告标题"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportArticles">导出</el-button>
       <el-button type="primary" @click="openCreate">新增公告</el-button>
     </template>
     <template #operation="{ row }">

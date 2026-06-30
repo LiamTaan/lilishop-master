@@ -17,6 +17,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,9 +44,9 @@ public class FileController {
     @Operation(summary = "获取自己的图片资源")
     @GetMapping
     @Parameter(name = "title", description = "名称模糊匹配")
-    public ResultMessage<IPage<File>> getFileList(@RequestHeader String accessToken, FileOwnerDTO fileOwnerDTO) {
+    public ResultMessage<IPage<File>> getFileList(FileOwnerDTO fileOwnerDTO, HttpServletRequest request) {
 
-        AuthUser authUser = UserContext.getAuthUser(cache, accessToken);
+        AuthUser authUser = UserContext.getAuthUser(cache, UserContext.resolveAccessToken(request));
         if (authUser == null) {
             ResponseUtil.output(ThreadContextHolder.getHttpResponse(), 403, ResponseUtil.resultMap(false,
                     403, "登录已失效，请重新登录"));
@@ -64,9 +65,9 @@ public class FileController {
 
     @Operation(summary = "文件重命名")
     @PostMapping("/rename")
-    public ResultMessage<File> upload(@RequestHeader String accessToken, String id, String newName) {
+    public ResultMessage<File> upload(String id, String newName, HttpServletRequest request) {
 
-        AuthUser authUser = UserContext.getAuthUser(cache, accessToken);
+        AuthUser authUser = UserContext.getAuthUser(cache, UserContext.resolveAccessToken(request));
         if (authUser == null) {
             throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
         }
@@ -98,9 +99,9 @@ public class FileController {
 
     @Operation(summary = "文件删除")
     @DeleteMapping("/delete/{ids}")
-    public ResultMessage delete(@RequestHeader String accessToken, @PathVariable List<String> ids) {
+    public ResultMessage delete(@PathVariable List<String> ids, HttpServletRequest request) {
 
-        AuthUser authUser = UserContext.getAuthUser(cache, accessToken);
+        AuthUser authUser = UserContext.getAuthUser(cache, UserContext.resolveAccessToken(request));
         if (authUser == null) {
             throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
         }

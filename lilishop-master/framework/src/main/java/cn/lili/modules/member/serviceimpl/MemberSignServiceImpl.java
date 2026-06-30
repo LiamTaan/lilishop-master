@@ -9,10 +9,8 @@ import cn.lili.common.security.context.UserContext;
 import cn.lili.common.utils.CurrencyUtil;
 import cn.lili.common.utils.DateUtil;
 import cn.lili.modules.member.entity.dos.MemberSign;
-import cn.lili.modules.member.entity.enums.ExperienceRuleEnum;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
 import cn.lili.modules.member.mapper.MemberSignMapper;
-import cn.lili.modules.member.service.MemberExperienceService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.member.service.MemberSignService;
 import cn.lili.modules.system.entity.dos.Setting;
@@ -63,8 +61,6 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
      */
     @Autowired
     private MemberService memberService;
-    @Autowired
-    private MemberExperienceService memberExperienceService;
 
 
     @Override
@@ -147,8 +143,6 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
                 //赠送客户积分
                 memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), memberId, content);
             }
-            String signBizId = DateUtil.toString(new Date(), DateUtil.STANDARD_DATE_NO_UNDERLINE_FORMAT);
-            memberExperienceService.grantExperience(memberId, ExperienceRuleEnum.SIGN_IN, signBizId, "客户签到赠送经验值");
         } catch (Exception e) {
             log.error("客户签到错误", e);
         }

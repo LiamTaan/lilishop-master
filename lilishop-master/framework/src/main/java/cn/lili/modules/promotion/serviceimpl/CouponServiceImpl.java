@@ -254,7 +254,7 @@ public class CouponServiceImpl extends AbstractPromotionsServiceImpl<CouponMappe
         }
 
 
-        this.checkCouponScope((CouponVO) coupon);
+        this.checkCouponScope(coupon instanceof CouponVO ? (CouponVO) coupon : new CouponVO(coupon));
     }
 
     @Override
@@ -322,8 +322,9 @@ public class CouponServiceImpl extends AbstractPromotionsServiceImpl<CouponMappe
      * @param coupon 检查的优惠券对象
      */
     private void checkCouponScope(CouponVO coupon) {
-        boolean portionGoodsScope = (coupon.getScopeType().equals(PromotionsScopeTypeEnum.PORTION_GOODS.name())
-                && (coupon.getPromotionGoodsList() == null || coupon.getPromotionGoodsList().isEmpty()));
+        boolean portionGoodsScope = coupon.getScopeType().equals(PromotionsScopeTypeEnum.PORTION_GOODS.name())
+                && CharSequenceUtil.isEmpty(coupon.getScopeId())
+                && (coupon.getPromotionGoodsList() == null || coupon.getPromotionGoodsList().isEmpty());
         if (portionGoodsScope) {
             throw new ServiceException(ResultCode.COUPON_SCOPE_TYPE_GOODS_ERROR);
         } else if (coupon.getScopeType().equals(PromotionsScopeTypeEnum.PORTION_GOODS.name()) && CharSequenceUtil.isEmpty(coupon.getScopeId())) {

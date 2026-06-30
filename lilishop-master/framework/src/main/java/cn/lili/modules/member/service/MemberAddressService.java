@@ -2,6 +2,8 @@ package cn.lili.modules.member.service;
 
 import cn.lili.common.vo.PageVO;
 import cn.lili.modules.member.entity.dos.MemberAddress;
+import cn.lili.modules.member.entity.dto.MemberAddressQueryDTO;
+import cn.lili.modules.member.entity.vo.MemberAddressManagerVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -21,6 +23,15 @@ public interface MemberAddressService extends IService<MemberAddress> {
      * @return 客户地址分页列表
      */
     IPage<MemberAddress> getAddressByMember(PageVO page, String memberId);
+
+    /**
+     * 管理端分页查询客户地址
+     *
+     * @param page     分页条件
+     * @param queryDTO 查询条件
+     * @return 客户地址分页列表
+     */
+    IPage<MemberAddressManagerVO> queryAddressPage(PageVO page, MemberAddressQueryDTO queryDTO);
 
     /**
      * 根据地址ID获取当前客户地址信息

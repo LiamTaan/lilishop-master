@@ -119,7 +119,6 @@ ignored:
     - /buyer/other/article/**
     - /buyer/goods/**
     - /buyer/store/**
-    - /buyer/passport/connect/**
     - /buyer/members/**
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**

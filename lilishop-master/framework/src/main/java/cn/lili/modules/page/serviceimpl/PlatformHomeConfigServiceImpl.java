@@ -13,11 +13,13 @@ import cn.lili.modules.page.entity.dto.PlatformHomeConfigBannerDTO;
 import cn.lili.modules.page.entity.dto.PlatformHomeConfigFloorDTO;
 import cn.lili.modules.page.entity.dto.PlatformHomeConfigSaveDTO;
 import cn.lili.modules.page.entity.dto.PlatformHomeConfigShortcutDTO;
+import cn.lili.modules.page.entity.dto.PlatformHomeRecommendationConfigDTO;
 import cn.lili.modules.page.entity.enums.PageEnum;
 import cn.lili.modules.page.entity.vos.PlatformHomeBannerVO;
 import cn.lili.modules.page.entity.vos.PlatformHomeConfigShortcutVO;
 import cn.lili.modules.page.entity.vos.PlatformHomeConfigVO;
 import cn.lili.modules.page.entity.vos.PlatformHomeFloorModuleVO;
+import cn.lili.modules.page.entity.vos.PlatformHomeRecommendationConfigVO;
 import cn.lili.modules.page.entity.vos.PlatformHomeRuleBlockVO;
 import cn.lili.modules.page.service.OperationShortcutNavService;
 import cn.lili.modules.page.service.PageDataService;
@@ -48,6 +50,7 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
     private static final String SECTION_TYPE_CAROUSEL = "carousel";
     private static final String SECTION_TYPE_TOP_ADVERT = "topAdvert";
     private static final String SECTION_TYPE_WHOLESALE_FLOOR = "wholesaleFloor";
+    private static final String SECTION_TYPE_RECOMMENDATION_CONFIG = "recommendationConfig";
 
     @Autowired
     private PageDataService pageDataService;
@@ -71,6 +74,10 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         vo.setLegacySectionCount(pageSnapshot.getLegacySections().size());
         vo.setShortcutNavList(loadShortcutNavList(effectiveClientType));
         vo.setRuleBlocks(buildRuleBlocks());
+        vo.setFrequentStoresConfig(copyRecommendationConfig(pageSnapshot.getFrequentStoresConfig()));
+        vo.setGuessYouLikeConfig(copyRecommendationConfig(pageSnapshot.getGuessYouLikeConfig()));
+        vo.setLowPriceZoneConfig(copyRecommendationConfig(pageSnapshot.getLowPriceZoneConfig()));
+        vo.setTodaySpecialConfig(copyRecommendationConfig(pageSnapshot.getTodaySpecialConfig()));
         return vo;
     }
 
@@ -195,7 +202,10 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
                 }
                 JSONObject banner = new JSONObject();
                 banner.put("img", item.getImage());
-                banner.put("url", item.getUrl());
+                String linkValue = firstNotBlank(item.getLinkValue(), item.getUrl());
+                banner.put("url", linkValue);
+                banner.put("linkType", item.getLinkType());
+                banner.put("linkValue", linkValue);
                 list.add(banner);
             }
             options.put("list", list);
@@ -207,7 +217,10 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
             JSONObject topAdvert = new JSONObject();
             topAdvert.put("type", SECTION_TYPE_TOP_ADVERT);
             topAdvert.put("img", saveDTO.getTopAdvert().getImage());
-            topAdvert.put("url", saveDTO.getTopAdvert().getUrl());
+            String linkValue = firstNotBlank(saveDTO.getTopAdvert().getLinkValue(), saveDTO.getTopAdvert().getUrl());
+            topAdvert.put("url", linkValue);
+            topAdvert.put("linkType", saveDTO.getTopAdvert().getLinkType());
+            topAdvert.put("linkValue", linkValue);
             sectionList.add(topAdvert);
         }
 
@@ -216,6 +229,8 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
                 .filter(item -> CharSequenceUtil.isNotBlank(item.getTitle()))
                 .sorted(Comparator.comparing(item -> item.getSortOrder() == null ? Integer.MAX_VALUE : item.getSortOrder()))
                 .forEach(item -> sectionList.add(buildFloorSection(item)));
+
+        sectionList.add(buildRecommendationConfigSection(saveDTO));
 
         for (JSONObject legacySection : legacySections) {
             sectionList.add(JSON.parseObject(legacySection.toJSONString()));
@@ -251,6 +266,53 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         return section;
     }
 
+    private JSONObject buildRecommendationConfigSection(PlatformHomeConfigSaveDTO saveDTO) {
+        JSONObject section = new JSONObject();
+        section.put("type", SECTION_TYPE_RECOMMENDATION_CONFIG);
+
+        JSONObject options = new JSONObject();
+        options.put("frequentStoresConfig", buildRecommendationConfigJson(
+                "FREQUENT_STORES",
+                saveDTO.getFrequentStoresConfig(),
+                defaultRecommendationConfig("FREQUENT_STORES")
+        ));
+        options.put("guessYouLikeConfig", buildRecommendationConfigJson(
+                "GUESS_YOU_LIKE",
+                saveDTO.getGuessYouLikeConfig(),
+                defaultRecommendationConfig("GUESS_YOU_LIKE")
+        ));
+        options.put("lowPriceZoneConfig", buildRecommendationConfigJson(
+                "LOW_PRICE",
+                saveDTO.getLowPriceZoneConfig(),
+                defaultRecommendationConfig("LOW_PRICE")
+        ));
+        options.put("todaySpecialConfig", buildRecommendationConfigJson(
+                "TODAY_SPECIAL",
+                saveDTO.getTodaySpecialConfig(),
+                defaultRecommendationConfig("TODAY_SPECIAL")
+        ));
+        section.put("options", options);
+        return section;
+    }
+
+    private JSONObject buildRecommendationConfigJson(String code,
+                                                     PlatformHomeRecommendationConfigDTO dto,
+                                                     PlatformHomeRecommendationConfigVO defaults) {
+        PlatformHomeRecommendationConfigVO merged = mergeRecommendationConfig(dto, defaults);
+        JSONObject config = new JSONObject();
+        config.put("code", code);
+        config.put("enabled", Boolean.TRUE.equals(merged.getEnabled()));
+        config.put("title", merged.getTitle());
+        config.put("sortOrder", merged.getSortOrder());
+        config.put("limit", merged.getLimit());
+        config.put("categoryRange", merged.getCategoryRange());
+        config.put("preferRecommendFlag", merged.getPreferRecommendFlag());
+        config.put("coldStartStrategy", merged.getColdStartStrategy());
+        config.put("priceUpperBound", merged.getPriceUpperBound());
+        config.put("promotionTypes", merged.getPromotionTypes());
+        return config;
+    }
+
     private PageSnapshot parsePageSnapshot(PageData pageData) {
         PageSnapshot snapshot = new PageSnapshot();
         if (pageData == null || CharSequenceUtil.isBlank(pageData.getPageData())) {
@@ -281,6 +343,9 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
                             snapshot.getFloorModules().add(floorModuleVO);
                         }
                         break;
+                    case SECTION_TYPE_RECOMMENDATION_CONFIG:
+                        parseRecommendationSection(section, snapshot);
+                        break;
                     default:
                         snapshot.getLegacySections().add(JSON.parseObject(section.toJSONString()));
                         break;
@@ -308,6 +373,8 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
             PlatformHomeBannerVO bannerVO = new PlatformHomeBannerVO();
             bannerVO.setImage(item.getString("img"));
             bannerVO.setUrl(item.getString("url"));
+            bannerVO.setLinkType(item.getString("linkType"));
+            bannerVO.setLinkValue(firstNotBlank(item.getString("linkValue"), item.getString("url")));
             if (CharSequenceUtil.isNotBlank(bannerVO.getImage())) {
                 result.add(bannerVO);
             }
@@ -319,6 +386,8 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         PlatformHomeBannerVO bannerVO = new PlatformHomeBannerVO();
         bannerVO.setImage(section.getString("img"));
         bannerVO.setUrl(section.getString("url"));
+        bannerVO.setLinkType(section.getString("linkType"));
+        bannerVO.setLinkValue(firstNotBlank(section.getString("linkValue"), section.getString("url")));
         return CharSequenceUtil.isBlank(bannerVO.getImage()) ? null : bannerVO;
     }
 
@@ -344,12 +413,165 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         return CharSequenceUtil.isBlank(vo.getTitle()) ? null : vo;
     }
 
+    private void parseRecommendationSection(JSONObject section, PageSnapshot snapshot) {
+        JSONObject options = section.getJSONObject("options");
+        if (options == null) {
+            return;
+        }
+        snapshot.setFrequentStoresConfig(parseRecommendationConfig(
+                options.getJSONObject("frequentStoresConfig"),
+                defaultRecommendationConfig("FREQUENT_STORES")
+        ));
+        snapshot.setGuessYouLikeConfig(parseRecommendationConfig(
+                options.getJSONObject("guessYouLikeConfig"),
+                defaultRecommendationConfig("GUESS_YOU_LIKE")
+        ));
+        snapshot.setLowPriceZoneConfig(parseRecommendationConfig(
+                options.getJSONObject("lowPriceZoneConfig"),
+                defaultRecommendationConfig("LOW_PRICE")
+        ));
+        snapshot.setTodaySpecialConfig(parseRecommendationConfig(
+                options.getJSONObject("todaySpecialConfig"),
+                defaultRecommendationConfig("TODAY_SPECIAL")
+        ));
+    }
+
+    private PlatformHomeRecommendationConfigVO parseRecommendationConfig(JSONObject configObject,
+                                                                        PlatformHomeRecommendationConfigVO defaults) {
+        PlatformHomeRecommendationConfigVO config = copyRecommendationConfig(defaults);
+        if (configObject == null) {
+            return config;
+        }
+        if (configObject.containsKey("enabled")) {
+            config.setEnabled(configObject.getBoolean("enabled"));
+        }
+        config.setTitle(CharSequenceUtil.blankToDefault(configObject.getString("title"), defaults.getTitle()));
+        config.setSortOrder(configObject.getInteger("sortOrder") == null ? defaults.getSortOrder() : configObject.getInteger("sortOrder"));
+        config.setLimit(configObject.getInteger("limit") == null ? defaults.getLimit() : configObject.getInteger("limit"));
+        config.setCategoryRange(readStringList(configObject, "categoryRange"));
+        if (config.getCategoryRange().isEmpty()) {
+            config.setCategoryRange(defaults.getCategoryRange());
+        }
+        if (configObject.containsKey("preferRecommendFlag")) {
+            config.setPreferRecommendFlag(configObject.getBoolean("preferRecommendFlag"));
+        }
+        config.setColdStartStrategy(CharSequenceUtil.blankToDefault(configObject.getString("coldStartStrategy"), defaults.getColdStartStrategy()));
+        config.setPriceUpperBound(configObject.getDouble("priceUpperBound") == null ? defaults.getPriceUpperBound() : configObject.getDouble("priceUpperBound"));
+        List<String> promotionTypes = readStringList(configObject, "promotionTypes");
+        config.setPromotionTypes(promotionTypes.isEmpty() ? defaults.getPromotionTypes() : promotionTypes);
+        return config;
+    }
+
+    private List<String> readStringList(JSONObject object, String key) {
+        JSONArray array = object == null ? null : object.getJSONArray(key);
+        if (array == null || array.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return array.stream()
+                .map(item -> item == null ? null : String.valueOf(item).trim())
+                .filter(CharSequenceUtil::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private PlatformHomeRecommendationConfigVO mergeRecommendationConfig(PlatformHomeRecommendationConfigDTO dto,
+                                                                        PlatformHomeRecommendationConfigVO defaults) {
+        PlatformHomeRecommendationConfigVO merged = copyRecommendationConfig(defaults);
+        if (dto == null) {
+            return merged;
+        }
+        if (dto.getEnabled() != null) {
+            merged.setEnabled(dto.getEnabled());
+        }
+        if (CharSequenceUtil.isNotBlank(dto.getTitle())) {
+            merged.setTitle(dto.getTitle().trim());
+        }
+        if (dto.getSortOrder() != null) {
+            merged.setSortOrder(dto.getSortOrder());
+        }
+        if (dto.getLimit() != null) {
+            merged.setLimit(dto.getLimit());
+        }
+        if (dto.getCategoryRange() != null) {
+            merged.setCategoryRange(dto.getCategoryRange().stream()
+                    .filter(CharSequenceUtil::isNotBlank)
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList()));
+        }
+        if (dto.getPreferRecommendFlag() != null) {
+            merged.setPreferRecommendFlag(dto.getPreferRecommendFlag());
+        }
+        if (CharSequenceUtil.isNotBlank(dto.getColdStartStrategy())) {
+            merged.setColdStartStrategy(dto.getColdStartStrategy().trim());
+        }
+        if (dto.getPriceUpperBound() != null) {
+            merged.setPriceUpperBound(dto.getPriceUpperBound());
+        }
+        if (dto.getPromotionTypes() != null) {
+            merged.setPromotionTypes(dto.getPromotionTypes().stream()
+                    .filter(CharSequenceUtil::isNotBlank)
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList()));
+        }
+        return merged;
+    }
+
+    private PlatformHomeRecommendationConfigVO copyRecommendationConfig(PlatformHomeRecommendationConfigVO source) {
+        PlatformHomeRecommendationConfigVO target = new PlatformHomeRecommendationConfigVO();
+        if (source == null) {
+            return target;
+        }
+        BeanUtils.copyProperties(source, target);
+        target.setCategoryRange(source.getCategoryRange() == null ? Collections.emptyList() : new ArrayList<>(source.getCategoryRange()));
+        target.setPromotionTypes(source.getPromotionTypes() == null ? Collections.emptyList() : new ArrayList<>(source.getPromotionTypes()));
+        return target;
+    }
+
+    private PlatformHomeRecommendationConfigVO defaultRecommendationConfig(String code) {
+        PlatformHomeRecommendationConfigVO config = new PlatformHomeRecommendationConfigVO();
+        config.setEnabled(Boolean.TRUE);
+        config.setSortOrder(0);
+        config.setCategoryRange(Collections.emptyList());
+        config.setPromotionTypes(Collections.emptyList());
+        switch (code) {
+            case "FREQUENT_STORES":
+                config.setTitle("常买店铺");
+                config.setLimit(4);
+                break;
+            case "GUESS_YOU_LIKE":
+                config.setTitle("猜你喜欢");
+                config.setLimit(12);
+                config.setPreferRecommendFlag(Boolean.TRUE);
+                config.setColdStartStrategy("HOT_AND_NEW");
+                break;
+            case "LOW_PRICE":
+                config.setTitle("低价专区");
+                config.setLimit(12);
+                config.setPriceUpperBound(99D);
+                break;
+            case "TODAY_SPECIAL":
+                config.setTitle("今日特惠");
+                config.setLimit(12);
+                config.setPromotionTypes(new ArrayList<>(List.of("SECKILL", "PINTUAN", "KANJIA")));
+                break;
+            default:
+                break;
+        }
+        return config;
+    }
+
     private List<PlatformHomeRuleBlockVO> buildRuleBlocks() {
         List<PlatformHomeRuleBlockVO> ruleBlocks = new ArrayList<>();
         ruleBlocks.add(buildRuleBlock("SECKILL", "秒杀模块", "前台按当前有效秒杀时段自动展示，不通过首页配置手工维护结果。", "营销中心 / 秒杀活动管理", "/manager/promotion/seckill"));
         ruleBlocks.add(buildRuleBlock("HOT_GOODS", "月度热卖", "由商品统计自动生成，适合做推荐商品来源，不建议手工维护商品清单。", "经营分析 / 商品排行", "/manager/statistics/index/goodsStatistics"));
         ruleBlocks.add(buildRuleBlock("NEW_GOODS", "上新推荐", "由最新上架商品自动生成，建议通过商品上下架与分类治理控制展示。", "商品中心 / 商品列表", "/manager/goods/goods/wholesale/list"));
-        ruleBlocks.add(buildRuleBlock("FREQUENT_STORES", "常逛店铺", "由订单、关注、足迹和热店规则综合生成，不通过运营后台手工指定。", "商家与代理治理 / 店铺管理", "/buyer/other/home/platform"));
+        ruleBlocks.add(buildRuleBlock("SEASONAL_NEW", "时令上新", "按上新时间、季节标签或专题规则自动计算，不建议在首页配置里手填商品。", "商品中心 / 商品列表", "/manager/goods/goods/wholesale/list"));
+        ruleBlocks.add(buildRuleBlock("FREQUENT_STORES", "常买店铺", "由订单、关注、足迹和热店规则综合生成，不通过运营后台手工指定。", "商家与代理治理 / 店铺管理", "/buyer/other/home/platform"));
+        ruleBlocks.add(buildRuleBlock("GUESS_YOU_LIKE", "猜你喜欢", "由用户行为和推荐规则动态计算，后台只维护标题、排序、数量与范围，不手工选商品。", "推荐服务 / 首页推荐", "/buyer/other/home/platform"));
+        ruleBlocks.add(buildRuleBlock("LOW_PRICE", "低价专区", "由低价商品池和活动规则自动生成，适合做价格带运营，不建议手工编排列表。", "商品中心 / 商品列表", "/manager/goods/goods/wholesale/list"));
+        ruleBlocks.add(buildRuleBlock("TODAY_SPECIAL", "今日特惠", "由当日秒杀、拼团、砍价等明确活动价商品自动汇聚，不混入优惠券和满减。", "营销中心 / 秒杀 / 拼团 / 砍价", "/buyer/other/home/platform"));
         return ruleBlocks;
     }
 
@@ -454,6 +676,10 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         private PlatformHomeBannerVO topAdvert;
         private final List<PlatformHomeFloorModuleVO> floorModules = new ArrayList<>();
         private final List<JSONObject> legacySections = new ArrayList<>();
+        private PlatformHomeRecommendationConfigVO frequentStoresConfig = defaultPageRecommendationConfig("FREQUENT_STORES");
+        private PlatformHomeRecommendationConfigVO guessYouLikeConfig = defaultPageRecommendationConfig("GUESS_YOU_LIKE");
+        private PlatformHomeRecommendationConfigVO lowPriceZoneConfig = defaultPageRecommendationConfig("LOW_PRICE");
+        private PlatformHomeRecommendationConfigVO todaySpecialConfig = defaultPageRecommendationConfig("TODAY_SPECIAL");
 
         public List<PlatformHomeBannerVO> getBanners() {
             return banners;
@@ -474,5 +700,70 @@ public class PlatformHomeConfigServiceImpl implements PlatformHomeConfigService 
         public List<JSONObject> getLegacySections() {
             return legacySections;
         }
+
+        public PlatformHomeRecommendationConfigVO getFrequentStoresConfig() {
+            return frequentStoresConfig;
+        }
+
+        public void setFrequentStoresConfig(PlatformHomeRecommendationConfigVO frequentStoresConfig) {
+            this.frequentStoresConfig = frequentStoresConfig;
+        }
+
+        public PlatformHomeRecommendationConfigVO getGuessYouLikeConfig() {
+            return guessYouLikeConfig;
+        }
+
+        public void setGuessYouLikeConfig(PlatformHomeRecommendationConfigVO guessYouLikeConfig) {
+            this.guessYouLikeConfig = guessYouLikeConfig;
+        }
+
+        public PlatformHomeRecommendationConfigVO getLowPriceZoneConfig() {
+            return lowPriceZoneConfig;
+        }
+
+        public void setLowPriceZoneConfig(PlatformHomeRecommendationConfigVO lowPriceZoneConfig) {
+            this.lowPriceZoneConfig = lowPriceZoneConfig;
+        }
+
+        public PlatformHomeRecommendationConfigVO getTodaySpecialConfig() {
+            return todaySpecialConfig;
+        }
+
+        public void setTodaySpecialConfig(PlatformHomeRecommendationConfigVO todaySpecialConfig) {
+            this.todaySpecialConfig = todaySpecialConfig;
+        }
+    }
+
+    private static PlatformHomeRecommendationConfigVO defaultPageRecommendationConfig(String code) {
+        PlatformHomeRecommendationConfigVO config = new PlatformHomeRecommendationConfigVO();
+        config.setEnabled(Boolean.TRUE);
+        config.setSortOrder(0);
+        config.setCategoryRange(Collections.emptyList());
+        config.setPromotionTypes(Collections.emptyList());
+        switch (code) {
+            case "FREQUENT_STORES":
+                config.setTitle("常买店铺");
+                config.setLimit(4);
+                break;
+            case "GUESS_YOU_LIKE":
+                config.setTitle("猜你喜欢");
+                config.setLimit(12);
+                config.setPreferRecommendFlag(Boolean.TRUE);
+                config.setColdStartStrategy("HOT_AND_NEW");
+                break;
+            case "LOW_PRICE":
+                config.setTitle("低价专区");
+                config.setLimit(12);
+                config.setPriceUpperBound(99D);
+                break;
+            case "TODAY_SPECIAL":
+                config.setTitle("今日特惠");
+                config.setLimit(12);
+                config.setPromotionTypes(new ArrayList<>(List.of("SECKILL", "PINTUAN", "KANJIA")));
+                break;
+            default:
+                break;
+        }
+        return config;
     }
 }

@@ -6,11 +6,8 @@ import cn.lili.common.exception.ServiceException;
 import cn.lili.common.vo.PageVO;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dos.MemberShareLog;
-import cn.lili.modules.member.entity.enums.ExperienceRuleEnum;
 import cn.lili.modules.member.entity.vo.MemberShareLogVO;
-import cn.lili.modules.member.mapper.MemberExperienceLogMapper;
 import cn.lili.modules.member.mapper.MemberShareLogMapper;
-import cn.lili.modules.member.service.MemberExperienceService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.member.service.MemberShareLogService;
 import cn.lili.mybatis.util.PageUtil;
@@ -31,10 +28,6 @@ public class MemberShareLogServiceImpl extends ServiceImpl<MemberShareLogMapper,
 
     @Autowired
     private MemberService memberService;
-    @Autowired
-    private MemberExperienceService memberExperienceService;
-    @Autowired
-    private MemberExperienceLogMapper memberExperienceLogMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -43,31 +36,12 @@ public class MemberShareLogServiceImpl extends ServiceImpl<MemberShareLogMapper,
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
         }
-        // 优先使用业务主键作为经验值幂等bizId，避免同一业务重复发放
-        String experienceBizId = CharSequenceUtil.isNotBlank(relatedId) ? relatedId : null;
-        if (CharSequenceUtil.isNotBlank(experienceBizId)) {
-            Long count = memberExperienceLogMapper.countByMemberRuleAndBiz(memberId, ExperienceRuleEnum.SHARE.name(), experienceBizId);
-            if (count != null && count > 0) {
-                return;
-            }
-        }
         MemberShareLog shareLog = new MemberShareLog();
         shareLog.setMemberId(memberId);
         shareLog.setShareScene(shareScene);
         shareLog.setSharePage(sharePage);
         shareLog.setRelatedId(CharSequenceUtil.blankToDefault(relatedId, ""));
         this.save(shareLog);
-        if (CharSequenceUtil.isBlank(experienceBizId)) {
-            experienceBizId = shareLog.getId();
-        }
-
-        // 基于分享记录发放经验值，确保可追溯与可审计
-        memberExperienceService.grantExperience(
-                memberId,
-                ExperienceRuleEnum.SHARE,
-                experienceBizId,
-                "会员分享商城页面，赠送经验值"
-        );
     }
 
     @Override

@@ -9,6 +9,7 @@ import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.order.order.entity.dos.OrderComplaint;
 import cn.lili.modules.order.order.entity.dto.OrderComplaintDTO;
+import cn.lili.modules.order.order.entity.dto.OrderComplaintCommunicationDTO;
 import cn.lili.modules.order.order.entity.enums.CommunicationOwnerEnum;
 import cn.lili.modules.order.order.entity.vo.OrderComplaintCommunicationVO;
 import cn.lili.modules.order.order.entity.vo.OrderComplaintSearchParams;
@@ -69,18 +70,16 @@ public class OrderComplaintBuyerController {
     @PreventDuplicateSubmissions
     @Operation(summary = "添加交易投诉")
     @PostMapping
-    public ResultMessage<OrderComplaint> add(@Valid OrderComplaintDTO orderComplaintDTO) {
+    public ResultMessage<OrderComplaint> add(@Valid @RequestBody OrderComplaintDTO orderComplaintDTO) {
         return ResultUtil.data(orderComplaintService.addOrderComplain(orderComplaintDTO));
     }
 
     @Operation(summary = "添加交易投诉对话")
-    @Parameter(name = "complainId", description = "投诉单ID", required = true)
-    @Parameter(name = "content", description = "内容", required = true)
     @PostMapping("/communication")
-    public ResultMessage<OrderComplaintCommunicationVO> addCommunication(@RequestParam String complainId, @RequestParam String content) {
+    public ResultMessage<OrderComplaintCommunicationVO> addCommunication(@Valid @RequestBody OrderComplaintCommunicationDTO communicationDTO) {
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
-        OperationalJudgment.judgment(orderComplaintService.getOrderComplainById(complainId));
-        OrderComplaintCommunicationVO communicationVO = new OrderComplaintCommunicationVO(complainId, content, CommunicationOwnerEnum.BUYER.name(), currentUser.getNickName(), currentUser.getId());
+        OperationalJudgment.judgment(orderComplaintService.getOrderComplainById(communicationDTO.getComplainId()));
+        OrderComplaintCommunicationVO communicationVO = new OrderComplaintCommunicationVO(communicationDTO.getComplainId(), communicationDTO.getContent(), CommunicationOwnerEnum.BUYER.name(), currentUser.getNickName(), currentUser.getId());
         orderComplaintCommunicationService.addCommunication(communicationVO);
         return ResultUtil.data(communicationVO);
     }

@@ -47,9 +47,8 @@ public class ImMessageController {
     }
 
     @Operation(summary = "新增Im消息")
-    @Parameter(name = "imMessage", description = "Im消息对象", required = true)
     @PostMapping
-    public ResultMessage<ImMessage> save(ImMessage imMessage) {
+    public ResultMessage<ImMessage> save(@RequestBody ImMessage imMessage) {
         if (imMessageService.save(imMessage)) {
             return ResultUtil.data(imMessage);
         }
@@ -58,9 +57,8 @@ public class ImMessageController {
 
     @Operation(summary = "更新Im消息")
     @Parameter(name = "id", description = "Im消息ID", required = true)
-    @Parameter(name = "imMessage", description = "Im消息对象", required = true)
     @PutMapping("/{id}")
-    public ResultMessage<ImMessage> update(@PathVariable String id, ImMessage imMessage) {
+    public ResultMessage<ImMessage> update(@PathVariable String id, @RequestBody ImMessage imMessage) {
         if (imMessageService.updateById(imMessage)) {
             return ResultUtil.data(imMessage);
         }

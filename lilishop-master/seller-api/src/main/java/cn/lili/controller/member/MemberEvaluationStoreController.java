@@ -5,6 +5,7 @@ import cn.lili.common.security.OperationalJudgment;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.member.entity.dto.EvaluationQueryParams;
+import cn.lili.modules.member.entity.dto.MemberEvaluationReplyDTO;
 import cn.lili.modules.member.entity.vo.MemberEvaluationListVO;
 import cn.lili.modules.member.entity.vo.MemberEvaluationVO;
 import cn.lili.modules.member.service.MemberEvaluationService;
@@ -48,12 +49,10 @@ public class MemberEvaluationStoreController {
 
     @Operation(summary = "回复评价")
     @Parameter(name = "id", description = "评价ID", required = true)
-    @Parameter(name = "reply", description = "回复内容", required = true)
-    @Parameter(name = "replyImage", description = "回复图片")
     @PutMapping("/reply/{id}")
-    public ResultMessage<MemberEvaluationVO> reply(@PathVariable String id, @RequestParam String reply, @RequestParam String replyImage) {
+    public ResultMessage<MemberEvaluationVO> reply(@PathVariable String id, @RequestBody @jakarta.validation.Valid MemberEvaluationReplyDTO replyDTO) {
         OperationalJudgment.judgment(memberEvaluationService.queryById(id));
-        memberEvaluationService.reply(id, reply, replyImage);
+        memberEvaluationService.reply(id, replyDTO.getReply(), replyDTO.getReplyImage());
         return ResultUtil.success();
     }
 }

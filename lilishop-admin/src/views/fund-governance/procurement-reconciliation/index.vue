@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getProcurementReconciliationPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiRecords,
   getProcurementStatusLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -65,7 +67,10 @@ function normalizeProcurementRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.keyword = query.keyword;
   if (query.status) params.status = query.status;
   const res = await getProcurementReconciliationPage(params);
@@ -87,6 +92,27 @@ function handleReset() {
 function openDetail(row: Record<string, any>) {
   detail.value = row;
   detailVisible.value = true;
+}
+
+function exportProcurementReconciliation() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的采购对账数据", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    采购单号: item.orderSn,
+    代理商: item.agentName,
+    店铺名称: item.storeName,
+    采购金额: item.totalAmount,
+    采购数量: item.totalQuantity,
+    采购状态: getProcurementStatusLabel(item.status),
+    创建时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "采购对账");
+  writeFile(workbook, "采购对账.xlsx");
+  message("采购对账导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -121,6 +147,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportProcurementReconciliation">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

@@ -15,7 +15,7 @@ import java.util.List;
  */
 @Data
 @NoArgsConstructor
-public class StoreGoodsLabelVO {
+public class    StoreGoodsLabelVO {
 
     @Schema(description = "店铺商品分类ID")
     private String id;

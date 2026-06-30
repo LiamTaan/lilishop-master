@@ -89,7 +89,6 @@ public class PintuanStoreController {
 
     @PostMapping(consumes = "application/json", produces = "application/json")
     @Operation(description = "添加拼团活动")
-    @Parameter(name = "pintuan", description = "拼团活动VO", required = true)
     public ResultMessage<String> addPintuan(@RequestBody @Validated PintuanVO pintuan) {
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
         pintuan.setStoreId(currentUser.getStoreId());
@@ -102,7 +101,6 @@ public class PintuanStoreController {
 
     @PutMapping(consumes = "application/json", produces = "application/json")
     @Operation(description = "修改拼团活动")
-    @Parameter(name = "pintuan", description = "拼团活动VO", required = true)
     public ResultMessage<String> editPintuan(@RequestBody @Validated PintuanVO pintuan) {
         OperationalJudgment.judgment(pintuanService.getById(pintuan.getId()));
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());

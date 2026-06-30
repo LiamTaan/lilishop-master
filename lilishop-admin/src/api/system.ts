@@ -108,7 +108,7 @@ export const getManagerRolePage = (params?: Record<string, any>) => {
 /** 新增平台角色 */
 export const createManagerRole = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>("post", "/manager/permission/role", {
-    params
+    data: params
   });
 };
 
@@ -120,7 +120,7 @@ export const updateManagerRole = (
   return http.request<ResultMessage<any>>(
     "put",
     `/manager/permission/role/${roleId}`,
-    { params }
+    { data: params }
   );
 };
 
@@ -166,7 +166,7 @@ export const createManagerDepartment = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "post",
     "/manager/permission/department",
-    { params }
+    { data: params }
   );
 };
 
@@ -178,7 +178,7 @@ export const updateManagerDepartment = (
   return http.request<ResultMessage<any>>(
     "put",
     `/manager/permission/department/${id}`,
-    { params }
+    { data: params }
   );
 };
 

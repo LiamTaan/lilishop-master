@@ -37,7 +37,6 @@ public class StoreDepartmentRoleController {
     @PutMapping("/{departmentId}")
     @Operation(description = "更新部门角色")
     @Parameter(name = "departmentId", description = "部门ID", required = true)
-    @Parameter(name = "storeDepartmentRoles", description = "部门角色列表", required = true)
     public ResultMessage<DepartmentRole> update(@PathVariable String departmentId, @RequestBody List<StoreDepartmentRole> storeDepartmentRoles) {
         storeDepartmentRoleService.updateByDepartmentId(departmentId, storeDepartmentRoles);
         return ResultUtil.success();

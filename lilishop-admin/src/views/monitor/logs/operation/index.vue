@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import dayjs from "dayjs";
+import { utils, writeFile } from "xlsx";
 import { useRole } from "./hook";
 import { getPickerShortcuts } from "../../utils";
 import { PureTableBar } from "@/components/RePureTableBar";
@@ -62,6 +64,27 @@ const summaryCards = computed(() => [
     hint: "当前分页接口地址数"
   }
 ]);
+
+function exportOperationLogs() {
+  if (!dataList.value.length) return;
+  const worksheet = utils.json_to_sheet(
+    dataList.value.map(item => ({
+      日志ID: item.id,
+      操作人员: item.username,
+      操作名称: item.name,
+      请求方式: item.requestType,
+      请求地址: item.requestUrl,
+      操作IP: item.ip,
+      日志附加信息: item.ipInfo,
+      操作时间: item.createTime
+        ? dayjs(item.createTime).format("YYYY-MM-DD HH:mm:ss")
+        : "-"
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "操作日志");
+  writeFile(workbook, "操作日志.xlsx");
+}
 </script>
 
 <template>
@@ -126,6 +149,9 @@ const summaryCards = computed(() => [
       @refresh="onSearch"
     >
       <template #buttons>
+        <el-button :disabled="!dataList.length" @click="exportOperationLogs">
+          导出
+        </el-button>
         <el-popconfirm title="确定要删除所有日志数据吗？" @confirm="clearAll">
           <template #reference>
             <el-button type="danger" :icon="useRenderIcon(Delete)">

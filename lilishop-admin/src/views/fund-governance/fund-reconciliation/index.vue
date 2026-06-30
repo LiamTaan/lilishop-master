@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getFundReconciliationPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiRecords,
   getWalletServiceTypeLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -60,7 +62,10 @@ function normalizeFundRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.keyword = query.keyword;
   if (query.status) params.serviceType = query.status;
   const res = await getFundReconciliationPage(params);
@@ -82,6 +87,26 @@ function handleReset() {
 function openDetail(row: Record<string, any>) {
   detail.value = row;
   detailVisible.value = true;
+}
+
+function exportFundReconciliation() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的资金对账数据", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    流水号: item.id,
+    代理商: item.agentName,
+    业务类型: getWalletServiceTypeLabel(item.serviceType),
+    变动金额: item.money,
+    业务描述: item.detail,
+    创建时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "资金对账");
+  writeFile(workbook, "资金对账.xlsx");
+  message("资金对账导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -114,6 +139,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportFundReconciliation">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

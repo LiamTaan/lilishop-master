@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import {
   createBrand,
   deleteBrands,
@@ -9,6 +10,7 @@ import {
   updateBrand,
   updateBrandDisable
 } from "@/api/goods-governance";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiPayload,
@@ -29,6 +31,7 @@ const detailRow = ref<Record<string, any> | null>(null);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const editingId = ref("");
+const selectedRows = ref<Record<string, any>[]>([]);
 const query = reactive({
   keyword: "",
   status: ""
@@ -56,6 +59,12 @@ const filteredRows = computed(() =>
       : true;
     return keywordMatched && statusMatched;
   })
+);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
 );
 
 const summaryCards = computed(() => [
@@ -165,7 +174,7 @@ async function submitForm() {
     return;
   }
   if (!form.logo.trim()) {
-    message("请输入品牌图标地址", { type: "warning" });
+    message("请上传品牌图标", { type: "warning" });
     return;
   }
   saving.value = true;
@@ -222,6 +231,45 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的品牌", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个品牌吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  await deleteBrands(selectedIds.value);
+  selectedRows.value = [];
+  message("品牌批量删除成功", { type: "success" });
+  await loadData();
+}
+
+function exportBrands() {
+  if (!filteredRows.value.length) {
+    message("暂无可导出的品牌", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    filteredRows.value.map(item => ({
+      品牌名称: item.name,
+      品牌图标: item.logo,
+      状态: item.statusLabel,
+      更新时间: item.updateTime
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "品牌管理");
+  writeFile(workbook, "品牌管理.xlsx");
+  message("品牌导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -234,6 +282,7 @@ onMounted(() => {
     api-path="/manager/goods/brand/getByPage"
     :columns="columns"
     :data="filteredRows"
+    selectable
     :summary-cards="summaryCards"
     :status-options="[
       { label: '启用', value: 'ENABLE' },
@@ -243,8 +292,13 @@ onMounted(() => {
     keyword-placeholder="请输入品牌名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button :disabled="!filteredRows.length" @click="exportBrands">导出</el-button>
+      <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleBatchDelete">
+        批量删除
+      </el-button>
       <el-button type="primary" @click="openCreate">新增品牌</el-button>
     </template>
     <template #operation="{ row }">
@@ -267,7 +321,7 @@ onMounted(() => {
         <el-input v-model="form.name" maxlength="20" show-word-limit />
       </el-form-item>
       <el-form-item label="品牌图标" required>
-        <el-input v-model="form.logo" placeholder="请输入品牌图标 URL" />
+        <ImageUploadField v-model="form.logo" tip="请上传品牌图标，保存后将写入品牌 logo 字段" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -284,7 +338,11 @@ onMounted(() => {
         {{ detailRow.name }}
       </el-descriptions-item>
       <el-descriptions-item label="品牌图标">
-        {{ detailRow.logo }}
+        <div v-if="detailRow.logo" class="brand-detail-logo">
+          <img :src="detailRow.logo" alt="brand logo" class="brand-detail-logo__img" />
+          <span>{{ detailRow.logo }}</span>
+        </div>
+        <span v-else>-</span>
       </el-descriptions-item>
       <el-descriptions-item label="状态">
         <el-tag :type="detailRow.statusType" effect="light" round>
@@ -297,3 +355,20 @@ onMounted(() => {
     </el-descriptions>
   </el-drawer>
 </template>
+
+<style scoped>
+.brand-detail-logo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brand-detail-logo__img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid #ebe5da;
+  background: #fff8f0;
+}
+</style>

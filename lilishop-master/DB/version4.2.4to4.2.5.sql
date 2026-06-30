@@ -459,7 +459,7 @@ CREATE TABLE `li_store_menu`  (
 INSERT INTO `li_store_menu` VALUES (1348810750596767744, NULL, '2022-01-11 22:35:33.000000', b'0', NULL, '2022-01-11 22:36:52', NULL, 'Main', 'ios-american-football', 0, 'goods', '0', '/', '1', '商品', NULL);
 INSERT INTO `li_store_menu` VALUES (1348810864748945408, NULL, '2022-01-11 22:35:37.000000', b'0', NULL, '2022-01-11 22:36:55', NULL, 'Main', 'ios-american-football', 1, 'Main', '1348810750596767744', '/', '1.1', '商品管理', '');
 INSERT INTO `li_store_menu` VALUES (1349237129847005184, NULL, '2022-01-11 22:35:40.000000', b'0', NULL, '2022-01-11 22:36:59', NULL, 'goods-operation', 'ios-american-football', 2, 'goods-operation', '1348810864748945408', '/goods-operation', '1.11', '商品发布', '/store/goods/category*,/store/goods/categorySpec*,/store/goods/categoryParameters*,/store/goods/draftGoods*,/store/goods/label*,/store/goods/goods*,/store/goods/goodsUnit*,/store/goods/spec*');
-INSERT INTO `li_store_menu` VALUES (1349237207378714624, NULL, '2022-01-11 22:35:42.000000', b'0', NULL, '2022-01-11 22:37:02', NULL, 'goods/goods-seller/goods', 'ios-american-football', 2, 'goods', '1348810864748945408', 'goods', '1.12', '商品列表', NULL);
+INSERT INTO `li_store_menu` VALUES (1349237207378714624, NULL, '2022-01-11 22:35:42.000000', b'0', NULL, '2022-01-11 22:37:02', NULL, 'goods/goods-seller/goods', 'ios-american-football', 2, 'goods', '1348810864748945408', 'goods', '1.12', '商品列表', '/store/goods/goods/list*,/store/goods/goods/goodsNumber*,/store/goods/goods/get*');
 INSERT INTO `li_store_menu` VALUES (1349237928434098176, NULL, '2022-01-11 22:35:45.000000', b'0', NULL, '2022-01-11 22:37:05', NULL, 'goods/goods-seller/draftGoods', 'ios-american-football', 2, 'template-goods', '1348810864748945408', 'template-goods', '1.13', '商品模板', NULL);
 INSERT INTO `li_store_menu` VALUES (1349246048900243456, NULL, '2022-01-11 22:35:48.000000', b'0', NULL, '2022-01-11 22:37:08', NULL, 'goods/goods-manage/category', 'ios-american-football', 2, 'category', '1348810864748945408', 'category', '1.14', '店铺分类', NULL);
 INSERT INTO `li_store_menu` VALUES (1349246347597602816, NULL, '2022-01-11 22:35:51.000000', b'0', NULL, '2022-01-11 22:37:11', NULL, 'Main', 'ios-american-football', 0, 'order', '0', '/', '2', '订单', NULL);
@@ -517,5 +517,4 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 
 insert li_clerk(id,create_by,create_time,store_id,clerk_name,member_id,shopkeeper,is_super,`status`) select id,member_name,current_date(),id,member_name,member_id ,TRUE,TRUE,TRUE from li_store
-
 

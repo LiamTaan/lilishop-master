@@ -239,6 +239,7 @@ export function normalizeVerificationSourceType(type: unknown) {
 
 export function getStoreAuditStatusLabel(status: unknown) {
   const value = normalizeStatusValue(status);
+  if (["NONE", "N/A", "NA"].includes(value)) return "未发起";
   if (["DRAFT"].includes(value)) return "草稿";
   if (["SUBMITTED", "PENDING", "WAIT"].includes(value)) return "待审核";
   if (["APPROVED", "PASS", "SUCCESS"].includes(value)) return "审核通过";
@@ -252,6 +253,7 @@ export function getStoreAuditStatusType(status: unknown) {
   if (["APPROVED", "PASS", "SUCCESS"].includes(value)) return "success";
   if (["SUBMITTED", "PENDING", "WAIT", "DRAFT"].includes(value)) return "warning";
   if (["REJECTED", "REFUSE", "FAILED", "FROZEN"].includes(value)) return "danger";
+  if (["NONE", "N/A", "NA"].includes(value)) return "info";
   return "info";
 }
 

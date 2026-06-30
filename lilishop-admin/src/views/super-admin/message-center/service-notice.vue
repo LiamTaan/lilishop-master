@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createServiceNotice,
@@ -12,7 +13,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "ServiceNoticeManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -65,6 +71,12 @@ const summaryCards = computed(() => [
   }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -98,6 +110,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -180,6 +196,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的服务通知", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条服务通知吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteServiceNotice(selectedIds.value);
+    selectedRows.value = [];
+    message("服务通知批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("服务通知批量删除失败", { type: "error" });
+  }
+}
+
+function exportServiceNotices() {
+  if (!rows.value.length) {
+    message("暂无可导出的服务通知数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    通知标题: item.displayName,
+    通知状态: item.displayStatus,
+    更新时间: item.displayTime,
+    通知内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "服务通知");
+  writeFile(workbook, "服务通知.xlsx");
+  message("服务通知导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -192,6 +246,7 @@ onMounted(() => {
     api-path="/manager/message/serviceNotice/page"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :quick-actions="[
       { label: '新增模板', value: '已接入', type: 'primary' },
@@ -202,8 +257,11 @@ onMounted(() => {
     keyword-placeholder="请输入通知标题"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportServiceNotices">导出</el-button>
       <el-button type="primary" @click="openCreate">新增服务通知</el-button>
     </template>
     <template #operation="{ row }">

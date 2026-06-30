@@ -10,6 +10,7 @@ import { $t, transformI18n } from "@/plugins/i18n";
 import { resetPasswordApi, sendResetSmsCode, verifyResetSmsCode } from "@/api/user";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { isSuccessResult } from "@/utils/result";
 import Lock from "~icons/ri/lock-fill";
 import Iphone from "~icons/ep/iphone";
 import Keyhole from "~icons/ri/shield-keyhole-line";
@@ -28,6 +29,25 @@ const ruleForm = reactive({
 });
 const ruleFormRef = ref<FormInstance>();
 const { isDisabled, text, start, end } = useVerifyCode();
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 const repeatPasswordRule = [
   {
     validator: (rule, value, callback) => {
@@ -69,8 +89,8 @@ const onUpdate = async (formEl: FormInstance | undefined) => {
       end();
       useUserStoreHook().SET_CURRENTPAGE(0);
     })
-    .catch(() => {
-      message(transformI18n($t("login.pureLoginFail")), {
+    .catch(error => {
+      message(getErrorMessage(error, transformI18n($t("login.pureLoginFail"))), {
         type: "error"
       });
     })
@@ -83,13 +103,19 @@ const onSendSmsCode = async () => {
   try {
     await ruleFormRef.value?.validateField("phone");
     smsUuid.value = createUuid();
-    await sendResetSmsCode(ruleForm.phone, smsUuid.value);
+    const response = await sendResetSmsCode(ruleForm.phone, smsUuid.value);
+    if (!isSuccessResult(response)) {
+      throw new Error(response?.message || "短信验证码发送失败");
+    }
     await start(ruleFormRef.value, "phone");
     message(transformI18n($t("login.pureSendVerifyCode")), {
       type: "success"
     });
-  } catch (_error) {
+  } catch (error) {
     end();
+    message(getErrorMessage(error, "短信验证码发送失败"), {
+      type: "error"
+    });
   }
 };
 

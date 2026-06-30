@@ -100,6 +100,7 @@ spring:
 # 忽略鉴权url
 ignored:
   urls:
+    - /v3/api-docs
     - /editor-app/**
     - /source/**
     - /store/passport/login/**
@@ -129,7 +130,8 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    version: openapi_3_0
   swagger-ui:
     enabled: false
   packages-to-scan: cn.lili.controller
@@ -157,7 +159,7 @@ lili:
   # jwt 细节设定
   jwt-setting:
     # token过期时间（分钟）
-    tokenExpireTime: 86400
+    tokenExpireTime: 10080
 
   # 使用Spring @Cacheable注解失效时间
   cache:

@@ -42,7 +42,7 @@ public class DistributionBuyerController {
 
     @Operation(summary = "申请分销员")
     @PostMapping
-    public ResultMessage<Object> applyDistribution(DistributionApplyDTO distributionApplyDTO) {
+    public ResultMessage<Object> applyDistribution(@RequestBody DistributionApplyDTO distributionApplyDTO) {
         return ResultUtil.data(distributionService.applyDistribution(distributionApplyDTO));
     }
 

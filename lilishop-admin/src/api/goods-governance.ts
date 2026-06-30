@@ -1,12 +1,25 @@
 import { http } from "@/utils/http";
 import type { ResultMessage } from "./types";
 
+function joinIds(ids: string[]) {
+  return ids
+    .map(item => String(item || "").trim())
+    .filter(Boolean)
+    .join(",");
+}
+
 export const getWholesaleGoodsPage = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "get",
     "/manager/goods/goods/wholesale/list",
     { params }
   );
+};
+
+export const getGoodsPage = (params?: Record<string, any>) => {
+  return http.request<ResultMessage<any>>("get", "/manager/goods/goods/list", {
+    params
+  });
 };
 
 export const getWholesaleGoodsDetail = (goodsId: string) => {
@@ -16,18 +29,43 @@ export const getWholesaleGoodsDetail = (goodsId: string) => {
   );
 };
 
+export const createWholesaleGoods = (data: Record<string, any>) => {
+  return http.request<ResultMessage<null>>("post", "/manager/goods/goods", {
+    data
+  });
+};
+
+export const updateWholesaleGoods = (
+  goodsId: string,
+  data: Record<string, any>
+) => {
+  return http.request<ResultMessage<null>>(
+    "put",
+    `/manager/goods/goods/${goodsId}`,
+    { data }
+  );
+};
+
+export const getWholesaleSkuPage = (params?: Record<string, any>) => {
+  return http.request<ResultMessage<any>>(
+    "get",
+    "/manager/goods/goods/sku/list",
+    { params }
+  );
+};
+
 export const auditWholesaleGoods = (
   goodsIds: string[],
   authFlag: "PASS" | "REFUSE"
 ) => {
   return http.request<ResultMessage<null>>("put", "/manager/goods/goods/auth", {
-    params: { goodsIds, authFlag }
+    data: { goodsIds: joinIds(goodsIds), authFlag }
   });
 };
 
 export const upperWholesaleGoods = (goodsIds: string[]) => {
   return http.request<ResultMessage<null>>("put", "/manager/goods/goods/up", {
-    params: { goodsId: goodsIds }
+    data: { goodsId: joinIds(goodsIds) }
   });
 };
 
@@ -36,8 +74,15 @@ export const underWholesaleGoods = (goodsIds: string[], reason: string) => {
     "put",
     "/manager/goods/goods/under",
     {
-      params: { goodsId: goodsIds, reason }
+      data: { goodsId: joinIds(goodsIds), reason }
     }
+  );
+};
+
+export const deleteWholesaleGoods = (goodsIds: string[]) => {
+  return http.request<ResultMessage<null>>(
+    "delete",
+    `/manager/goods/goods/${goodsIds.join(",")}`
   );
 };
 
@@ -46,6 +91,20 @@ export const getCategoryPage = (params?: Record<string, any>) => {
     "get",
     "/manager/goods/category/allChildren",
     { params }
+  );
+};
+
+export const getStoreOptions = () => {
+  return http.request<ResultMessage<Record<string, any>[]>>(
+    "get",
+    "/manager/store/store/all"
+  );
+};
+
+export const getStoreFreightTemplates = (storeId: string) => {
+  return http.request<ResultMessage<Record<string, any>[]>>(
+    "get",
+    `/manager/goods/freightTemplate/store/${storeId}`
   );
 };
 
@@ -76,11 +135,32 @@ export const getPointsGoodsPage = (params?: Record<string, any>) => {
   );
 };
 
+export const getPointsGoodsDetail = (id: string) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    `/manager/promotion/pointsGoods/${id}`
+  );
+};
+
+export const deletePointsGoods = (ids: string[]) => {
+  return http.request<ResultMessage<any>>(
+    "delete",
+    `/manager/promotion/pointsGoods/${ids.join(",")}`
+  );
+};
+
 export const getCardCouponGoodsPage = (params?: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "get",
     "/manager/promotion/cardCouponGoods",
     { params }
+  );
+};
+
+export const deleteCardCouponGoods = (ids: string[]) => {
+  return http.request<ResultMessage<any>>(
+    "delete",
+    `/manager/promotion/cardCouponGoods/${ids.join(",")}`
   );
 };
 
@@ -105,13 +185,13 @@ export const getBrandOptions = () => {
 
 export const createBrand = (params: Record<string, any>) => {
   return http.request<ResultMessage<any>>("post", "/manager/goods/brand", {
-    params
+    data: params
   });
 };
 
 export const updateBrand = (id: string, params: Record<string, any>) => {
   return http.request<ResultMessage<any>>("put", `/manager/goods/brand/${id}`, {
-    params
+    data: params
   });
 };
 
@@ -131,10 +211,15 @@ export const deleteBrands = (ids: string[]) => {
 };
 
 export const getParameterPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
+  return http.request<ResultMessage<any>>("get", "/manager/goods/parameters", {
+    params
+  });
+};
+
+export const getCategoryParameterOptions = (categoryId: string) => {
+  return http.request<ResultMessage<Record<string, any>[]>>(
     "get",
-    "/manager/goods/parameters",
-    { params }
+    `/manager/goods/categoryParameters/${categoryId}`
   );
 };
 
@@ -146,16 +231,14 @@ export const getParameterDetail = (id: string) => {
 };
 
 export const createParameter = (params: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
-    "post",
-    "/manager/goods/parameters",
-    { params }
-  );
+  return http.request<ResultMessage<any>>("post", "/manager/goods/parameters", {
+    data: params
+  });
 };
 
 export const updateParameter = (params: Record<string, any>) => {
   return http.request<ResultMessage<any>>("put", "/manager/goods/parameters", {
-    params
+    data: params
   });
 };
 
@@ -167,11 +250,9 @@ export const deleteParameter = (id: string) => {
 };
 
 export const getGoodsUnitPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
-    "get",
-    "/manager/goods/goodsUnit",
-    { params }
-  );
+  return http.request<ResultMessage<any>>("get", "/manager/goods/goodsUnit", {
+    params
+  });
 };
 
 export const getGoodsUnitDetail = (id: string) => {
@@ -182,18 +263,16 @@ export const getGoodsUnitDetail = (id: string) => {
 };
 
 export const createGoodsUnit = (params: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
-    "post",
-    "/manager/goods/goodsUnit",
-    { params }
-  );
+  return http.request<ResultMessage<any>>("post", "/manager/goods/goodsUnit", {
+    data: params
+  });
 };
 
 export const updateGoodsUnit = (id: string, params: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "put",
     `/manager/goods/goodsUnit/${id}`,
-    { params }
+    { data: params }
   );
 };
 
@@ -238,18 +317,16 @@ export const getGoodsGroupDetail = (id: string) => {
 };
 
 export const createGoodsGroup = (params: Record<string, any>) => {
-  return http.request<ResultMessage<any>>(
-    "post",
-    "/manager/goods/goodsGroup",
-    { params }
-  );
+  return http.request<ResultMessage<any>>("post", "/manager/goods/goodsGroup", {
+    data: params
+  });
 };
 
 export const updateGoodsGroup = (id: string, params: Record<string, any>) => {
   return http.request<ResultMessage<any>>(
     "put",
     `/manager/goods/goodsGroup/update/${id}`,
-    { params }
+    { data: params }
   );
 };
 
@@ -264,7 +341,7 @@ export const updateGoodsGroupGoods = (groupId: string, goodsIds: string[]) => {
   return http.request<ResultMessage<any>>(
     "post",
     `/manager/goods/goodsGroup/${groupId}/goods`,
-    { params: { goodsIds: goodsIds.join(",") } }
+    { data: goodsIds }
   );
 };
 

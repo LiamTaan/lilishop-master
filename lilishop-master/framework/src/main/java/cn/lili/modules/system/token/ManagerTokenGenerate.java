@@ -16,9 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 管理员token生成
@@ -80,22 +83,17 @@ public class ManagerTokenGenerate extends AbstractTokenGenerate<AdminUser> {
             userMenuVOList.forEach(menu -> {
                 //循环菜单，赋予用户权限
                 if (CharSequenceUtil.isNotEmpty(menu.getPermission())) {
-                    //获取路径集合
-                    String[] permissionUrl = menu.getPermission().split(",");
+                    List<String> permissionUrls = normalizePermissionUrls(menu);
                     //for循环路径集合
-                    for (String url : permissionUrl) {
-                        //如果是超级权限 则计入超级权限
-                        if (Boolean.TRUE.equals(menu.getSuper())) {
-                            //如果已有超级权限，则这里就不做权限的累加
+                    for (String url : permissionUrls) {
+                        if (!queryPermissions.contains(url)) {
+                            queryPermissions.add(url);
+                        }
+                        // 当前管理端角色授权界面未区分“仅查看”与“可操作”，
+                        // 角色勾选菜单后默认赋予对应接口的操作权限，避免出现菜单可见但写接口被统一拦截。
+                        if (Boolean.TRUE.equals(menu.getSuper()) || !superPermissions.contains(url)) {
                             if (!superPermissions.contains(url)) {
                                 superPermissions.add(url);
-                            }
-                        }
-                        //否则计入浏览权限
-                        else {
-                            //没有权限，则累加。
-                            if (!queryPermissions.contains(url)) {
-                                queryPermissions.add(url);
                             }
                         }
                     }
@@ -136,6 +134,27 @@ public class ManagerTokenGenerate extends AbstractTokenGenerate<AdminUser> {
         //查看地区接口
         queryPermissions.add("/manager/setting/region*");
 
+    }
+
+    private List<String> normalizePermissionUrls(UserMenuVO menu) {
+        Set<String> permissionUrls = new LinkedHashSet<>();
+        Arrays.stream(menu.getPermission().split(","))
+                .map(String::trim)
+                .filter(CharSequenceUtil::isNotEmpty)
+                .forEach(permissionUrls::add);
+
+        if ("/goods-governance/goods-manage".equals(menu.getPath())) {
+            permissionUrls.add("/manager/goods/goods*");
+            permissionUrls.add("/manager/goods/goodsUnit*");
+            permissionUrls.add("/manager/goods/categoryParameters*");
+            permissionUrls.add("/manager/goods/freightTemplate/store*");
+            permissionUrls.add("/manager/goods/category/allChildren*");
+            permissionUrls.add("/manager/goods/brand/all*");
+            permissionUrls.add("/manager/store/store/all*");
+            permissionUrls.add("/common/common/upload/file*");
+        }
+
+        return new ArrayList<>(permissionUrls);
     }
 
 }

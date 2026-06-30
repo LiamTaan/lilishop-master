@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createRegion,
@@ -17,6 +18,7 @@ import { message } from "@/utils/message";
 import { isSuccessResult, unwrapResult } from "@/utils/result";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const syncVisible = ref(false);
@@ -57,6 +59,12 @@ const summaryCards = computed(() => [
   { label: "可下钻节点", value: rows.value.filter(item => item.hasChildren).length, accent: "blue" as const, hint: "支持继续查看子区域" },
   { label: "治理动作", value: "详情/子级/新增/编辑/删除", accent: "purple" as const, hint: "已对齐真实区域接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 const LEVEL_LABEL_MAP: Record<string, string> = {
   country: "国家",
@@ -198,6 +206,7 @@ async function loadData() {
       );
     }
     rows.value = list;
+    selectedRows.value = [];
   } catch (_error) {
     rows.value = [];
     message("区域管理加载失败，请稍后重试", { type: "error" });
@@ -212,6 +221,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function resetForm() {
@@ -356,6 +369,26 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的区域", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个区域吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteRegion(selectedIds.value);
+    selectedRows.value = [];
+    message("区域批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("区域批量删除失败", { type: "error" });
+  }
+}
+
 async function handleSync() {
   if (!syncForm.url.trim()) {
     message("请输入高德行政地区同步地址", { type: "warning" });
@@ -374,6 +407,25 @@ async function handleSync() {
   }
 }
 
+function exportRegions() {
+  if (!rows.value.length) {
+    message("暂无可导出的区域数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    区域名称: item.displayName,
+    层级: item.displayLevel,
+    城市编码: item.displayCode,
+    上级区域: item.displayParent,
+    完整路径: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "区域管理");
+  writeFile(workbook, "区域管理.xlsx");
+  message("区域数据导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -384,6 +436,7 @@ onMounted(loadData);
     api-path="/manager/setting/region"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -395,8 +448,11 @@ onMounted(loadData);
     keyword-placeholder="请输入区域名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportRegions">导出</el-button>
       <el-button type="primary" @click="openCreate()">新增区域</el-button>
       <el-button type="warning" plain @click="syncVisible = true">同步行政区域</el-button>
     </template>

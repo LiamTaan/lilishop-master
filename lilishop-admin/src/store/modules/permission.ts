@@ -29,7 +29,7 @@ export const usePermissionStore = defineStore("pure-permission", {
       const useBackendMenus = Array.isArray(routes) && routes.length > 0;
       const sourceMenus = useBackendMenus ? routes : this.constantMenus;
       this.wholeMenus = useBackendMenus
-        ? filterChildrenTree(filterTree(ascending(sourceMenus)))
+        ? filterChildrenTree(ascending(sourceMenus), false)
         : filterNoPermissionTree(filterTree(ascending(sourceMenus)));
       this.flatteningRoutes = formatFlatteningRoutes(sourceMenus as any);
     },

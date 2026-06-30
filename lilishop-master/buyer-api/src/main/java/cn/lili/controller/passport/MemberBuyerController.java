@@ -288,7 +288,7 @@ public class MemberBuyerController {
 
     @Operation(summary = "修改用户自己资料")
     @PutMapping("/editOwn")
-    public ResultMessage<Member> editOwn(MemberEditDTO memberEditDTO) {
+    public ResultMessage<Member> editOwn(@RequestBody MemberEditDTO memberEditDTO) {
 
         return ResultUtil.data(memberService.editOwn(memberEditDTO));
     }

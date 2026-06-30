@@ -93,6 +93,10 @@ spring:
 # 忽略鉴权url
 ignored:
   urls:
+    - /v3/api-docs
+    - /v3/api-docs/**
+    - /swagger-ui.html
+    - /swagger-ui/**
     - /editor-app/**
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
@@ -108,7 +112,6 @@ ignored:
     - /buyer/other/shortcutNav/**
     - /buyer/goods/**
     - /buyer/store/**
-    - /buyer/passport/connect/**
     - /buyer/members/**
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**

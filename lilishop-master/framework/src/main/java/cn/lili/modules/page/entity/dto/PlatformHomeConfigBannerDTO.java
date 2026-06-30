@@ -16,6 +16,12 @@ public class PlatformHomeConfigBannerDTO {
     @Schema(description = "图片地址")
     private String image;
 
-    @Schema(description = "跳转地址")
+    @Schema(description = "兼容旧版的跳转值")
     private String url;
+
+    @Schema(description = "跳转类型 CATEGORY/GOODS_DETAIL/COUPON/SPECIAL/ACTIVITY/CUSTOM_URL")
+    private String linkType;
+
+    @Schema(description = "跳转目标值")
+    private String linkValue;
 }

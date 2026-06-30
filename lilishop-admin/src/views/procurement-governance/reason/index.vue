@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createStockReason,
   deleteStockReason,
+  deleteStockReasons,
   getStockReasonPage,
   updateStockReason
 } from "@/api/procurement-governance";
@@ -17,6 +19,7 @@ defineOptions({
 });
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const editingRow = ref<Record<string, any> | null>(null);
@@ -29,6 +32,12 @@ const form = reactive({
   reason: "",
   category: "INBOUND"
 });
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 const summaryCards = computed(() => [
   {
@@ -94,6 +103,10 @@ function handleReset() {
   loadData();
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
 function openCreate() {
   editingRow.value = null;
   form.id = "";
@@ -155,6 +168,45 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的库存原因", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个库存原因吗？`,
+    "批量删除确认",
+    {
+      type: "warning"
+    }
+  );
+  try {
+    await deleteStockReasons(selectedIds.value);
+    selectedRows.value = [];
+    message("库存原因批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("库存原因批量删除失败", { type: "error" });
+  }
+}
+
+function exportReasons() {
+  if (!rows.value.length) {
+    message("暂无可导出的库存原因数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    原因名称: item.reason,
+    原因类别: getReasonCategoryLabel(item.category),
+    更新时间: item.updateTime || item.createTime || "-"
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "库存原因管理");
+  writeFile(workbook, "库存原因管理.xlsx");
+  message("库存原因数据导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -165,6 +217,7 @@ onMounted(loadData);
     api-path="/manager/procurement/reason"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -176,6 +229,7 @@ onMounted(loadData);
     keyword-placeholder="请输入库存原因"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #filters-extra>
       <el-form-item label="原因类别">
@@ -194,6 +248,10 @@ onMounted(loadData);
       </el-form-item>
     </template>
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">
+        批量删除
+      </el-button>
+      <el-button @click="exportReasons">导出</el-button>
       <el-button type="primary" @click="openCreate">新增库存原因</el-button>
     </template>
     <template #operation="{ row }">

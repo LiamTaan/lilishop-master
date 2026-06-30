@@ -8,8 +8,6 @@ import cn.lili.modules.connect.entity.enums.SourceEnum;
 import cn.lili.modules.connect.entity.enums.ConnectEnum;
 import cn.lili.modules.connect.service.ConnectService;
 import cn.lili.modules.member.entity.dto.ConnectQueryDTO;
-import cn.lili.modules.member.entity.enums.ExperienceRuleEnum;
-import cn.lili.modules.member.service.MemberExperienceService;
 import cn.lili.modules.payment.kit.core.XmlHelper;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
@@ -53,8 +51,6 @@ public class WechatUtil {
     private WechatAccessTokenUtil wechatAccessTokenUtil;
     @Autowired
     private ConnectService connectService;
-    @Autowired
-    private MemberExperienceService memberExperienceService;
 
     public String h5QrCodeBase64(String scene, Integer expireSeconds) {
         String accessToken = wechatAccessTokenUtil.cgiAccessToken(ClientTypeEnum.H5);
@@ -193,7 +189,6 @@ public class WechatUtil {
                 return;
             }
 
-            memberExperienceService.grantExperience(memberId, ExperienceRuleEnum.BIND_WECHAT, fromUser, "绑定微信公众号");
         } catch (Exception e) {
             log.error("微信公众号关注绑定/赠送经验值失败 memberId={}, openId={}", memberId, fromUser, e);
         }

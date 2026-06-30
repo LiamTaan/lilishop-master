@@ -165,7 +165,16 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
     @Override
     public IPage<MemberCoupon> getMemberCouponsByCanUse(MemberCouponSearchParams param, Double totalPrice, PageVO pageVo) {
         LambdaQueryWrapper<MemberCoupon> queryWrapper = new LambdaQueryWrapper<>();
-        List<String> storeIds = new ArrayList<>(Arrays.asList(param.getStoreId().split(",")));
+        List<String> storeIds = new ArrayList<>();
+        if (CharSequenceUtil.isNotBlank(param.getStoreId())) {
+            storeIds.addAll(
+                    Arrays.stream(param.getStoreId().split(","))
+                            .map(String::trim)
+                            .filter(CharSequenceUtil::isNotBlank)
+                            .distinct()
+                            .toList()
+            );
+        }
         storeIds.add(PromotionTools.PLATFORM_ID);
         queryWrapper.in(MemberCoupon::getStoreId, storeIds);
         queryWrapper.eq(MemberCoupon::getMemberId, param.getMemberId());

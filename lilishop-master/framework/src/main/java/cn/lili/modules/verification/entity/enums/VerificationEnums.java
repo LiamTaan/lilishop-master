@@ -22,7 +22,7 @@ public enum VerificationEnums {
     FIND_USER,
     UPDATE_PASSWORD,
     WALLET_PASSWORD,
-    BIND_MOBILE;
+    BIND_MOBILE,
+    STORE_APPLY;
 }
-
 

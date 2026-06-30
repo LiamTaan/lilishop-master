@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import AdminModuleShell from "@/components/AdminModuleShell";
 import {
   createStoreMenu,
@@ -60,6 +61,7 @@ function getErrorMessage(error: any, fallback: string) {
 
 const list = ref<StoreMenuRow[]>([]);
 const tree = ref<StoreMenuRow[]>([]);
+const selectedRows = ref<StoreMenuRow[]>([]);
 const loading = ref(false);
 const createDialogVisible = ref(false);
 const editDialogVisible = ref(false);
@@ -122,6 +124,16 @@ const parentOptions = computed(() =>
   }))
 );
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
+function handleSelectionChange(rows: StoreMenuRow[]) {
+  selectedRows.value = rows;
+}
+
 function resolveMenuLevel(parentId: string) {
   if (!parentId || parentId === "0") return 0;
   const parent = findMenuById(tree.value, parentId);
@@ -151,6 +163,25 @@ async function handleDelete(row: Record<string, any>) {
     throw new Error(response?.message || "菜单删除失败");
   }
   message("菜单删除成功", { type: "success" });
+  await loadMenus();
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的菜单", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个菜单吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  const response = await deleteStoreMenu(selectedIds.value);
+  if (!isSuccessResult(response)) {
+    throw new Error(response?.message || "菜单批量删除失败");
+  }
+  selectedRows.value = [];
+  message("菜单批量删除成功", { type: "success" });
   await loadMenus();
 }
 
@@ -225,6 +256,28 @@ async function runAction(action: () => Promise<void>, fallback: string) {
   }
 }
 
+function exportMenus() {
+  if (!list.value.length) {
+    message("暂无可导出的店铺菜单资源", { type: "warning" });
+    return;
+  }
+  const table = list.value.map(item => ({
+    菜单名称: item.title,
+    路由名称: item.name,
+    前端路由: item.frontRoute,
+    菜单路径: item.path,
+    权限接口: item.permission,
+    父级菜单ID: item.parentId,
+    层级: item.level,
+    排序值: item.sortOrder
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "店铺菜单资源");
+  writeFile(workbook, "店铺菜单资源.xlsx");
+  message("店铺菜单资源导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadMenus();
 });
@@ -249,12 +302,30 @@ onMounted(() => {
           <template #header>
             <div class="flex items-center justify-between">
               <span>菜单节点台账</span>
-              <el-button type="primary" size="small" @click="createDialogVisible = true">
-                新增菜单
-              </el-button>
+              <div class="flex items-center gap-2">
+                <el-button size="small" @click="exportMenus">导出</el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  @click="runAction(handleBatchDelete, '菜单批量删除失败')"
+                >
+                  批量删除
+                </el-button>
+                <el-button type="primary" size="small" @click="createDialogVisible = true">
+                  新增菜单
+                </el-button>
+              </div>
             </div>
           </template>
-          <el-table :data="list" row-key="id" height="520" v-loading="loading">
+          <el-table
+            :data="list"
+            row-key="id"
+            height="520"
+            v-loading="loading"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="54" />
             <el-table-column prop="title" label="菜单名称" min-width="140" />
             <el-table-column prop="name" label="路由名称" min-width="120" />
             <el-table-column prop="frontRoute" label="前端路由" min-width="150" />

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import {
   completeOrderComplaint,
   createOrderComplaintCommunication,
@@ -8,6 +9,7 @@ import {
   getOrderComplaintPage,
   updateOrderComplaintStatus
 } from "@/api/order-governance";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   extractApiPayload,
@@ -35,7 +37,7 @@ const query = reactive({
 const statusForm = reactive({
   complainStatus: "PENDING",
   appealContent: "",
-  imagesText: ""
+  images: [""] as string[]
 });
 
 const columns: TableColumnList = [
@@ -98,6 +100,11 @@ const summaryCards = computed(() => [
 ]);
 
 function normalizeRow(item: Record<string, any>) {
+  const appealImages = Array.isArray(item.images)
+    ? item.images
+    : Array.isArray(item.appealImages)
+      ? item.appealImages
+      : [];
   return {
     ...item,
     id: item.id || item.complainId,
@@ -108,6 +115,7 @@ function normalizeRow(item: Record<string, any>) {
     complainStatus: item.complainStatus || item.status || "-",
     complainTopic: item.complainTopic || item.content || item.reason || "-",
     appealContent: item.appealContent || "-",
+    appealImages,
     arbitrationResult: item.arbitrationResult || "-",
     createTime: formatAdminDateTime(item.createTime),
     orderComplaintCommunications: (item.orderComplaintCommunications || []).map(
@@ -164,26 +172,21 @@ function openStatusDialog(row: Record<string, any>) {
   currentRow.value = row;
   statusForm.complainStatus = String(row.complainStatus || "PENDING");
   statusForm.appealContent = row.appealContent || "";
-  statusForm.imagesText = "[]";
+  statusForm.images = Array.isArray(row.appealImages) && row.appealImages.length
+    ? [...row.appealImages]
+    : [""];
   statusDialogVisible.value = true;
 }
 
 async function submitStatus() {
   if (!currentRow.value) return;
-  let images: string[] = [];
-  try {
-    images = JSON.parse(statusForm.imagesText || "[]");
-  } catch (_error) {
-    message("申诉图片 JSON 解析失败", { type: "warning" });
-    return;
-  }
   statusSaving.value = true;
   try {
     await updateOrderComplaintStatus({
       complainId: currentRow.value.id,
       complainStatus: statusForm.complainStatus,
       appealContent: statusForm.appealContent || undefined,
-      images
+      images: statusForm.images.map(item => item.trim()).filter(Boolean)
     });
     message("投诉状态更新成功", { type: "success" });
     statusDialogVisible.value = false;
@@ -196,6 +199,18 @@ async function submitStatus() {
   } finally {
     statusSaving.value = false;
   }
+}
+
+function addAppealImage() {
+  statusForm.images.push("");
+}
+
+function removeAppealImage(index: number) {
+  if (statusForm.images.length === 1) {
+    statusForm.images.splice(0, 1, "");
+    return;
+  }
+  statusForm.images.splice(index, 1);
 }
 
 async function handleComplete(row: Record<string, any>) {
@@ -234,6 +249,27 @@ async function submitCommunication() {
   }
 }
 
+function exportComplaints() {
+  if (!filteredRows.value.length) {
+    message("暂无可导出的投诉数据", { type: "warning" });
+    return;
+  }
+  const table = filteredRows.value.map(item => ({
+    投诉单号: item.complainSn,
+    订单号: item.orderSn,
+    会员: item.memberName,
+    店铺: item.storeName,
+    投诉状态: item.complainStatus,
+    投诉主题: item.complainTopic,
+    创建时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "订单投诉");
+  writeFile(workbook, "订单投诉.xlsx");
+  message("投诉数据导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -257,6 +293,9 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button @click="exportComplaints">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="warning" @click="openStatusDialog(row)">状态处理</el-button>
@@ -278,12 +317,28 @@ onMounted(() => {
         <el-input v-model="statusForm.appealContent" type="textarea" :rows="4" />
       </el-form-item>
       <el-form-item label="申诉图片">
-        <el-input
-          v-model="statusForm.imagesText"
-          type="textarea"
-          :rows="4"
-          placeholder='请输入图片 URL JSON 数组，例如 ["https://..."]'
-        />
+        <div class="image-upload-list">
+          <div
+            v-for="(image, index) in statusForm.images"
+            :key="`appeal-image-${index}`"
+            class="image-upload-item"
+          >
+            <ImageUploadField
+              v-model="statusForm.images[index]"
+              tip="申诉图片统一走上传组件维护"
+            />
+            <el-button
+              type="danger"
+              plain
+              @click="removeAppealImage(index)"
+            >
+              删除图片
+            </el-button>
+          </div>
+          <el-button type="primary" plain @click="addAppealImage">
+            新增图片
+          </el-button>
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -320,6 +375,18 @@ onMounted(() => {
         </el-descriptions-item>
         <el-descriptions-item label="申诉内容" :span="2">
           {{ detailRow.appealContent }}
+        </el-descriptions-item>
+        <el-descriptions-item label="申诉图片" :span="2">
+          <div v-if="detailRow.appealImages?.length" class="appeal-image-preview">
+            <img
+              v-for="(image, index) in detailRow.appealImages"
+              :key="`detail-appeal-${index}`"
+              :src="image"
+              alt="appeal"
+              class="appeal-image-preview__img"
+            />
+          </div>
+          <span v-else>-</span>
         </el-descriptions-item>
         <el-descriptions-item label="仲裁结果" :span="2">
           {{ detailRow.arbitrationResult }}
@@ -358,5 +425,36 @@ onMounted(() => {
   gap: 16px;
   align-items: start;
   margin: 20px 0;
+}
+
+.image-upload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.image-upload-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 14px;
+  background: #fafbfc;
+}
+
+.appeal-image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.appeal-image-preview__img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
 }
 </style>

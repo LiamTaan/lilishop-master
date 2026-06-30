@@ -1,17 +1,12 @@
 package cn.lili.modules.store.entity.dos;
 
-import cn.lili.common.utils.BeanUtil;
 import cn.lili.modules.member.entity.dos.Member;
-import cn.lili.modules.store.entity.dto.AdminStoreApplyDTO;
 import cn.lili.modules.store.entity.enums.StoreAuditStatusEnum;
 import cn.lili.modules.store.entity.enums.StoreStatusEnum;
 import cn.lili.mybatis.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -43,8 +38,11 @@ public class Store extends BaseEntity {
     @Schema(description = "店铺名称")
     private String storeName;
 
-    @Schema(description = "申请主体类型")
-    private String applyType;
+    @Schema(description = "入驻主体类型")
+    private String subjectType;
+
+    @Schema(description = "企业身份类型")
+    private String companyIdentityType;
 
     @Schema(description = "店铺类型")
     private String storeType;
@@ -82,11 +80,8 @@ public class Store extends BaseEntity {
     private String storeLogo;
 
     @Schema(description = "经纬度")
-    @NotEmpty
     private String storeCenter;
 
-    @Size(min = 6, max = 200, message = "店铺简介需在6-200字符之间")
-    @NotBlank(message = "店铺简介不能为空")
     @Schema(description = "店铺简介")
     private String storeDesc;
 
@@ -148,23 +143,6 @@ public class Store extends BaseEntity {
         this.memberName = member.getUsername();
         storeDisable = StoreStatusEnum.APPLY.value();
         auditStatus = StoreAuditStatusEnum.DRAFT.name();
-        selfOperated = false;
-        deliveryScore = 5.0;
-        serviceScore = 5.0;
-        descriptionScore = 5.0;
-        goodsNum = 0;
-        collectionNum = 0;
-        this.selfPickFlag = false;
-        this.pageShow = false;
-    }
-
-    public Store(Member member, AdminStoreApplyDTO adminStoreApplyDTO) {
-        BeanUtil.copyProperties(adminStoreApplyDTO, this);
-
-        this.memberId = member.getId();
-        this.memberName = member.getUsername();
-        storeDisable = StoreStatusEnum.APPLYING.value();
-        auditStatus = StoreAuditStatusEnum.SUBMITTED.name();
         selfOperated = false;
         deliveryScore = 5.0;
         serviceScore = 5.0;

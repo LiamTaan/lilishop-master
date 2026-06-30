@@ -27,8 +27,6 @@ public enum SettingEnum {
     SMS_SETTING,
     //积分设置
     POINT_SETTING,
-    //经验值设置
-    EXPERIENCE_SETTING,
     //秒杀活动设置
     SECKILL_SETTING,
     //IM 配置
@@ -38,8 +36,6 @@ public enum SettingEnum {
     CONNECT_SUPPORT,
     //微信 联合登陆设置
     WECHAT_CONNECT,
-    //QQ 浏览器 联合登录设置
-    QQ_CONNECT,
     //登录设置
     CONNECT_SETTING,
 
@@ -51,8 +47,6 @@ public enum SettingEnum {
     WECHAT_PAYMENT,
     //银联支付设置
     UNIONPAY_PAYMENT,
-    //热词设置
-    HOT_WORDS,
     //核销规则设置
     VERIFICATION_RULE_SETTING,
     WX_CHANNELS

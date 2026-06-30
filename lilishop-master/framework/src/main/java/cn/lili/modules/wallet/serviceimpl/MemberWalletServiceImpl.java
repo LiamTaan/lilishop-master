@@ -104,7 +104,8 @@ public class MemberWalletServiceImpl extends ServiceImpl<MemberWalletMapper, Mem
         MemberWallet memberWallet = this.getOne(queryWrapper, false);
         //如果没有钱包，则创建钱包
         if (memberWallet == null) {
-            memberWallet = this.save(memberId, memberService.getById(memberId).getUsername());
+            Member member = this.getMemberOrThrow(memberId);
+            memberWallet = this.save(memberId, member.getUsername());
         }
         //返回查询数据
         return new MemberWalletVO(memberWallet.getMemberWallet(), memberWallet.getMemberFrozenWallet());
@@ -206,14 +207,21 @@ public class MemberWalletServiceImpl extends ServiceImpl<MemberWalletMapper, Mem
         MemberWallet memberWallet = this.getOne(new QueryWrapper<MemberWallet>().eq("member_id", memberId), false);
         //如果客户预存款信息不存在则同步重新建立预存款信息
         if (memberWallet == null) {
-            Member member = memberService.getById(memberId);
-            if (member != null) {
-                memberWallet = this.save(memberId, member.getUsername());
-            } else {
-                throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
-            }
+            Member member = this.getMemberOrThrow(memberId);
+            memberWallet = this.save(memberId, member.getUsername());
         }
         return memberWallet;
+    }
+
+    private Member getMemberOrThrow(String memberId) {
+        if (StringUtils.isEmpty(memberId)) {
+            throw new ServiceException(ResultCode.USER_NOT_EXIST);
+        }
+        Member member = memberService.getById(memberId);
+        if (member == null) {
+            throw new ServiceException(ResultCode.USER_NOT_EXIST);
+        }
+        return member;
     }
 
     @Override
@@ -271,8 +279,8 @@ public class MemberWalletServiceImpl extends ServiceImpl<MemberWalletMapper, Mem
                 MemberWalletPageVO vo = new MemberWalletPageVO();
                 vo.setId(wallet.getId());
                 vo.setMemberId(wallet.getMemberId());
-                vo.setMemberName(wallet.getMemberName());
                 Member member = memberMap.get(wallet.getMemberId());
+                vo.setMemberName(resolveMemberDisplayName(member, wallet));
                 vo.setMobile(member == null ? null : member.getMobile());
                 vo.setBalance(wallet.getMemberWallet());
                 vo.setWithdrawableAmount(wallet.getMemberWallet());
@@ -285,6 +293,18 @@ public class MemberWalletServiceImpl extends ServiceImpl<MemberWalletMapper, Mem
         Page<MemberWalletPageVO> result = new Page<>(walletPage.getCurrent(), walletPage.getSize(), walletPage.getTotal());
         result.setRecords(voList);
         return result;
+    }
+
+    private String resolveMemberDisplayName(Member member, MemberWallet wallet) {
+        if (member != null) {
+            if (StringUtils.isNotEmpty(member.getNickName())) {
+                return member.getNickName();
+            }
+            if (StringUtils.isNotEmpty(member.getUsername())) {
+                return member.getUsername();
+            }
+        }
+        return wallet.getMemberName();
     }
 
     @Override

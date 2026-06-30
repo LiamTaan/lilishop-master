@@ -42,6 +42,18 @@ public class PlatformHomeConfigVO {
     @Schema(description = "规则型模块说明")
     private List<PlatformHomeRuleBlockVO> ruleBlocks;
 
+    @Schema(description = "常买店铺配置")
+    private PlatformHomeRecommendationConfigVO frequentStoresConfig;
+
+    @Schema(description = "猜你喜欢配置")
+    private PlatformHomeRecommendationConfigVO guessYouLikeConfig;
+
+    @Schema(description = "低价专区配置")
+    private PlatformHomeRecommendationConfigVO lowPriceZoneConfig;
+
+    @Schema(description = "今日特惠配置")
+    private PlatformHomeRecommendationConfigVO todaySpecialConfig;
+
     @Schema(description = "仍保留的遗留 section 数量")
     private Integer legacySectionCount;
 }

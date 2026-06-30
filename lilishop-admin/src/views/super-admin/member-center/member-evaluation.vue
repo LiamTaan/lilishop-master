@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   deleteMemberEvaluation,
@@ -12,7 +13,12 @@ import {
 import { extractApiPayload, extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "MemberEvaluationManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const detailVisible = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const query = reactive({ keyword: "", status: "" });
@@ -32,6 +38,12 @@ const summaryCards = computed(() => [
   { label: "置顶评价", value: rows.value.filter(item => item.isTop).length, accent: "blue" as const, hint: "重点展示评价" },
   { label: "治理动作", value: "详情/上下线/置顶/删除", accent: "purple" as const, hint: "评价治理已承接" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>) {
   const isOpen = String(item.status || item.auditStatus || "OPEN").toUpperCase().includes("OPEN");
@@ -69,6 +81,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 async function openDetail(row: Record<string, any>) {
@@ -114,6 +130,64 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchStatus(open: boolean) {
+  if (!selectedIds.value.length) {
+    message(`请先勾选需要${open ? "开启" : "关闭"}的评价`, { type: "warning" });
+    return;
+  }
+  try {
+    await Promise.all(
+      selectedIds.value.map(id =>
+        updateMemberEvaluationStatus(id, open ? "OPEN" : "CLOSE")
+      )
+    );
+    selectedRows.value = [];
+    message(`评价批量${open ? "开启" : "关闭"}成功`, { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message(`评价批量${open ? "开启" : "关闭"}失败`, { type: "error" });
+  }
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的评价", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条评价吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteMemberEvaluation(id)));
+    selectedRows.value = [];
+    message("评价批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("评价批量删除失败", { type: "error" });
+  }
+}
+
+function exportEvaluations() {
+  if (!rows.value.length) {
+    message("暂无可导出的评价数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    用户名称: item.displayName,
+    评价状态: item.displayStatus,
+    商品标题: item.displayGoods,
+    评价时间: item.displayTime,
+    评价内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "用户评价");
+  writeFile(workbook, "用户评价.xlsx");
+  message("评价数据导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -124,6 +198,7 @@ onMounted(loadData);
     api-path="/manager/member/evaluation/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :status-options="[
       { label: '正常', value: '正常' },
@@ -138,7 +213,14 @@ onMounted(loadData);
     keyword-placeholder="请输入用户名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
+    <template #table-extra>
+      <el-button type="success" plain @click="handleBatchStatus(true)">批量开启</el-button>
+      <el-button type="warning" plain @click="handleBatchStatus(false)">批量关闭</el-button>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportEvaluations">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="warning" @click="handleToggleStatus(row)">

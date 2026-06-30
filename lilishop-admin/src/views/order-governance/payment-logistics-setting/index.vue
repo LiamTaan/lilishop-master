@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import AdminModuleShell from "@/components/AdminModuleShell";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import { getSettingConfig, saveSettingConfig } from "@/api/super-admin";
 import { isSuccessResult, unwrapResult } from "@/utils/result";
 import { message } from "@/utils/message";
@@ -8,7 +9,7 @@ import { message } from "@/utils/message";
 type SettingField = {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "switch" | "password" | "json";
+  type?: "text" | "textarea" | "number" | "switch" | "password" | "json" | "image";
   placeholder?: string;
   rows?: number;
 };
@@ -177,6 +178,10 @@ const summaryCards = computed(() => {
     (sum, panel) => sum + panel.fields.length,
     0
   );
+  const configuredFieldCount = panels.reduce(
+    (sum, panel) => sum + getConfiguredFieldCount(panel),
+    0
+  );
   const configuredGroupCount = panels.filter(panel =>
     panel.fields.some(field => {
       const value = panel.form[field.key];
@@ -198,6 +203,11 @@ const summaryCards = computed(() => {
       label: "已映射字段",
       value: mappedFieldCount,
       hint: "当前页面可直接维护的配置项"
+    },
+    {
+      label: "已配置字段",
+      value: configuredFieldCount,
+      hint: "当前已有值的配置项"
     },
     {
       label: "已配置分组",
@@ -299,6 +309,17 @@ function getExtraEntries(panel: SettingPanel) {
   return Object.entries(panel.rawConfig || {}).filter(
     ([key]) => !declaredKeys.includes(key)
   );
+}
+
+function getMissingFields(panel: SettingPanel) {
+  return panel.fields.filter(field => {
+    const value = panel.form[field.key];
+    return value === "" || value === undefined || value === null;
+  });
+}
+
+function getConfiguredFieldCount(panel: SettingPanel) {
+  return panel.fields.length - getMissingFields(panel).length;
 }
 
 function buildPayload(panel: SettingPanel) {
@@ -451,6 +472,11 @@ onMounted(() => {
                   class="w-full!"
                   :min="0"
                 />
+                <ImageUploadField
+                  v-else-if="field.type === 'image'"
+                  v-model="panel.form[field.key]"
+                  :tip="`${field.label} 统一走上传组件维护`"
+                />
                 <el-input
                   v-else-if="field.type === 'password'"
                   v-model="panel.form[field.key]"
@@ -492,6 +518,25 @@ onMounted(() => {
               >
                 保存{{ panel.shortTitle }}
               </el-button>
+            </div>
+
+            <div class="setting-panel-status">
+              <div class="setting-panel-status__item">
+                <span>配置完成度</span>
+                <strong>
+                  {{ getConfiguredFieldCount(panel) }} / {{ panel.fields.length }}
+                </strong>
+              </div>
+              <div class="setting-panel-status__item">
+                <span>待补字段</span>
+                <strong>{{ getMissingFields(panel).length }}</strong>
+              </div>
+              <div
+                v-if="getMissingFields(panel).length"
+                class="setting-panel-status__missing"
+              >
+                {{ getMissingFields(panel).map(field => field.label).join("、") }}
+              </div>
             </div>
           </div>
 
@@ -698,6 +743,42 @@ onMounted(() => {
   gap: 12px;
   margin-top: 24px;
   flex-wrap: wrap;
+}
+
+.setting-panel-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.setting-panel-status__item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.setting-panel-status__item span {
+  color: #7b8493;
+  font-size: 12px;
+}
+
+.setting-panel-status__item strong {
+  color: #22262d;
+  font-size: 18px;
+}
+
+.setting-panel-status__missing {
+  width: 100%;
+  color: #8a93a1;
+  font-size: 12px;
+  line-height: 1.8;
 }
 
 .setting-side-column {

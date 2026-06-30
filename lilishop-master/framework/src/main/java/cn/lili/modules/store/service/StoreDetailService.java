@@ -29,6 +29,14 @@ public interface StoreDetailService extends IService<StoreDetail> {
     StoreDetailVO getStoreDetailVO(String storeId);
 
     /**
+     * 管理端实时获取店铺信息VO，不读缓存
+     *
+     * @param storeId 店铺ID
+     * @return 店铺信息VO
+     */
+    StoreDetailVO getStoreDetailVOFresh(String storeId);
+
+    /**
      * 根据客户ID获取店铺信息VO
      *
      * @param memberId 客户ID

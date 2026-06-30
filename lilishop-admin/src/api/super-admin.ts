@@ -46,7 +46,7 @@ export const createStoreMenu = (data: Record<string, any>) => {
   return http.request<ResultMessage<SuperAdminMenuRecord>>(
     "post",
     "/manager/permission/storeMenu",
-    { params: data }
+    { data }
   );
 };
 
@@ -54,7 +54,7 @@ export const updateStoreMenu = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<SuperAdminMenuRecord>>(
     "put",
     `/manager/permission/storeMenu/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -153,7 +153,7 @@ export const createMember = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/passport/member",
-    { params: data }
+    { data }
   );
 };
 
@@ -161,7 +161,7 @@ export const updateMember = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "put",
     "/manager/passport/member",
-    { params: data }
+    { data }
   );
 };
 
@@ -169,7 +169,7 @@ export const updateMemberStatus = (memberIds: string[], disabled: boolean) => {
   return http.request<ResultMessage<boolean>>(
     "put",
     "/manager/passport/member/updateMemberStatus",
-    { params: { memberIds, disabled } }
+    { data: { memberIds, disabled } }
   );
 };
 
@@ -181,63 +181,7 @@ export const updateMemberPoint = (
   return http.request<ResultMessage<boolean>>(
     "put",
     "/manager/passport/member/updateMemberPoint",
-    { params: { memberId, point, type } }
-  );
-};
-
-export const getMemberGradePage = (params?: Record<string, any>) => {
-  const requestParams = { ...params };
-  delete requestParams.pageNum;
-  delete requestParams.pageSize;
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/member/memberGrade/getByPage",
-    { params: requestParams }
-  );
-};
-
-export const getMemberGradeDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/member/memberGrade/get/${id}`
-  );
-};
-
-export const createMemberGrade = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "post",
-    "/manager/member/memberGrade",
-    { params: data }
-  );
-};
-
-export const updateMemberGrade = (id: string, data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    `/manager/member/memberGrade/update/${id}`,
-    { params: data }
-  );
-};
-
-export const deleteMemberGrade = (id: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/member/memberGrade/delete/${id}`
-  );
-};
-
-export const updateMemberGradeState = (id: string, state: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    `/manager/member/memberGrade/state/${id}`,
-    { params: { state } }
-  );
-};
-
-export const getMemberGradeBenefits = (gradeId: string) => {
-  return http.request<ResultMessage<Record<string, any>[]>>(
-    "get",
-    `/manager/member/memberGrade/${gradeId}/benefits`
+    { data: { memberId, point, type } }
   );
 };
 
@@ -260,7 +204,7 @@ export const createMemberGroup = (data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "post",
     "/manager/member/memberGroup",
-    { params: data }
+    { data }
   );
 };
 
@@ -268,7 +212,7 @@ export const updateMemberGroup = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "put",
     `/manager/member/memberGroup/update/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -291,7 +235,7 @@ export const addMemberGroupUsers = (groupId: string, memberIds: string[]) => {
   return http.request<ResultMessage<boolean>>(
     "post",
     `/manager/member/memberGroup/${groupId}/users`,
-    { params: { memberIds } }
+    { data: { memberIds } }
   );
 };
 
@@ -321,7 +265,7 @@ export const createMemberBenefit = (data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "post",
     "/manager/member/benefit",
-    { params: data }
+    { data }
   );
 };
 
@@ -329,7 +273,7 @@ export const updateMemberBenefit = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "put",
     `/manager/member/benefit/update/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -344,7 +288,7 @@ export const updateMemberBenefitState = (id: string, state: string) => {
   return http.request<ResultMessage<boolean>>(
     "put",
     `/manager/member/benefit/state/${id}`,
-    { params: { state } }
+    { data: { state } }
   );
 };
 
@@ -416,6 +360,14 @@ export const deleteMemberEvaluation = (id: string) => {
   );
 };
 
+export const getMemberAddressListPage = (params?: Record<string, any>) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    "/manager/member/address",
+    { params }
+  );
+};
+
 export const getMemberAddressPage = (
   memberId: string,
   params?: Record<string, any>
@@ -431,7 +383,7 @@ export const createMemberAddress = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/member/address",
-    { params: data }
+    { data }
   );
 };
 
@@ -439,7 +391,7 @@ export const updateMemberAddress = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "put",
     "/manager/member/address",
-    { params: data }
+    { data }
   );
 };
 
@@ -534,7 +486,7 @@ export const createMemberNoticeSender = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/message/memberNoticeSenter/insertOrUpdate",
-    { params: data }
+    { data }
   );
 };
 
@@ -564,7 +516,7 @@ export const createServiceNotice = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/message/serviceNotice",
-    { params: data }
+    { data }
   );
 };
 
@@ -572,7 +524,7 @@ export const updateServiceNotice = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     `/manager/message/serviceNotice/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -738,7 +690,7 @@ export const createArticleCategory = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/other/articleCategory",
-    { params: data }
+    { data }
   );
 };
 
@@ -749,7 +701,7 @@ export const updateArticleCategory = (
   return http.request<ResultMessage<Record<string, any>>>(
     "put",
     `/manager/other/articleCategory/update/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -779,7 +731,7 @@ export const createSensitiveWord = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/other/sensitiveWords",
-    { params: data }
+    { data }
   );
 };
 
@@ -787,7 +739,7 @@ export const updateSensitiveWord = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "put",
     `/manager/other/sensitiveWords/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -848,7 +800,7 @@ export const createSpecial = (data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "post",
     "/manager/other/special",
-    { params: data }
+    { data }
   );
 };
 
@@ -856,7 +808,7 @@ export const updateSpecial = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "put",
     `/manager/other/special/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -879,7 +831,7 @@ export const createAppVersion = (data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "post",
     "/manager/other/appVersion",
-    { params: data }
+    { data }
   );
 };
 
@@ -887,7 +839,7 @@ export const updateAppVersion = (id: string, data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "put",
     `/manager/other/appVersion/${id}`,
-    { params: data }
+    { data }
   );
 };
 
@@ -934,45 +886,6 @@ export const deleteMessageChannel = (id: string) => {
   return http.request<ResultMessage<boolean>>(
     "delete",
     `/manager/other/message/${id}`
-  );
-};
-
-export const getHotWordsPage = () => {
-  return http.request<ResultMessage<Record<string, any>[]>>(
-    "get",
-    "/manager/hotwords/hotwords"
-  );
-};
-
-export const createHotWord = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "post",
-    "/manager/hotwords/hotwords",
-    { params: data }
-  );
-};
-
-export const deleteHotWord = (words: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    "/manager/hotwords/hotwords",
-    { params: { words } }
-  );
-};
-
-export const getHotWordsHistory = (params: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>[]>>(
-    "get",
-    "/manager/hotwords/hotwords/history",
-    { params }
-  );
-};
-
-export const getHotWordsStatistics = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/hotwords/hotwords/statistics",
-    { params }
   );
 };
 
@@ -1232,14 +1145,6 @@ export const deleteAllSettingLog = () => {
     "delete",
     "/manager/setting/log"
   );
-};
-
-export const getHotWordsSetting = () => {
-  return getSettingConfig("HOT_WORDS");
-};
-
-export const saveHotWordsSetting = (data: Record<string, any>) => {
-  return saveSettingConfig("HOT_WORDS", data);
 };
 
 export const getWxChannelsSetting = () => {

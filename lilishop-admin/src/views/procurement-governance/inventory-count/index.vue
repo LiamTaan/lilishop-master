@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   downloadInventoryCountItems,
@@ -127,6 +128,27 @@ async function handleDownload(row: Record<string, any>) {
   }
 }
 
+function exportInventoryCounts() {
+  if (!rows.value.length) {
+    message("暂无可导出的盘点单", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    rows.value.map(item => ({
+      盘点单号: item.sn,
+      店铺ID: item.storeId,
+      制单人: item.makerName,
+      商品总数: item.itemTotal,
+      盘点时间: formatAdminDateTime(item.countTime),
+      创建时间: formatAdminDateTime(item.createTime)
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "盘点管理");
+  writeFile(workbook, "盘点管理.xlsx");
+  message("盘点管理导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -149,6 +171,9 @@ onMounted(loadData);
     @search="loadData"
     @reset="loadData"
   >
+    <template #table-extra>
+      <el-button :disabled="!rows.length" @click="exportInventoryCounts">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="success" @click="handleDownload(row)"

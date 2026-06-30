@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createArticleCategory,
@@ -12,7 +13,12 @@ import {
 import { extractApiPayload } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "ArticleCategoryManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -40,6 +46,12 @@ const summaryCards = computed(() => [
   { label: "子级分类", value: rows.value.filter(item => Number(item.displayLevel) > 0).length, accent: "blue" as const, hint: "下级分类数量" },
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接真实分类接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function flattenTree(list: Record<string, any>[], bucket: Record<string, any>[] = []) {
   list.forEach(item => {
@@ -87,6 +99,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -165,6 +181,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的分类", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个公告分类吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteArticleCategory(id)));
+    selectedRows.value = [];
+    message("公告分类批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("公告分类批量删除失败", { type: "error" });
+  }
+}
+
+function exportArticleCategories() {
+  if (!rows.value.length) {
+    message("暂无可导出的公告分类数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    分类名称: item.displayName,
+    层级: item.displayLevel,
+    排序值: item.displaySort,
+    上级ID: item.displayParentId
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "公告分类");
+  writeFile(workbook, "公告分类.xlsx");
+  message("公告分类导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -175,6 +229,7 @@ onMounted(loadData);
     api-path="/manager/other/articleCategory/all-children"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -186,8 +241,11 @@ onMounted(loadData);
     keyword-placeholder="请输入分类名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportArticleCategories">导出</el-button>
       <el-button type="primary" @click="openCreate">新增分类</el-button>
     </template>
     <template #operation="{ row }">

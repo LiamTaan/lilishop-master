@@ -56,7 +56,7 @@ public class MemberAddressBuyerController {
 
     @Operation(summary = "新增客户收件地址")
     @PostMapping
-    public ResultMessage<MemberAddress> addShippingAddress(@Valid MemberAddress shippingAddress) {
+    public ResultMessage<MemberAddress> addShippingAddress(@RequestBody @Valid MemberAddress shippingAddress) {
         //添加客户地址
         shippingAddress.setMemberId(Objects.requireNonNull(UserContext.getCurrentUser()).getId());
         if(Objects.isNull(shippingAddress.getIsDefault())){
@@ -67,7 +67,7 @@ public class MemberAddressBuyerController {
 
     @Operation(summary = "修改客户收件地址")
     @PutMapping
-    public ResultMessage<MemberAddress> editShippingAddress(@Valid MemberAddress shippingAddress) {
+    public ResultMessage<MemberAddress> editShippingAddress(@RequestBody @Valid MemberAddress shippingAddress) {
         OperationalJudgment.judgment(memberAddressService.getById(shippingAddress.getId()));
         shippingAddress.setMemberId(Objects.requireNonNull(UserContext.getCurrentUser()).getId());
         return ResultUtil.data(memberAddressService.updateMemberAddress(shippingAddress));

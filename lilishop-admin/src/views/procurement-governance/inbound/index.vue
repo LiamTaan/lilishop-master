@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   getProcurementInboundDetail,
@@ -136,6 +137,31 @@ function handleReset() {
   loadData();
 }
 
+function exportInboundOrders() {
+  if (!rows.value.length) {
+    message("暂无可导出的采购入库单", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    rows.value.map(item => ({
+      入库单号: item.inboundSn,
+      采购单ID: item.procurementOrderId,
+      店铺ID: item.storeId,
+      制单人: item.operatorName,
+      预计入库量: item.expectedQuantity,
+      已确认入库量: item.confirmedQuantity,
+      待确认入库量: item.pendingQuantity,
+      入库成本: item.totalCost,
+      零售金额: item.totalRetailAmount,
+      入库时间: formatAdminDateTime(item.inboundTime)
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "采购入库");
+  writeFile(workbook, "采购入库.xlsx");
+  message("采购入库导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -158,6 +184,9 @@ onMounted(loadData);
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!rows.length" @click="exportInboundOrders">导出</el-button>
+    </template>
     <template #filters-extra>
       <el-form-item label="采购单ID">
         <el-input

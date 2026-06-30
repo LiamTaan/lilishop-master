@@ -140,7 +140,10 @@ export function useSuperAdminPage(config: SuperAdminPageConfig) {
   async function loadData() {
     loading.value = true;
     try {
-      const params: Record<string, any> = {};
+      const params: Record<string, any> = {
+        pageNumber: 1,
+        pageSize: 200
+      };
       if (query.keyword) params[keywordField] = query.keyword;
       if (query.status) params[statusField] = query.status;
       const result = await config.listApi(params);

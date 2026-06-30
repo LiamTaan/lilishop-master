@@ -51,7 +51,7 @@ public class GoodsLabelStoreController {
 
     @Operation(summary = "添加店铺商品分类")
     @PostMapping
-    public ResultMessage<StoreGoodsLabel> add(@Validated StoreGoodsLabel storeGoodsLabel) {
+    public ResultMessage<StoreGoodsLabel> add(@Validated @RequestBody StoreGoodsLabel storeGoodsLabel) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         storeGoodsLabel.setStoreId(storeId);
         return ResultUtil.data(storeGoodsLabelService.addStoreGoodsLabel(storeGoodsLabel));
@@ -59,7 +59,7 @@ public class GoodsLabelStoreController {
 
     @Operation(summary = "修改店铺商品分类")
     @PutMapping
-    public ResultMessage<StoreGoodsLabel> edit(@Validated StoreGoodsLabel storeGoodsLabel) {
+    public ResultMessage<StoreGoodsLabel> edit(@Validated @RequestBody StoreGoodsLabel storeGoodsLabel) {
         OperationalJudgment.judgment(storeGoodsLabelService.getById(storeGoodsLabel.getId()));
         return ResultUtil.data(storeGoodsLabelService.editStoreGoodsLabel(storeGoodsLabel));
     }

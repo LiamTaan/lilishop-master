@@ -33,18 +33,16 @@ public class QAStoreController {
     private QAService qaService;
 
     @Operation(description = "添加问答")
-    @Parameter(name = "qa", description = "问答", required = true)
     @PostMapping
-    public ResultMessage<QA> addCustomWords(@Valid QA qa) {
+    public ResultMessage<QA> addCustomWords(@Valid @RequestBody QA qa) {
         qa.setTenantId(Long.valueOf(ImStoreContextUtil.getCurrentTenantOrStoreId()));
         qaService.save(qa);
         return ResultUtil.data(qa);
     }
 
     @Operation(description = "修改自定义问答")
-    @Parameter(name = "qa", description = "问答", required = true)
     @PutMapping
-    public ResultMessage<QA> updateCustomWords(@Valid QA qa) {
+    public ResultMessage<QA> updateCustomWords(@Valid @RequestBody QA qa) {
         qa.setTenantId(Long.valueOf(ImStoreContextUtil.getCurrentTenantOrStoreId()));
         qaService.updateById(qa);
         return ResultUtil.data(qa);

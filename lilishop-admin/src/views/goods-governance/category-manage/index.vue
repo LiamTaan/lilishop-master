@@ -11,6 +11,7 @@ import {
   saveCategoryBrandCategories,
   updateCategory
 } from "@/api/goods-governance";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { extractApiRecords, formatAdminDateTime } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
@@ -33,6 +34,7 @@ const detailActiveTab = ref("basic");
 const brandOptions = ref<Record<string, any>[]>([]);
 const selectedBrandIds = ref<string[]>([]);
 const brandCategorySnapshot = ref<Record<string, string[]>>({});
+const selectedRows = ref<Record<string, any>[]>([]);
 const query = reactive({
   keyword: "",
   status: ""
@@ -109,6 +111,12 @@ const filteredData = computed(() =>
       : true;
     return levelMatched && statusMatched && keywordMatched;
   })
+);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
 );
 
 const summaryCards = computed(() => [
@@ -309,6 +317,32 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的分类", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个分类吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteCategory(id)));
+    selectedRows.value = [];
+    message("分类批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("分类批量删除失败，请确认是否存在子分类或关联商品", {
+      type: "error"
+    });
+  }
+}
+
 function exportCategory() {
   if (!filteredData.value.length) {
     message("暂无可导出的分类数据", { type: "warning" });
@@ -387,6 +421,7 @@ onMounted(() => {
     api-path="/manager/goods/category"
     :columns="columns"
     :data="filteredData"
+    selectable
     :summary-cards="summaryCards"
     :status-options="[
       { label: '启用', value: 'ENABLE' },
@@ -403,8 +438,10 @@ onMounted(() => {
     keyword-placeholder="请输入分类名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
       <el-button type="primary" @click="openCreate">新增分类</el-button>
       <el-button @click="exportCategory">导出</el-button>
     </template>
@@ -534,7 +571,10 @@ onMounted(() => {
         />
       </el-form-item>
       <el-form-item label="分类图片">
-        <el-input v-model="form.image" placeholder="请输入分类图片地址，可留空" />
+        <ImageUploadField
+          v-model="form.image"
+          tip="分类图片走上传组件维护；如当前分类无需图片，可保持为空"
+        />
       </el-form-item>
       <el-form-item label="支持频道">
         <el-switch v-model="form.supportChannel" />

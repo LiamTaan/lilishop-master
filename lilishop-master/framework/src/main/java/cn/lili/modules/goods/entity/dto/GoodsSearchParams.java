@@ -163,10 +163,10 @@ public class GoodsSearchParams extends PageVO {
             queryWrapper.like("store_name", storeName);
         }
         if (CharSequenceUtil.isNotEmpty(categoryPath)) {
-            queryWrapper.like("category_path", categoryPath);
+            applyPathContains(queryWrapper, "category_path", categoryPath);
         }
         if (CharSequenceUtil.isNotEmpty(storeCategoryPath)) {
-            queryWrapper.like("store_category_path", storeCategoryPath);
+            applyPathContains(queryWrapper, "store_category_path", storeCategoryPath);
         }
         if (CharSequenceUtil.isNotEmpty(goodsStatus)) {
             if (goodsStatus.equals(GoodsStatusEnum.UPPER.name())) {
@@ -237,6 +237,10 @@ public class GoodsSearchParams extends PageVO {
                 queryWrapper.ge("price", s[0]);
             }
         }
+    }
+
+    private <T> void applyPathContains(QueryWrapper<T> queryWrapper, String column, String pathValue) {
+        queryWrapper.apply("CONCAT(',', " + column + ", ',') LIKE {0}", "%," + pathValue + ",%");
     }
 
 

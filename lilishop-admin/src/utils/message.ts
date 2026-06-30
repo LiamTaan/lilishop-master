@@ -1,6 +1,7 @@
 import type { VNode } from "vue";
 import { isFunction } from "@pureadmin/utils";
 import { type MessageHandler, ElMessage } from "element-plus";
+import { resolveMessageContent } from "@/utils/error";
 
 type messageStyle = "el" | "antd";
 type messageTypes = "info" | "success" | "warning" | "error";
@@ -50,9 +51,13 @@ const message = (
   message: string | VNode | (() => VNode),
   params?: MessageParams
 ): MessageHandler => {
+  const resolvedMessage = resolveMessageContent(message, params?.type) as
+    | string
+    | VNode
+    | (() => VNode);
   if (!params) {
     return ElMessage({
-      message,
+      message: resolvedMessage,
       customClass: "pure-message"
     });
   } else {
@@ -73,7 +78,7 @@ const message = (
     } = params;
 
     return ElMessage({
-      message,
+      message: resolvedMessage,
       icon,
       type,
       plain,

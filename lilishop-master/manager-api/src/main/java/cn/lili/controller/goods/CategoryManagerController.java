@@ -10,9 +10,6 @@ import cn.lili.modules.goods.entity.dto.CategorySearchParams;
 import cn.lili.modules.goods.entity.vos.CategoryVO;
 import cn.lili.modules.goods.service.CategoryService;
 import cn.lili.modules.goods.service.GoodsService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +25,6 @@ import java.util.List;
  * @since 2020-02-27 15:18:56
  */
 @RestController
-@Tag(name = "管理端,商品分类接口")
 @RequestMapping("/manager/goods/category")
 @CacheConfig(cacheNames = "category")
 public class CategoryManagerController {
@@ -45,20 +41,16 @@ public class CategoryManagerController {
     @Autowired
     private GoodsService goodsService;
 
-    @Operation(summary = "查询某分类下的全部子分类列表")
-    @Parameter(description = "父id，顶级为0", required = true)
     @GetMapping("/{parentId}/all-children")
     public ResultMessage<List<Category>> list(@PathVariable String parentId) {
         return ResultUtil.data(this.categoryService.dbList(parentId));
     }
 
-    @Operation(summary = "查询全部分类列表")
     @GetMapping("/allChildren")
     public ResultMessage<List<CategoryVO>> list(CategorySearchParams categorySearchParams) {
         return ResultUtil.data(this.categoryService.listAllChildren(categorySearchParams));
     }
 
-    @Operation(summary = "添加商品分类")
     @PostMapping
     @DemoSite
     public ResultMessage<Category> saveCategory(@Valid Category category) {
@@ -78,7 +70,6 @@ public class CategoryManagerController {
         throw new ServiceException(ResultCode.CATEGORY_SAVE_ERROR);
     }
 
-    @Operation(summary = "修改商品分类")
     @PutMapping
     @DemoSite
     public ResultMessage<Category> updateCategory(@Valid CategoryVO category) {
@@ -91,8 +82,6 @@ public class CategoryManagerController {
         return ResultUtil.data(category);
     }
 
-    @Operation(summary = "通过id删除分类")
-    @Parameter(description = "分类ID", required = true)
     @DeleteMapping("/{id}")
     @DemoSite
     public ResultMessage<Category> delAllByIds(@NotNull @PathVariable String id) {
@@ -112,9 +101,6 @@ public class CategoryManagerController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "后台 禁用/启用 分类")
-   @Parameter(name = "goodsId", description = "分类ID", required = true)
-    @Parameter(name = "enableOperations", description = "是否启用", required = true)
     @PutMapping("/disable/{id}")
     @DemoSite
     public ResultMessage<Object> disable(@PathVariable String id, @RequestParam Boolean enableOperations) {

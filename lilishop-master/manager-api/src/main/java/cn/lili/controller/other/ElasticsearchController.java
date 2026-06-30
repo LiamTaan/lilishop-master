@@ -4,9 +4,6 @@ import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.search.service.EsGoodsIndexService;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,9 +18,7 @@ import java.util.Map;
  * @version v1.0
  * 2021-03-24 18:32
  */
-@Hidden
 @RestController
-@Tag(name = "ES初始化接口")
 @RequestMapping("/manager/other/elasticsearch")
 public class ElasticsearchController {
 
@@ -42,7 +37,6 @@ public class ElasticsearchController {
     }
 
 
-    @Operation(summary = "ES删除下架的商品")
     @GetMapping(value = "/deleteGoodsDown")
     @SystemLogPoint(description = "ES删除下架的商品", customerLog = "")
     public ResultMessage<Object> deleteGoodsDown() {
@@ -51,7 +45,6 @@ public class ElasticsearchController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "删除不存在的索引")
     @GetMapping(value = "/delSkuIndex")
     @SystemLogPoint(description = "删除不存在的索引", customerLog = "")
     public ResultMessage<Object> delSkuIndex() {
@@ -59,7 +52,6 @@ public class ElasticsearchController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "生成所有商品的缓存")
     @GetMapping(value = "/cache")
     @SystemLogPoint(description = "生成所有商品的缓存")
     public ResultMessage<Object> cache() {

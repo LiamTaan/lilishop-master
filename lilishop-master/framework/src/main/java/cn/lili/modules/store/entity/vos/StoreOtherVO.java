@@ -12,21 +12,21 @@ import lombok.Data;
 @Data
 public class StoreOtherVO {
 
-    @Schema(description = "公司名称")
-    private String companyName;
+    @Schema(description = "营业执照图片")
+    private String businessLicenseUrl;
 
-    @Schema(description = "公司地址")
-    private String companyAddress;
+    @Schema(description = "统一社会信用代码")
+    private String creditCode;
 
-    @Schema(description = "公司地址地区")
-    private String companyAddressPath;
+    @Schema(description = "营业执照有效期类型")
+    private String businessLicenseExpireType;
 
-    @Schema(description = "营业执照电子版")
-    private String licencePhoto;
+    @Schema(description = "营业执照有效期截止时间")
+    private String businessLicenseExpireDate;
 
-    @Schema(description = "法定经营范围")
-    private String scope;
+    @Schema(description = "门头照")
+    private String facadeImageUrl;
 
-    @Schema(description = "员工总数")
-    private Integer employeeNum;
+    @Schema(description = "店内照")
+    private String indoorImageUrls;
 }

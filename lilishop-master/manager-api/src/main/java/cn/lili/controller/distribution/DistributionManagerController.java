@@ -11,10 +11,6 @@ import cn.lili.modules.distribution.entity.dto.DistributionSearchParams;
 import cn.lili.modules.distribution.service.DistributionService;
 import cn.lili.modules.goods.entity.vos.BrandVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +24,13 @@ import jakarta.validation.constraints.NotNull;
  * @author pikachu
  * @since 2020-03-14 23:04:56
  */
-@Hidden
 @RestController
-@Tag(name = "管理端,分销员管理接口")
 @RequestMapping("/manager/distribution/distribution")
 public class DistributionManagerController {
 
     @Autowired
     private DistributionService distributionService;
 
-    @Operation(summary = "分页获取")
     @GetMapping("/getByPage")
     public ResultMessage<IPage<Distribution>> getByPage(DistributionSearchParams distributionSearchParams, PageVO page) {
         return ResultUtil.data(distributionService.distributionPage(distributionSearchParams, page));
@@ -45,10 +38,9 @@ public class DistributionManagerController {
 
 
     @PreventDuplicateSubmissions
-    @Operation(summary = "清退分销商")
     @PutMapping("/retreat/{id}")
     public ResultMessage<Object> retreat(
-            @Parameter(description = "分销商id", required = true) @PathVariable String id) {
+ @PathVariable String id) {
         if (distributionService.retreat(id)) {
             return ResultUtil.success();
         } else {
@@ -58,10 +50,9 @@ public class DistributionManagerController {
     }
 
     @PreventDuplicateSubmissions
-    @Operation(summary = "恢复分销商")
     @PutMapping("/resume/{id}")
     public ResultMessage<Object> resume(
-            @Parameter(description = "分销商id", required = true) @PathVariable String id) {
+ @PathVariable String id) {
         if (distributionService.resume(id)) {
             return ResultUtil.success();
         } else {
@@ -71,11 +62,10 @@ public class DistributionManagerController {
     }
 
     @PreventDuplicateSubmissions
-    @Operation(summary = "审核分销商")
     @PutMapping("/audit/{id}")
     public ResultMessage<Object> audit(
-            @Parameter(description = "分销商id", required = true) @NotNull @PathVariable String id, 
-            @Parameter(description = "审核结果，PASS 通过  REFUSE 拒绝", required = true) @NotNull String status) {
+ @NotNull @PathVariable String id, 
+ @NotNull String status) {
         if (distributionService.audit(id, status)) {
             return ResultUtil.success();
         } else {
@@ -84,10 +74,9 @@ public class DistributionManagerController {
     }
 
 
-    @Operation(summary = "更新数据")
     @PutMapping("/{id}")
     public ResultMessage<Distribution> update(
-            @Parameter(description = "分销商ID", required = true) @PathVariable String id, @Valid Distribution distribution) {
+ @PathVariable String id, @Valid Distribution distribution) {
         distribution.setId(id);
         if (distributionService.updateById(distribution)) {
             return ResultUtil.data(distribution);

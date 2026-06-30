@@ -8,7 +8,7 @@ import cn.lili.common.exception.ServiceException;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.utils.CommonUtil;
 import cn.lili.modules.member.entity.dos.Member;
-import cn.lili.modules.member.service.MemberService;
+import cn.lili.modules.member.mapper.MemberMapper;
 import cn.lili.modules.sms.SmsUtil;
 import cn.lili.modules.sms.plugin.SmsPluginFactory;
 import cn.lili.modules.system.entity.dos.Setting;
@@ -42,7 +42,7 @@ public class SmsUtilAliImplService implements SmsUtil {
     @Autowired
     private SettingService settingService;
     @Autowired
-    private MemberService memberService;
+    private MemberMapper memberMapper;
     @Autowired
     private SmsPluginFactory smsPluginFactory;
 
@@ -79,6 +79,10 @@ public class SmsUtilAliImplService implements SmsUtil {
                 templateCode = smsSetting.getRegisterTemplateCode();
                 break;
             }
+            case STORE_APPLY: {
+                templateCode = smsSetting.getRegisterTemplateCode();
+                break;
+            }
             //找回密码
             case FIND_USER: {
                 templateCode = smsSetting.getFindPasswordTemplateCode();
@@ -86,20 +90,23 @@ public class SmsUtilAliImplService implements SmsUtil {
             }
             //修改密码
             case UPDATE_PASSWORD: {
-                Member member = memberService.getById(UserContext.getCurrentUser().getId());
-                if (member == null || StringUtil.isEmpty(member.getMobile())) {
+                String currentMemberMobile = getCurrentMemberMobile();
+                if (StringUtil.isEmpty(currentMemberMobile)) {
                     return;
                 }
                 //更新为用户最新手机号
-                mobile = member.getMobile();
+                mobile = currentMemberMobile;
                 templateCode = smsSetting.getFindPasswordTemplateCode();
                 break;
             }
             //设置支付密码
             case WALLET_PASSWORD: {
-                Member member = memberService.getById(UserContext.getCurrentUser().getId());
+                String currentMemberMobile = getCurrentMemberMobile();
+                if (StringUtil.isEmpty(currentMemberMobile)) {
+                    return;
+                }
                 //更新为用户最新手机号
-                mobile = member.getMobile();
+                mobile = currentMemberMobile;
                 templateCode = smsSetting.getWalletPasswordTemplateCode();
                 break;
             }
@@ -136,6 +143,17 @@ public class SmsUtilAliImplService implements SmsUtil {
     @Override
     public void sendBatchSms(String signName, List<String> mobile, String templateCode) {
         smsPluginFactory.smsPlugin().sendBatchSms(signName, mobile, templateCode);
+    }
+
+    private String getCurrentMemberMobile() {
+        if (UserContext.getCurrentUser() == null) {
+            return null;
+        }
+        Member member = memberMapper.selectById(UserContext.getCurrentUser().getId());
+        if (member == null || StringUtil.isEmpty(member.getMobile())) {
+            return null;
+        }
+        return member.getMobile();
     }
 
 

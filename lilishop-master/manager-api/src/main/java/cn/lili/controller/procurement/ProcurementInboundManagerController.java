@@ -10,9 +10,6 @@ import cn.lili.modules.procurement.service.ProcurementInboundItemService;
 import cn.lili.modules.procurement.service.ProcurementInboundService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,7 +25,6 @@ import java.util.List;
  * @author Bulbasaur
  * @since 2025-12-18
  */
-@Tag(name = "管理端,采购入库接口")
 @RestController
 @RequestMapping("/manager/procurement/inbound")
 public class ProcurementInboundManagerController {
@@ -38,21 +34,16 @@ public class ProcurementInboundManagerController {
     @Autowired
     private ProcurementInboundItemService procurementInboundItemService;
 
-    @Operation(summary = "入库单分页")
     @GetMapping
     public ResultMessage<IPage<ProcurementInbound>> page(ProcurementInboundSearchParams params) {
         return ResultUtil.data(procurementInboundService.page(params));
     }
 
-    @Operation(summary = "入库单详情")
-    @Parameter(name = "id", description = "入库单ID", required = true)
     @GetMapping("/{id}")
     public ResultMessage<ProcurementInbound> detail(@PathVariable String id) {
         return ResultUtil.data(procurementInboundService.getDetail(id));
     }
 
-    @Operation(summary = "入库单明细列表")
-    @Parameter(name = "id", description = "入库单ID", required = true)
     @GetMapping("/{id}/items")
     public ResultMessage<List<ProcurementInboundItem>> items(@PathVariable String id) {
         ProcurementInbound inbound = OperationalJudgment.judgment(procurementInboundService.getById(id));

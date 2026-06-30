@@ -18,6 +18,9 @@ import cn.lili.modules.system.service.SettingService;
 import cn.lili.modules.sms.SmsUtil;
 import cn.lili.modules.verification.entity.enums.VerificationEnums;
 import cn.lili.modules.wallet.entity.dos.MemberWallet;
+import cn.lili.modules.wallet.entity.dto.MemberWalletPasswordSetDTO;
+import cn.lili.modules.wallet.entity.dto.MemberWalletPasswordUpdateDTO;
+import cn.lili.modules.wallet.entity.dto.MemberWalletWithdrawalDTO;
 import cn.lili.modules.wallet.entity.vo.MemberWalletVO;
 import cn.lili.modules.wallet.service.MemberWalletService;
 import cn.lili.common.utils.StringUtils;
@@ -27,8 +30,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Pattern;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -105,19 +106,13 @@ public class MemberWalletBuyerController {
     @PreventDuplicateSubmissions
     @PostMapping("/withdrawal")
     @Operation(description = "客户中心余额提现")
-    @Parameter(name = "price", description = "提现金额", required = true)
-    @Parameter(name = "realName", description = "真实姓名", required = true)
-    @Parameter(name = "connectNumber", description = "第三方登录账号", required = true)
-    public ResultMessage<Boolean> withdrawal(@Max(value = 9999, message = "充值金额单次最多允许提现9999元") Double price, @RequestParam String realName, @RequestParam String connectNumber) {
-        return ResultUtil.data(memberWalletService.applyWithdrawal(price, realName, connectNumber));
+    public ResultMessage<Boolean> withdrawal(@Validated @RequestBody MemberWalletWithdrawalDTO withdrawalDTO) {
+        return ResultUtil.data(memberWalletService.applyWithdrawal(withdrawalDTO.getPrice(), withdrawalDTO.getRealName(), withdrawalDTO.getConnectNumber()));
     }
 
     @PostMapping("/set-password")
     @Operation(description = "设置支付密码")
-    @Parameter(name = "password", description = "支付密码", required = true)
-    @Parameter(name = "code", description = "短信验证码", required = true)
-    public ResultMessage<Object> setPassword(@RequestParam String password,
-                                             @RequestParam String code,
+    public ResultMessage<Object> setPassword(@Validated @RequestBody MemberWalletPasswordSetDTO passwordSetDTO,
                                              @RequestHeader String uuid) {
         AuthUser authUser = UserContext.getCurrentUser();
         //校验当前用户是否存在
@@ -125,8 +120,8 @@ public class MemberWalletBuyerController {
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
         }
-        if (smsUtil.verifyCode(member.getMobile(), VerificationEnums.WALLET_PASSWORD, uuid, code)) {
-            memberWalletService.setMemberWalletPassword(member, password);
+        if (smsUtil.verifyCode(member.getMobile(), VerificationEnums.WALLET_PASSWORD, uuid, passwordSetDTO.getCode())) {
+            memberWalletService.setMemberWalletPassword(member, passwordSetDTO.getPassword());
             return ResultUtil.success(ResultCode.SUCCESS);
         } else {
             throw new ServiceException(ResultCode.VERIFICATION_SMS_CHECKED_ERROR);
@@ -136,10 +131,7 @@ public class MemberWalletBuyerController {
 
     @PostMapping("/update-password/ordinary")
     @Operation(description = "普通方式进行支付密码的修改")
-    @Parameter(name = "oldPassword", description = "旧支付密码", required = true)
-    @Parameter(name = "newPassword", description = "新支付密码", required = true)
-    public ResultMessage updatePassword(@RequestParam @Pattern(regexp = "[a-fA-F0-9]{32}", message = "旧密码格式不正确") String oldPassword,
-                                        @RequestParam @Pattern(regexp = "[a-fA-F0-9]{32}", message = "新密码格式不正确") String newPassword) {
+    public ResultMessage updatePassword(@Validated @RequestBody MemberWalletPasswordUpdateDTO passwordUpdateDTO) {
         AuthUser authUser = UserContext.getCurrentUser();
         //校验当前用户是否存在
         Member member = memberService.getById(authUser.getId());
@@ -149,10 +141,10 @@ public class MemberWalletBuyerController {
         MemberWallet memberWallet = this.memberWalletService.getMemberWalletDO(member.getId());
         //校验新旧密码是否一致
         if (memberWallet != null) {
-            if (!new BCryptPasswordEncoder().matches(oldPassword, memberWallet.getWalletPassword())) {
+            if (!new BCryptPasswordEncoder().matches(passwordUpdateDTO.getOldPassword(), memberWallet.getWalletPassword())) {
                 throw new ServiceException(ResultCode.USER_OLD_PASSWORD_ERROR);
             }
-            this.memberWalletService.setMemberWalletPassword(member, newPassword);
+            this.memberWalletService.setMemberWalletPassword(member, passwordUpdateDTO.getNewPassword());
             return ResultUtil.data("修改成功");
         } else {
             throw new ServiceException(ResultCode.WALLET_NOT_EXIT_ERROR);

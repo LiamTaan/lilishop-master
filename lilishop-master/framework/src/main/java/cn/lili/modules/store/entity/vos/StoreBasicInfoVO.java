@@ -26,7 +26,7 @@ public class StoreBasicInfoVO {
     private String storeDisable;
 
     @Schema(description = "地址名称， '，'分割")
-    private String companyAddressPath;
+    private String storeAddressPath;
 
     @Schema(description = "店铺logo")
     private String storeLogo;
@@ -41,13 +41,25 @@ public class StoreBasicInfoVO {
     private String mobilePageData;
 
     @Schema(description = "是否自营")
-    private String selfOperated;
+    private Boolean selfOperated;
 
     @Schema(description = "商品数量")
     private Integer goodsNum;
 
     @Schema(description = "收藏数量")
     private Integer collectionNum;
+
+    @Schema(description = "描述评分")
+    private Double descriptionScore;
+
+    @Schema(description = "服务评分")
+    private Double serviceScore;
+
+    @Schema(description = "物流评分")
+    private Double deliveryScore;
+
+    @Schema(description = "当前用户是否已收藏店铺")
+    private Boolean isCollection;
 
     @Schema(description = "腾讯云智服唯一标识")
     private String yzfSign;
@@ -58,7 +70,7 @@ public class StoreBasicInfoVO {
     @Schema(description = "udesk标识")
     private String merchantEuid;
 
-    @Schema
-    private String pageShow;
+    @Schema(description = "默认页面是否开启")
+    private Boolean pageShow;
 
 }

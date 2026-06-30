@@ -44,7 +44,7 @@ public interface StoreService extends IService<Store> {
      * @param adminStoreApplyDTO 后台添加店铺信息
      * @return 店铺
      */
-    Store add(AdminStoreApplyDTO adminStoreApplyDTO);
+    Store add(StoreAdminSaveDTO storeAdminSaveDTO);
 
     /**
      * 编辑店铺
@@ -95,7 +95,7 @@ public interface StoreService extends IService<Store> {
      * @param storeCompanyDTO 店铺公司信息
      * @return 店铺
      */
-    boolean applyFirstStep(StoreCompanyDTO storeCompanyDTO);
+    boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO);
 
     /**
      * 申请店铺第二步
@@ -103,7 +103,7 @@ public interface StoreService extends IService<Store> {
      * @param storeBankDTO 店铺银行信息
      * @return 店铺
      */
-    boolean applySecondStep(StoreBankDTO storeBankDTO);
+    boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid);
 
     /**
      * 申请店铺第三步
@@ -112,7 +112,25 @@ public interface StoreService extends IService<Store> {
      * @param storeOtherInfoDTO 店铺其他信息
      * @return 店铺
      */
-    boolean applyThirdStep(StoreOtherInfoDTO storeOtherInfoDTO);
+    boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid);
+
+    /**
+     * 企业法人提交入驻资料
+     *
+     * @param companyLegalApplyDTO 企业法人入驻资料
+     * @param uuid                 验证码会话标识
+     * @return 操作结果
+     */
+    boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid);
+
+    /**
+     * 企业被授权人提交入驻资料
+     *
+     * @param companyAuthorizedApplyDTO 企业被授权人入驻资料
+     * @param uuid                      验证码会话标识
+     * @return 操作结果
+     */
+    boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid);
 
 
     /**

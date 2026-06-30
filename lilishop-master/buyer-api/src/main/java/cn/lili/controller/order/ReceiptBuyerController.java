@@ -45,7 +45,7 @@ public class ReceiptBuyerController {
     @PreventDuplicateSubmissions
     @Operation(summary = "保存发票信息")
     @PostMapping
-    public ResultMessage<Receipt> save(@Valid Receipt receipt) {
+    public ResultMessage<Receipt> save(@Valid @RequestBody Receipt receipt) {
         return ResultUtil.data(receiptService.saveReceipt(receipt));
     }
 

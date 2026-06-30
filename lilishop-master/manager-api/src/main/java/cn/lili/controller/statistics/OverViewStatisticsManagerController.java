@@ -7,9 +7,6 @@ import cn.lili.modules.statistics.entity.vo.BusinessCompositionDataVO;
 import cn.lili.modules.statistics.entity.vo.OverViewDataVO;
 import cn.lili.modules.statistics.entity.vo.SourceDataVO;
 import cn.lili.modules.statistics.service.OverViewStatisticsService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +22,6 @@ import java.util.List;
  * @since 2025/08/25 7:31 下午
  */
 @Slf4j
-@Tag(name = "管理端,营业概览接口")
 @RestController
 @RequestMapping("/manager/statistics/overview")
 public class OverViewStatisticsManagerController {
@@ -33,8 +29,6 @@ public class OverViewStatisticsManagerController {
     @Autowired
     private OverViewStatisticsService overViewStatisticsService;
 
-    @Operation(summary = "获取营业概览统计")
-    @Parameter(name = "statisticsQueryParam", description = "统计查询参数", required = true)
     @GetMapping
     public ResultMessage<OverViewDataVO> overViewDataVO(StatisticsQueryParam statisticsQueryParam) {
         try {
@@ -45,8 +39,6 @@ public class OverViewStatisticsManagerController {
         return null;
     }
 
-    @Operation(summary = "收款构成列表")
-    @Parameter(name = "statisticsQueryParam", description = "统计查询参数", required = true)
     @GetMapping("/source")
     public ResultMessage<List<SourceDataVO>> sourceDataVOList(StatisticsQueryParam statisticsQueryParam) {
         try {
@@ -57,8 +49,6 @@ public class OverViewStatisticsManagerController {
         return null;
     }
 
-    @Operation(summary = "营业构成信息")
-    @Parameter(name = "statisticsQueryParam", description = "统计查询参数", required = true)
     @GetMapping("/businessComposition")
     public ResultMessage<BusinessCompositionDataVO> businessCompositionDataVO(StatisticsQueryParam statisticsQueryParam) {
         try {

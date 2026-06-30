@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createMemberAddress,
   deleteMemberAddress,
   getMemberDetail,
+  getMemberAddressListPage,
   getMemberAddressPage,
   getMemberPage,
   getRegionChildren,
@@ -16,9 +18,11 @@ import {
   extractApiPayload,
   extractApiRecords
 } from "@/utils/admin-governance";
+import { getErrorMessage } from "@/utils/error";
 import { message } from "@/utils/message";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const userOptions = ref<
   Array<{
     label: string;
@@ -38,7 +42,7 @@ const saving = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const editingRow = ref<Record<string, any> | null>(null);
 const selectedRegionIds = ref<string[]>([]);
-const query = reactive({ keyword: "", memberId: "" });
+const query = reactive({ keyword: "", memberKeyword: "", isDefault: "" });
 const form = reactive({
   id: "",
   memberId: "",
@@ -56,16 +60,23 @@ const columns: TableColumnList = [
   { label: "收货人", prop: "displayName", minWidth: 140 },
   { label: "手机号", prop: "displayMobile", minWidth: 150 },
   { label: "地址别名", prop: "displayAlias", minWidth: 120 },
+  { label: "地址状态", prop: "displayDefault", minWidth: 120 },
   { label: "详细地址", prop: "displayRemark", minWidth: 280, showOverflowTooltip: true },
   { label: "操作", prop: "operation", width: 220, fixed: "right", slot: "operation" }
 ];
 
 const summaryCards = computed(() => [
-  { label: "地址总数", value: rows.value.length, accent: "orange" as const, hint: "当前用户地址记录" },
+  { label: "地址总数", value: rows.value.length, accent: "orange" as const, hint: "当前筛选结果地址记录" },
   { label: "默认地址", value: rows.value.filter(item => item.isDefault).length, accent: "green" as const, hint: "标记为默认地址的记录" },
   { label: "别名地址", value: rows.value.filter(item => item.displayAlias !== "-").length, accent: "blue" as const, hint: "带地址别名的记录" },
   { label: "治理动作", value: "查询/新增/编辑/删除", accent: "purple" as const, hint: "地址台账真实承接页" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeId(value: unknown) {
   if (value === undefined || value === null) return "";
@@ -264,7 +275,7 @@ async function searchUsers(keyword: string) {
       nickName: isFullMobile ? undefined : searchText,
       mobile: isFullMobile ? searchText : undefined
     });
-    replaceUserOptions(extractApiRecords(res), [query.memberId, form.memberId]);
+    replaceUserOptions(extractApiRecords(res), [form.memberId]);
   } catch (_error) {
     message("用户搜索失败，请稍后重试", { type: "error" });
   } finally {
@@ -287,18 +298,40 @@ async function ensureUserOption(memberId: string) {
   }
 }
 
+async function fetchMemberDetail(memberId: string) {
+  const targetId = memberId.trim();
+  if (!targetId) return null;
+  try {
+    const res = await getMemberDetail(targetId);
+    const detail = extractApiPayload<Record<string, any>>(res);
+    if (detail) {
+      mergeUserOptions([detail]);
+      return detail;
+    }
+  } catch (_error) {
+    // 详情补齐失败时由调用方决定是否降级
+  }
+  return null;
+}
+
 function normalizeRecord(item: Record<string, any>) {
-  const memberId = item.memberId || form.memberId || query.memberId;
+  const memberId = item.memberId || form.memberId;
+  const memberNickName =
+    item.memberNickName || item.nickName || item.memberName || "";
+  const memberUsername = item.memberUsername || item.username || "";
+  const memberMobile = item.memberMobile || "";
   return {
     ...item,
     id: item.id || item.addressId,
     memberId,
     isDefault: Boolean(item.isDefault),
-    displayUser: getUserDisplay(memberId),
+    displayUser:
+      memberNickName || memberUsername || getUserDisplay(memberId),
     displayMemberId: item.memberId || "-",
     displayName: item.name || item.consignee || "-",
     displayMobile: item.mobile || "-",
     displayAlias: item.alias || "-",
+    displayDefault: Boolean(item.isDefault) ? "默认地址" : "普通地址",
     displayRemark:
       [item.consigneeAddressPath, item.detail].filter(Boolean).join(" / ") || "-",
     displayTime: item.createTime || item.updateTime || "-"
@@ -306,54 +339,47 @@ function normalizeRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  if (!query.memberId.trim()) {
-    rows.value = [];
-    return;
-  }
   try {
-    await ensureUserOption(query.memberId);
-    const res = await getMemberAddressPage(query.memberId.trim());
-    let list = extractApiRecords(res).map(normalizeRecord);
-    if (query.keyword) {
-      list = list.filter(
-        item =>
-          item.displayName.includes(query.keyword) ||
-          item.displayMobile.includes(query.keyword)
-      );
-    }
-    rows.value = list;
+    const res = await getMemberAddressListPage({
+      pageNumber: 1,
+      pageSize: 200,
+      keyword: query.keyword.trim() || undefined,
+      memberKeyword: query.memberKeyword.trim() || undefined,
+      isDefault:
+        query.isDefault === ""
+          ? undefined
+          : query.isDefault === "true"
+    });
+    rows.value = extractApiRecords(res).map(normalizeRecord);
+    selectedRows.value = [];
   } catch (_error) {
-    message("用户地址加载失败，请确认所选用户后重试", { type: "error" });
+    message("用户地址加载失败，请稍后重试", { type: "error" });
   }
 }
 
-function handleSearch(payload: { keyword: string }) {
+function handleSearch(payload: { keyword: string; status?: string }) {
   query.keyword = payload.keyword || "";
+  query.isDefault = payload.status || "";
   loadData();
 }
 
 function handleReset() {
   query.keyword = "";
-  query.memberId = "";
-  userOptions.value = [];
+  query.memberKeyword = "";
+  query.isDefault = "";
   rows.value = [];
+  selectedRows.value = [];
+  loadData();
 }
 
-function handleUserClear() {
-  query.memberId = "";
-  userOptions.value = [];
-  rows.value = [];
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 async function openCreate() {
-  if (!query.memberId.trim()) {
-    message("请先搜索并选择用户，再新增地址", { type: "warning" });
-    return;
-  }
-  await ensureUserOption(query.memberId);
   editingRow.value = null;
   form.id = "";
-  form.memberId = query.memberId.trim();
+  form.memberId = "";
   form.name = "";
   form.mobile = "";
   form.consigneeAddressPath = "";
@@ -368,10 +394,11 @@ async function openCreate() {
 async function openEdit(row: Record<string, any>) {
   editingRow.value = row;
   form.id = row.id;
-  form.memberId = row.memberId || query.memberId.trim();
+  form.memberId = row.memberId || "";
   await ensureUserOption(form.memberId);
+  await fetchMemberDetail(form.memberId);
   form.name = row.name || row.displayName;
-  form.mobile = row.mobile || row.displayMobile;
+  form.mobile = row.mobile || "";
   form.consigneeAddressPath = row.consigneeAddressPath || "";
   form.consigneeAddressIdPath = row.consigneeAddressIdPath || "";
   restoreRegionSelection(form.consigneeAddressIdPath);
@@ -414,8 +441,10 @@ async function handleSave() {
     }
     dialogVisible.value = false;
     await loadData();
-  } catch (_error) {
-    message("用户地址保存失败，请确认地址字段契约", { type: "error" });
+  } catch (error) {
+    message(getErrorMessage(error, "用户地址保存失败，请确认地址字段契约"), {
+      type: "error"
+    });
   } finally {
     saving.value = false;
   }
@@ -429,61 +458,95 @@ async function handleDelete(row: Record<string, any>) {
     await deleteMemberAddress(String(row.id));
     message("用户地址删除成功", { type: "success" });
     await loadData();
-  } catch (_error) {
-    message("用户地址删除失败", { type: "error" });
+  } catch (error) {
+    message(getErrorMessage(error, "用户地址删除失败"), { type: "error" });
   }
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的地址", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条地址吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteMemberAddress(id)));
+    selectedRows.value = [];
+    message("用户地址批量删除成功", { type: "success" });
+    await loadData();
+  } catch (error) {
+    message(getErrorMessage(error, "用户地址批量删除失败"), { type: "error" });
+  }
+}
+
+function exportMemberAddresses() {
+  if (!rows.value.length) {
+    message("暂无可导出的用户地址数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    所属用户: item.displayUser,
+    收货人: item.displayName,
+    手机号: item.displayMobile,
+    地址别名: item.displayAlias,
+    地址状态: item.displayDefault,
+    详细地址: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "用户地址");
+  writeFile(workbook, "用户地址.xlsx");
+  message("用户地址导出成功", { type: "success" });
 }
 
 onMounted(() => {
   loadRegionOptions();
-  rows.value = [];
+  loadData();
 });
 </script>
 
 <template>
   <WholesaleAdminPage
     title="用户地址"
-    description="承接前台用户收货地址台账、地址编辑和删除治理。该页按所选用户下钻查询，不自行发明全量地址分页接口。"
-    api-path="/manager/member/address/{memberId}"
+    description="承接前台用户收货地址台账、地址编辑和删除治理。列表按地址本身与所属用户筛选，选择用户仅用于新增/编辑维护。"
+    api-path="/manager/member/address"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
-    :show-status-filter="false"
-    :quick-actions="[
-      { label: '按用户查询', value: '搜索后选择', type: 'primary' },
-      { label: '地址维护', value: '新增/编辑/删除', type: 'success' },
-      { label: '接口约束', value: '无全量分页', type: 'warning' }
+    status-label="默认地址"
+    :status-options="[
+      { label: '默认地址', value: 'true' },
+      { label: '普通地址', value: 'false' }
     ]"
-    keyword-label="收货人/手机号"
-    keyword-placeholder="请输入收货人或手机号"
+    :quick-actions="[
+      { label: '地址筛选', value: '按地址与用户查询', type: 'primary' },
+      { label: '地址维护', value: '新增/编辑/删除', type: 'success' },
+      { label: '批删导出', value: '已接入', type: 'warning' }
+    ]"
+    keyword-label="地址关键词"
+    keyword-placeholder="请输入收货人、手机号、别名或详细地址"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #filters-extra>
-      <el-form-item label="选择用户">
-        <el-select
-          v-model="query.memberId"
-          filterable
-          remote
+      <el-form-item label="所属用户">
+        <el-input
+          v-model="query.memberKeyword"
           clearable
-          reserve-keyword
-          :remote-method="searchUsers"
-          :loading="userLoading"
-          placeholder="请输入昵称或手机号搜索用户"
+          placeholder="请输入用户昵称、账号或手机号"
           style="width: 100%"
-          @clear="handleUserClear"
-        >
-          <el-option
-            v-for="item in userOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </el-select>
+        />
       </el-form-item>
     </template>
     <template #table-extra>
-      <el-button type="primary" @click="loadData">查询地址</el-button>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportMemberAddresses">导出</el-button>
       <el-button type="success" plain @click="openCreate">新增地址</el-button>
     </template>
     <template #operation="{ row }">
@@ -506,6 +569,7 @@ onMounted(() => {
           :loading="userLoading"
           placeholder="请输入昵称或手机号搜索用户"
           style="width: 100%"
+          @change="value => ensureUserOption(String(value || ''))"
         >
           <el-option
             v-for="item in userOptions"
@@ -516,7 +580,12 @@ onMounted(() => {
         </el-select>
       </el-form-item>
       <el-form-item label="收货人" required><el-input v-model="form.name" placeholder="请输入收货人姓名" /></el-form-item>
-      <el-form-item label="手机号"><el-input v-model="form.mobile" placeholder="请输入收货人手机号" /></el-form-item>
+      <el-form-item label="手机号">
+        <el-input
+          v-model="form.mobile"
+          placeholder="已脱敏可直接保存；如需修改请输入完整新手机号"
+        />
+      </el-form-item>
       <el-form-item label="所在地区">
         <el-cascader
           v-model="selectedRegionIds"
@@ -552,6 +621,7 @@ onMounted(() => {
       <el-descriptions-item label="收货人">{{ currentRow.displayName }}</el-descriptions-item>
       <el-descriptions-item label="手机号">{{ currentRow.displayMobile }}</el-descriptions-item>
       <el-descriptions-item label="地址别名">{{ currentRow.displayAlias }}</el-descriptions-item>
+      <el-descriptions-item label="地址状态">{{ currentRow.displayDefault }}</el-descriptions-item>
       <el-descriptions-item label="详细地址">{{ currentRow.displayRemark }}</el-descriptions-item>
       <el-descriptions-item label="原始数据"><pre class="detail-json">{{ JSON.stringify(currentRow, null, 2) }}</pre></el-descriptions-item>
     </el-descriptions>

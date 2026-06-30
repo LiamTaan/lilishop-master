@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createSensitiveWord,
@@ -12,7 +13,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "SensitiveWordsManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -35,6 +41,12 @@ const summaryCards = computed(() => [
   { label: "待补备注", value: rows.value.filter(item => !item.displayRemark || item.displayRemark === "-").length, accent: "blue" as const, hint: "待完善词条说明" },
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接真实敏感词接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
@@ -66,6 +78,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -132,6 +148,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的敏感词", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个敏感词吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteSensitiveWord(selectedIds.value);
+    selectedRows.value = [];
+    message("敏感词批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("敏感词批量删除失败", { type: "error" });
+  }
+}
+
+function exportSensitiveWords() {
+  if (!rows.value.length) {
+    message("暂无可导出的敏感词数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    敏感词: item.displayName,
+    分类: item.displayCategory,
+    更新时间: item.displayTime,
+    备注: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "敏感词管理");
+  writeFile(workbook, "敏感词管理.xlsx");
+  message("敏感词数据导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -142,6 +196,7 @@ onMounted(loadData);
     api-path="/manager/other/sensitiveWords"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -153,8 +208,11 @@ onMounted(loadData);
     keyword-placeholder="请输入敏感词"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportSensitiveWords">导出</el-button>
       <el-button type="primary" @click="openCreate">新增敏感词</el-button>
     </template>
     <template #operation="{ row }">

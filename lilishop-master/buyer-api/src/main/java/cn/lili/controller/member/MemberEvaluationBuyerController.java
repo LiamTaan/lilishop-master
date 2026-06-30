@@ -41,7 +41,7 @@ public class MemberEvaluationBuyerController {
     @PreventDuplicateSubmissions
     @Operation(summary = "添加客户评价")
     @PostMapping
-    public ResultMessage<MemberEvaluationDTO> save(@Valid MemberEvaluationDTO memberEvaluationDTO) {
+    public ResultMessage<MemberEvaluationDTO> save(@Valid @RequestBody MemberEvaluationDTO memberEvaluationDTO) {
         return ResultUtil.data(memberEvaluationService.addMemberEvaluation(memberEvaluationDTO, true));
     }
 

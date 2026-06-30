@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { useRoute } from "vue-router";
 import {
   getPintuanDetail,
@@ -137,7 +138,7 @@ async function loadData() {
   try {
     const params: Record<string, any> = {
       pageNumber: 1,
-      pageSize: 10
+      pageSize: 200
     };
     if (query.keyword) params.promotionName = query.keyword;
     if (query.status) params.promotionStatus = query.status;
@@ -184,6 +185,26 @@ async function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportPintuanRecords() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的拼团记录", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    filteredData.value.map(item => ({
+      活动名称: item.promotionName,
+      关联商品: item.goodsName,
+      成团人数: item.needMemberNum,
+      活动状态: item.promotionStatusLabel,
+      活动时间: item.activityTime
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "拼团记录");
+  writeFile(workbook, "拼团记录.xlsx");
+  message("拼团记录导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -213,6 +234,11 @@ onMounted(() => {
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!filteredData.length" @click="exportPintuanRecords">
+        导出
+      </el-button>
+    </template>
     <template #filters-extra>
       <el-form-item label="商品名称">
         <el-input

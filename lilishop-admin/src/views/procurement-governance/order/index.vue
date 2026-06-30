@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   getProcurementOrderDetail,
@@ -130,6 +131,30 @@ function handleReset() {
   loadData();
 }
 
+function exportOrders() {
+  if (!rows.value.length) {
+    message("暂无可导出的采购订单", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    rows.value.map(item => ({
+      采购单号: item.orderSn,
+      店铺名称: item.storeName,
+      制单人: item.makerName,
+      采购金额: item.totalAmount,
+      采购数量: item.totalQuantity,
+      采购状态: getProcurementStatusLabel(item.status),
+      审核时间: formatAdminDateTime(item.auditTime),
+      创建时间: formatAdminDateTime(item.createTime),
+      备注: item.remark
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "采购订单");
+  writeFile(workbook, "采购订单.xlsx");
+  message("采购订单导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -160,6 +185,9 @@ onMounted(loadData);
     @search="handleSearch"
     @reset="handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!rows.length" @click="exportOrders">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
     </template>

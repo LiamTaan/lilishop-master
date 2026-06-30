@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getProfitSharingRecordPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { extractApiRecords } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -78,7 +80,10 @@ function normalizeRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.orderSn = query.keyword;
   if (query.status) params.settlementStatus = query.status;
   const res = await getProfitSharingRecordPage(params);
@@ -96,6 +101,27 @@ function handleReset() {
   query.status = "";
   extraFilters.storeKeyword = "";
   loadData();
+}
+
+function exportProfitSharingRecords() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的分账明细", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    账单号: item.orderSn,
+    店铺名称: item.storeName,
+    分账金额: item.amount,
+    账单金额: item.billPrice,
+    退款金额: item.refundPrice,
+    结算状态: item.settlementStatus,
+    结算时间: item.settleTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "分账明细");
+  writeFile(workbook, "分账明细.xlsx");
+  message("分账明细导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -136,6 +162,9 @@ onMounted(() => {
           clearable
         />
       </el-form-item>
+    </template>
+    <template #table-extra>
+      <el-button @click="exportProfitSharingRecords">导出</el-button>
     </template>
   </WholesaleAdminPage>
 </template>

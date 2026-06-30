@@ -164,7 +164,7 @@ export const updateMineProfile = (data: {
   description?: string;
 }) => {
   return http.request<ResultMessage<any>>("put", "/manager/passport/user/edit", {
-    params: data
+    data
   });
 };
 

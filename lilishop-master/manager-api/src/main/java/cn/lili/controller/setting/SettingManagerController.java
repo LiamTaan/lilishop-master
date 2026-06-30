@@ -10,8 +10,6 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.*;
 import cn.lili.modules.system.entity.dto.connect.ConnectSetting;
-import cn.lili.modules.system.entity.dto.connect.QQConnectSetting;
-import cn.lili.modules.system.entity.dto.connect.WechatConnectSetting;
 import cn.lili.modules.system.entity.dto.payment.AlipayPaymentSetting;
 import cn.lili.modules.system.entity.dto.payment.PaymentSupportSetting;
 import cn.lili.modules.system.entity.dto.payment.UnionPaymentSetting;
@@ -20,9 +18,6 @@ import cn.lili.modules.system.entity.dto.payment.dto.PaymentSupportForm;
 import cn.lili.modules.system.entity.enums.SettingEnum;
 import cn.lili.modules.system.service.SettingService;
 import cn.lili.modules.wxchannels.entity.dto.WxChannelsSetting;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +30,6 @@ import java.util.Collections;
  * @since 2020/11/26 15:53
  */
 @RestController
-@Tag(name = "管理端,系统设置接口")
 @RequestMapping("/manager/setting/setting")
 public class SettingManagerController {
     @Autowired
@@ -48,11 +42,11 @@ public class SettingManagerController {
 
 
     @DemoSite
-    @Operation(summary = "更新配置")
-    @Parameter(name = "key", description = "配置key", required = true)
-    @Parameter(name = "configValue", description = "配置值", required = true)
     @PutMapping( "/put/{key}")
     public ResultMessage saveConfig(@PathVariable String key, @RequestBody String configValue) {
+        if (isBlockedKey(key)) {
+            throw new ServiceException(ResultCode.SETTING_NOT_TO_SET);
+        }
         SettingEnum settingEnum = SettingEnum.valueOf(key);
         //获取系统配置
         Setting setting = settingService.getById(settingEnum.name());
@@ -70,8 +64,6 @@ public class SettingManagerController {
 
 
     @DemoSite
-    @Operation(summary = "查看配置")
-    @Parameter(name = "key", description = "配置key", required = true)
     @GetMapping( "/get/{key}")
     public ResultMessage settingGet(@PathVariable String key) {
         return createSetting(key);
@@ -108,6 +100,9 @@ public class SettingManagerController {
      * @throws IllegalAccessException
      */
     private ResultMessage createSetting(String key) {
+        if (isBlockedKey(key)) {
+            throw new ServiceException(ResultCode.SETTING_NOT_TO_SET);
+        }
         SettingEnum settingEnum = SettingEnum.valueOf(key);
         cache.remove(key);
         Setting setting = settingService.get(key);
@@ -152,10 +147,6 @@ public class SettingManagerController {
                 return setting == null ?
                         ResultUtil.data(new PointSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), PointSetting.class));
-            case QQ_CONNECT:
-                return setting == null ?
-                        ResultUtil.data(new QQConnectSetting()) :
-                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), QQConnectSetting.class));
             case CONNECT_SETTING:
                 return setting == null ?
                         ResultUtil.data(new ConnectSetting()) :
@@ -172,10 +163,6 @@ public class SettingManagerController {
                 return setting == null ?
                         ResultUtil.data(new UnionPaymentSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), UnionPaymentSetting.class));
-            case WECHAT_CONNECT:
-                return setting == null ?
-                        ResultUtil.data(new WechatConnectSetting()) :
-                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), WechatConnectSetting.class));
             case WECHAT_PAYMENT:
                 return setting == null ?
                         ResultUtil.data(new WechatPaymentSetting()) :
@@ -184,18 +171,10 @@ public class SettingManagerController {
                 return setting == null ?
                         ResultUtil.data(new SeckillSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), SeckillSetting.class));
-            case EXPERIENCE_SETTING:
-                return setting == null ?
-                        ResultUtil.data(new ExperienceSetting()) :
-                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), ExperienceSetting.class));
             case IM_SETTING:
                 return setting == null ?
                         ResultUtil.data(new ImSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), ImSetting.class));
-            case HOT_WORDS:
-                return setting == null ?
-                        ResultUtil.data(new HotWordsSetting()) :
-                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), HotWordsSetting.class));
             case VERIFICATION_RULE_SETTING:
                 return setting == null ?
                         ResultUtil.data(new VerificationRuleSetting()) :
@@ -207,5 +186,12 @@ public class SettingManagerController {
             default:
                 throw new ServiceException(ResultCode.SETTING_NOT_TO_SET);
         }
+    }
+
+    private boolean isBlockedKey(String key) {
+        return "EXPERIENCE_SETTING".equals(key)
+                || "HOT_WORDS".equals(key)
+                || "QQ_CONNECT".equals(key)
+                || SettingEnum.WECHAT_CONNECT.name().equals(key);
     }
 }

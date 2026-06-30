@@ -241,6 +241,33 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (
   SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'agent_level'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `agent_level` varchar(32) DEFAULT NULL COMMENT ''代理等级'' AFTER `store_type`',
+  'SELECT ''li_store.agent_level exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'agent_region_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `agent_region_id` varchar(64) DEFAULT NULL COMMENT ''代理区域ID'' AFTER `agent_level`',
+  'SELECT ''li_store.agent_region_id exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'agent_region_name'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `agent_region_name` varchar(255) DEFAULT NULL COMMENT ''代理区域名称'' AFTER `agent_region_id`',
+  'SELECT ''li_store.agent_region_name exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'audit_status'
 );
 SET @sql := IF(@col_exists = 0,
@@ -273,6 +300,33 @@ SET @col_exists := (
 SET @sql := IF(@col_exists = 0,
   'ALTER TABLE `li_store_detail` ADD COLUMN `store_type` varchar(32) DEFAULT NULL COMMENT ''店铺类型'' AFTER `apply_type`',
   'SELECT ''li_store_detail.store_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'agent_level'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `agent_level` varchar(32) DEFAULT NULL COMMENT ''代理等级'' AFTER `store_type`',
+  'SELECT ''li_store_detail.agent_level exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'agent_region_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `agent_region_id` varchar(64) DEFAULT NULL COMMENT ''代理区域ID'' AFTER `agent_level`',
+  'SELECT ''li_store_detail.agent_region_id exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'agent_region_name'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `agent_region_name` varchar(255) DEFAULT NULL COMMENT ''代理区域名称'' AFTER `agent_region_id`',
+  'SELECT ''li_store_detail.agent_region_name exists''');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (
@@ -419,12 +473,31 @@ SET @sql := IF(@col_exists = 0,
   'SELECT ''li_store_detail.authorization_url exists''');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+UPDATE li_store
+SET store_type = 'SUPPLIER'
+WHERE store_type IS NULL OR store_type = '';
+
+UPDATE li_store_detail d
+INNER JOIN li_store s ON s.id = d.store_id
+SET d.store_type = s.store_type
+WHERE d.store_type IS NULL OR d.store_type = '';
+
+UPDATE li_store_detail d
+INNER JOIN li_store s ON s.id = d.store_id
+SET d.agent_level = s.agent_level,
+    d.agent_region_id = s.agent_region_id,
+    d.agent_region_name = s.agent_region_name
+WHERE (d.agent_level IS NULL OR d.agent_level = '')
+   OR (d.agent_region_id IS NULL OR d.agent_region_id = '')
+   OR (d.agent_region_name IS NULL OR d.agent_region_name = '');
+
 CREATE TABLE IF NOT EXISTS `agent_role_relation` (
   `id` varchar(64) NOT NULL COMMENT '主键ID',
   `member_id` varchar(64) NOT NULL COMMENT '会员ID',
   `role_code` varchar(32) NOT NULL COMMENT '角色编码，固定为ROLE_AGENT',
   `region_id` varchar(64) NOT NULL COMMENT '所属区域ID',
   `region_name` varchar(128) NOT NULL COMMENT '所属区域名称',
+  `agent_level` varchar(32) NOT NULL DEFAULT 'CITY' COMMENT '代理等级：CITY市级，COUNTY区县级，TOWNSHIP乡镇级，WHOLESALER批发商',
   `status` varchar(32) NOT NULL DEFAULT 'ENABLE' COMMENT '状态：ENABLE启用，DISABLE停用',
   `effective_time` datetime DEFAULT NULL COMMENT '生效时间',
   `expire_time` datetime DEFAULT NULL COMMENT '失效时间',
@@ -438,6 +511,19 @@ CREATE TABLE IF NOT EXISTS `agent_role_relation` (
   UNIQUE KEY `uk_member_region` (`member_id`, `region_id`) COMMENT '同一代理商在同一区域唯一',
   KEY `idx_region_status` (`region_id`, `status`) COMMENT '按区域和状态查询'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代理商角色关系表';
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'agent_role_relation' AND COLUMN_NAME = 'agent_level'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `agent_role_relation` ADD COLUMN `agent_level` varchar(32) NOT NULL DEFAULT ''CITY'' COMMENT ''代理等级：CITY市级，COUNTY区县级，TOWNSHIP乡镇级，WHOLESALER批发商'' AFTER `region_name`',
+  'SELECT ''agent_role_relation.agent_level exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+UPDATE agent_role_relation
+SET agent_level = 'WHOLESALER'
+WHERE agent_level IS NULL OR agent_level = '';
 
 CREATE TABLE IF NOT EXISTS `agent_store_bind` (
   `id` varchar(64) NOT NULL COMMENT '主键ID',
@@ -952,7 +1038,6 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010037', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/order-setting', '', '1', 'PlatformOrderSetting', '3062200000000000008', '/platform-config/order-setting', 8.00, '订单设置', NULL, NULL),
   ('3062200000000010038', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/logistics-setting', '', '1', 'PlatformLogisticsSetting', '3062200000000000008', '/platform-config/logistics-setting', 9.00, '物流设置', NULL, NULL),
   ('3062200000000010039', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/point-setting', '', '1', 'PlatformPointSetting', '3062200000000000008', '/platform-config/point-setting', 10.00, '积分设置', NULL, NULL),
-  ('3062200000000010040', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/experience-setting', '', '1', 'PlatformExperienceSetting', '3062200000000000008', '/platform-config/experience-setting', 11.00, '经验值设置', NULL, NULL),
   ('3062200000000010041', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/seckill-setting', '', '1', 'PlatformSeckillSetting', '3062200000000000008', '/platform-config/seckill-setting', 12.00, '秒杀设置', NULL, NULL),
   ('3062200000000010042', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/im-setting', '', '1', 'PlatformImSetting', '3062200000000000008', '/platform-config/im-setting', 13.00, 'IM配置', NULL, NULL),
   ('3062200000000010043', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/connect-setting', '', '1', 'PlatformConnectSetting', '3062200000000000008', '/platform-config/connect-setting', 14.00, '登录设置', NULL, NULL),
@@ -960,13 +1045,9 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010045', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/alipay-setting', '', '1', 'PlatformAlipaySetting', '3062200000000000008', '/platform-config/alipay-setting', 16.00, '支付宝配置', NULL, NULL),
   ('3062200000000010046', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wechat-payment-setting', '', '1', 'PlatformWechatPaymentSetting', '3062200000000000008', '/platform-config/wechat-payment-setting', 17.00, '微信支付配置', NULL, NULL),
   ('3062200000000010047', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/unionpay-setting', '', '1', 'PlatformUnionpaySetting', '3062200000000000008', '/platform-config/unionpay-setting', 18.00, '银联支付配置', NULL, NULL),
-  ('3062200000000010048', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wechat-connect-setting', '', '1', 'PlatformWechatConnectSetting', '3062200000000000008', '/platform-config/wechat-connect-setting', 19.00, '微信登录配置', NULL, NULL),
-  ('3062200000000010049', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/qq-connect-setting', '', '1', 'PlatformQqConnectSetting', '3062200000000000008', '/platform-config/qq-connect-setting', 20.00, 'QQ登录配置', NULL, NULL),
-  ('3062200000000010050', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/hot-words-setting', '', '1', 'PlatformHotWordsSetting', '3062200000000000008', '/platform-config/hot-words-setting', 21.00, '热词设置', NULL, NULL),
   ('3062200000000010051', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/platform-config/wx-channels-setting', '', '1', 'PlatformWxChannelsSetting', '3062200000000000008', '/platform-config/wx-channels-setting', 22.00, '视频号配置', NULL, NULL),
   ('3062200000000000009', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center', 'ep:user', '0', 'MemberList', '0', '/member-center', 90.00, '用户中心', NULL, NULL),
   ('3062200000000010052', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-list', '', '1', 'MemberList', '3062200000000000009', '/member-center/member-list', 1.00, '前台用户管理', NULL, NULL),
-  ('3062200000000010053', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-grade', '', '1', 'MemberGrade', '3062200000000000009', '/member-center/member-grade', 2.00, '会员等级', NULL, NULL),
   ('3062200000000010054', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-group', '', '1', 'MemberGroup', '3062200000000000009', '/member-center/member-group', 3.00, '会员分组', NULL, NULL),
   ('3062200000000010055', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-benefit', '', '1', 'MemberBenefit', '3062200000000000009', '/member-center/member-benefit', 4.00, '会员权益', NULL, NULL),
   ('3062200000000010056', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-points-history', '', '1', 'MemberPointsHistory', '3062200000000000009', '/member-center/member-points-history', 5.00, '积分记录', NULL, NULL),
@@ -983,12 +1064,13 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010066', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-message', '', '1', 'MemberMessage', '3062200000000000010', '/message-center/member-message', 8.00, '客户消息', NULL, NULL),
   ('3062200000000010067', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/store-message', '', '1', 'StoreMessage', '3062200000000000010', '/message-center/store-message', 9.00, '店铺消息', NULL, NULL),
   ('3062200000000000011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center', 'ep:document', '0', 'ContentArticle', '0', '/content-center', 110.00, '内容与运营', NULL, NULL),
-  ('3062200000000010069', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/home-config', '', '1', 'ContentHomeConfig', '3062200000000000011', '/content-center/home-config', 1.00, '首页配置', NULL, NULL),
-  ('3062200000000010068', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article', '', '1', 'ContentArticle', '3062200000000000011', '/content-center/article', 2.00, '帮助与公告', NULL, NULL),
-  ('3062200000000010072', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article-category', '', '1', 'ContentArticleCategory', '3062200000000000011', '/content-center/article-category', 3.00, '文章分类', NULL, NULL),
-  ('3062200000000010073', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/sensitive-words', '', '1', 'ContentSensitiveWords', '3062200000000000011', '/content-center/sensitive-words', 4.00, '敏感词管理', NULL, NULL),
-  ('3062200000000010074', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/custom-words', '', '1', 'ContentCustomWords', '3062200000000000011', '/content-center/custom-words', 5.00, '自定义词库', NULL, NULL),
-  ('3062200000000010075', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/hot-words-manage', '', '1', 'ContentHotWordsManage', '3062200000000000011', '/content-center/hot-words-manage', 6.00, '热词治理', NULL, NULL),
+  ('3062200000000010069', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/advertisement', '', '1', 'ContentAdvertisement', '3062200000000000011', '/content-center/advertisement', 1.00, '广告位管理', NULL, NULL),
+  ('3062200000000010070', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/special-manage', '', '1', 'ContentSpecialManage', '3062200000000000011', '/content-center/special-manage', 2.00, '专题管理', NULL, NULL),
+  ('3062200000000010071', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/recommendation-strategy', '', '1', 'ContentRecommendationStrategy', '3062200000000000011', '/content-center/recommendation-strategy', 3.00, '推荐策略', NULL, NULL),
+  ('3062200000000010068', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article', '', '1', 'ContentArticle', '3062200000000000011', '/content-center/article', 4.00, '帮助与公告', NULL, NULL),
+  ('3062200000000010072', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/article-category', '', '1', 'ContentArticleCategory', '3062200000000000011', '/content-center/article-category', 5.00, '文章分类', NULL, NULL),
+  ('3062200000000010073', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/sensitive-words', '', '1', 'ContentSensitiveWords', '3062200000000000011', '/content-center/sensitive-words', 6.00, '敏感词管理', NULL, NULL),
+  ('3062200000000010074', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/custom-words', '', '1', 'ContentCustomWords', '3062200000000000011', '/content-center/custom-words', 7.00, '自定义词库', NULL, NULL),
   ('3062200000000010077', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/app-version', '', '1', 'ContentAppVersion', '3062200000000000011', '/content-center/app-version', 8.00, 'APP版本', NULL, NULL),
   ('3062200000000000012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center', 'ep:setting', '0', 'SupportVerificationSource', '0', '/support-center', 120.00, '系统支撑', NULL, NULL),
   ('3062200000000010078', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/verification-source', '', '1', 'SupportVerificationSource', '3062200000000000012', '/support-center/verification-source', 1.00, '验证码资源', NULL, NULL),
@@ -1059,7 +1141,10 @@ UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200
 UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-manage';
 UPDATE li_menu SET permission = '/manager/agent/role*,/manager/agent/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/agent-manage';
 UPDATE li_menu SET permission = '/manager/store/store*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/store-governance/store-audit-log';
-UPDATE li_menu SET permission = '/manager/goods/goods/up*,/manager/goods/goods/get*,/manager/goods/goods/auth*,/manager/goods/goods/under*,/manager/goods/goods/wholesale/list*,/manager/goods/goodsUnit*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-manage';
+UPDATE li_menu
+SET permission = '/manager/goods/goods*,/manager/goods/goodsUnit*,/manager/goods/categoryParameters*,/manager/goods/freightTemplate/store*,/manager/goods/category/allChildren*,/manager/goods/brand/all*,/manager/store/store/all*,/common/common/upload/file*'
+WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110
+  AND path = '/goods-governance/goods-manage';
 UPDATE li_menu SET permission = '/manager/goods/brand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/brand-manage';
 UPDATE li_menu SET permission = '/manager/goods/parameters*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/parameter-manage';
 UPDATE li_menu SET permission = '/manager/goods/category*,/manager/goods/brand/all*,/manager/goods/categoryBrand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/category-manage';
@@ -1091,9 +1176,8 @@ UPDATE li_menu SET permission = '/manager/wallet/wallet/page*' WHERE id BETWEEN 
 UPDATE li_menu SET permission = '/manager/wallet/withdrawApply*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/withdraw-apply';
 UPDATE li_menu SET permission = '/manager/reconciliation/purchase*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/procurement-reconciliation';
 UPDATE li_menu SET permission = '/manager/reconciliation/fund*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/fund-governance/fund-reconciliation';
-UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/platform-config/base-setting','/platform-config/payment-setting','/platform-config/withdraw-setting','/platform-config/oss-setting','/platform-config/sms-setting','/platform-config/email-setting','/platform-config/goods-setting','/platform-config/order-setting','/platform-config/logistics-setting','/platform-config/point-setting','/platform-config/experience-setting','/platform-config/seckill-setting','/platform-config/im-setting','/platform-config/connect-setting','/platform-config/distribution-setting','/platform-config/alipay-setting','/platform-config/wechat-payment-setting','/platform-config/unionpay-setting','/platform-config/wechat-connect-setting','/platform-config/qq-connect-setting','/platform-config/hot-words-setting','/platform-config/wx-channels-setting');
+UPDATE li_menu SET permission = '/manager/setting/setting/get*,/manager/setting/setting/put*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/platform-config/base-setting','/platform-config/payment-setting','/platform-config/withdraw-setting','/platform-config/oss-setting','/platform-config/sms-setting','/platform-config/email-setting','/platform-config/goods-setting','/platform-config/order-setting','/platform-config/logistics-setting','/platform-config/point-setting','/platform-config/seckill-setting','/platform-config/im-setting','/platform-config/connect-setting','/platform-config/distribution-setting','/platform-config/alipay-setting','/platform-config/wechat-payment-setting','/platform-config/unionpay-setting','/platform-config/wx-channels-setting');
 UPDATE li_menu SET permission = '/manager/passport/member*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-list';
-UPDATE li_menu SET permission = '/manager/member/memberGrade*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-grade';
 UPDATE li_menu SET permission = '/manager/passport/member*,/manager/member/memberGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-group';
 UPDATE li_menu SET permission = '/manager/member/benefit*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-benefit';
 UPDATE li_menu SET permission = '/manager/member/memberPointsHistory/getByPage*,/manager/member/memberPointsHistory/getMemberPointsHistoryVO*,/manager/member/memberPointsHistory/queryMemberPointsStatistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-points-history';
@@ -1108,12 +1192,13 @@ UPDATE li_menu SET permission = '/manager/message/serviceNotice*' WHERE id BETWE
 UPDATE li_menu SET permission = '/manager/other/message*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/message-channel';
 UPDATE li_menu SET permission = '/manager/other/memberMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-message';
 UPDATE li_menu SET permission = '/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/store-message';
-UPDATE li_menu SET permission = '/manager/other/platformHomeConfig*,/manager/goods/category/allChildren*,/manager/goods/goods/wholesale/list*,/manager/goods/goods/get*,/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/home-config';
+UPDATE li_menu SET permission = '/manager/other/homeAdvertisement*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/advertisement';
+UPDATE li_menu SET permission = '/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/special-manage';
+UPDATE li_menu SET permission = '/manager/other/homeRecommendationStrategy*,/manager/goods/category/allChildren*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/recommendation-strategy';
 UPDATE li_menu SET permission = '/manager/other/article*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article';
 UPDATE li_menu SET permission = '/manager/other/articleCategory*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/article-category';
 UPDATE li_menu SET permission = '/manager/other/sensitiveWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/sensitive-words';
 UPDATE li_menu SET permission = '/manager/other/customWords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/custom-words';
-UPDATE li_menu SET permission = '/manager/hotwords/hotwords*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/hot-words-manage';
 UPDATE li_menu SET permission = '/manager/other/appVersion*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/app-version';
 UPDATE li_menu SET permission = '/manager/other/verificationSource*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/verification-source';
 UPDATE li_menu SET permission = '/manager/setting/region*,/common/common/region/allCity*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/region-manage';
@@ -1324,6 +1409,452 @@ WHERE (sku.`barcode` IS NULL OR sku.`barcode` = '')
 
 -- BEGIN patch_wholesale_manager_menu_finalize.sql
 DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_finalize_seed`;
+
+UPDATE `li_store_settlement_profile` p
+INNER JOIN `li_store_detail` d ON d.`store_id` = p.`store_id`
+SET
+  p.`bank_account_name` = COALESCE(NULLIF(p.`bank_account_name`, ''), d.`settlement_bank_account_name`),
+  p.`bank_account_number` = COALESCE(NULLIF(p.`bank_account_number`, ''), d.`settlement_bank_account_num`),
+  p.`bank_branch_name` = COALESCE(NULLIF(p.`bank_branch_name`, ''), d.`settlement_bank_branch_name`),
+  p.`bank_joint_code` = COALESCE(NULLIF(p.`bank_joint_code`, ''), d.`settlement_bank_joint_name`),
+  p.`settlement_cycle` = COALESCE(NULLIF(p.`settlement_cycle`, ''), d.`settlement_cycle`),
+  p.`settlement_day` = COALESCE(p.`settlement_day`, d.`settlement_day`);
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'apply_type'
+);
+SET @sql := IF(@col_exists = 1,
+  'ALTER TABLE `li_store` DROP COLUMN `apply_type`',
+  'SELECT ''li_store.apply_type missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'apply_type';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.apply_type missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_name';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_name missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_address';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_address_id_path';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address_id_path missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_address_path';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address_path missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_phone';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_phone missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'company_email';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_email missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'employee_num';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.employee_num missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'registered_capital';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.registered_capital missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'link_name';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.link_name missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'link_phone';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.link_phone missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'license_num';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.license_num missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'scope';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.scope missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'licence_photo';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.licence_photo missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'legal_photo';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.legal_photo missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'id_card_front_url';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.id_card_front_url missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'id_card_back_url';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.id_card_back_url missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_bank_account_name';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_account_name missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_bank_account_num';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_account_num missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_bank_branch_name';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_branch_name missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_bank_joint_name';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_joint_name missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_cycle';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_cycle missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @drop_col := 'settlement_day';
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
+);
+SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_day missing''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Store apply refactor patch
+-- 将批发阶段一老入驻结构收敛到新三步流程结构，并拆分结算资料表。
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'subject_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `subject_type` varchar(32) DEFAULT NULL COMMENT ''入驻主体类型'' AFTER `store_name`',
+  'SELECT ''li_store.subject_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'company_identity_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store` ADD COLUMN `company_identity_type` varchar(32) DEFAULT NULL COMMENT ''企业身份类型'' AFTER `subject_type`',
+  'SELECT ''li_store.company_identity_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_logo'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_logo` varchar(255) DEFAULT NULL COMMENT ''店铺logo'' AFTER `store_name`',
+  'SELECT ''li_store_detail.store_logo exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_desc'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_desc` varchar(255) DEFAULT NULL COMMENT ''店铺简介'' AFTER `store_logo`',
+  'SELECT ''li_store_detail.store_desc exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_center'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_center` varchar(255) DEFAULT NULL COMMENT ''经纬度'' AFTER `store_desc`',
+  'SELECT ''li_store_detail.store_center exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_address_path'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_address_path` varchar(255) DEFAULT NULL COMMENT ''店铺地址名称'' AFTER `store_center`',
+  'SELECT ''li_store_detail.store_address_path exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_address_id_path'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_address_id_path` varchar(255) DEFAULT NULL COMMENT ''店铺地址ID路径'' AFTER `store_address_path`',
+  'SELECT ''li_store_detail.store_address_id_path exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'store_address_detail'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `store_address_detail` varchar(255) DEFAULT NULL COMMENT ''店铺详细地址'' AFTER `store_address_id_path`',
+  'SELECT ''li_store_detail.store_address_detail exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'subject_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `subject_type` varchar(32) DEFAULT NULL COMMENT ''主体类型'' AFTER `store_address_detail`',
+  'SELECT ''li_store_detail.subject_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'company_identity_type'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `company_identity_type` varchar(32) DEFAULT NULL COMMENT ''企业身份类型'' AFTER `subject_type`',
+  'SELECT ''li_store_detail.company_identity_type exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'real_name'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `real_name` varchar(64) DEFAULT NULL COMMENT ''个人/经营者/被授权人姓名'' AFTER `indoor_image_urls`',
+  'SELECT ''li_store_detail.real_name exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'id_card_no'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `id_card_no` varchar(64) DEFAULT NULL COMMENT ''个人/经营者/被授权人身份证号'' AFTER `real_name`',
+  'SELECT ''li_store_detail.id_card_no exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'legal_mobile'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `legal_mobile` varchar(32) DEFAULT NULL COMMENT ''主体手机号'' AFTER `legal_id`',
+  'SELECT ''li_store_detail.legal_mobile exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+  SELECT COUNT(1) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = 'authorization_url'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE `li_store_detail` ADD COLUMN `authorization_url` varchar(255) DEFAULT NULL COMMENT ''授权书'' AFTER `legal_mobile`',
+  'SELECT ''li_store_detail.authorization_url exists''');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS `li_store_settlement_profile` (
+  `id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'ID',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime(6) DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime(6) DEFAULT NULL COMMENT '更新时间',
+  `delete_flag` bit(1) DEFAULT b'0' COMMENT '删除标志 true/false 删除/未删除',
+  `store_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '店铺ID',
+  `bank_account_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '银行开户名',
+  `bank_account_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '银行账号',
+  `bank_branch_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '开户支行',
+  `bank_joint_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '联行号',
+  `settlement_cycle` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '结算周期',
+  `settlement_day` datetime(6) DEFAULT NULL COMMENT '结算日',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_li_store_settlement_profile_store_id` (`store_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='店铺结算资料';
+
+UPDATE `li_store`
+SET
+  `subject_type` = CASE `apply_type`
+    WHEN 'PERSONAL' THEN 'PERSONAL'
+    WHEN 'INDIVIDUAL' THEN 'INDIVIDUAL'
+    WHEN 'COMPANY_LEGAL' THEN 'COMPANY'
+    WHEN 'COMPANY_NON_LEGAL' THEN 'COMPANY'
+    ELSE `subject_type`
+  END,
+  `company_identity_type` = CASE `apply_type`
+    WHEN 'COMPANY_LEGAL' THEN 'LEGAL'
+    WHEN 'COMPANY_NON_LEGAL' THEN 'AUTHORIZED'
+    ELSE `company_identity_type`
+  END
+WHERE `apply_type` IS NOT NULL AND (`subject_type` IS NULL OR `subject_type` = '');
+
+UPDATE `li_store_detail`
+SET
+  `subject_type` = CASE `apply_type`
+    WHEN 'PERSONAL' THEN 'PERSONAL'
+    WHEN 'INDIVIDUAL' THEN 'INDIVIDUAL'
+    WHEN 'COMPANY_LEGAL' THEN 'COMPANY'
+    WHEN 'COMPANY_NON_LEGAL' THEN 'COMPANY'
+    ELSE `subject_type`
+  END,
+  `company_identity_type` = CASE `apply_type`
+    WHEN 'COMPANY_LEGAL' THEN 'LEGAL'
+    WHEN 'COMPANY_NON_LEGAL' THEN 'AUTHORIZED'
+    ELSE `company_identity_type`
+  END
+WHERE `apply_type` IS NOT NULL AND (`subject_type` IS NULL OR `subject_type` = '');
+
+UPDATE `li_store_detail` d
+INNER JOIN `li_store` s ON s.`id` = d.`store_id`
+SET
+  d.`store_name` = COALESCE(NULLIF(d.`store_name`, ''), s.`store_name`),
+  d.`store_logo` = COALESCE(NULLIF(d.`store_logo`, ''), s.`store_logo`),
+  d.`store_desc` = COALESCE(NULLIF(d.`store_desc`, ''), s.`store_desc`),
+  d.`store_center` = COALESCE(NULLIF(d.`store_center`, ''), s.`store_center`),
+  d.`store_address_path` = COALESCE(NULLIF(d.`store_address_path`, ''), s.`store_address_path`),
+  d.`store_address_id_path` = COALESCE(NULLIF(d.`store_address_id_path`, ''), s.`store_address_id_path`),
+  d.`store_address_detail` = COALESCE(NULLIF(d.`store_address_detail`, ''), s.`store_address_detail`),
+  d.`subject_type` = COALESCE(NULLIF(d.`subject_type`, ''), s.`subject_type`),
+  d.`company_identity_type` = COALESCE(NULLIF(d.`company_identity_type`, ''), s.`company_identity_type`),
+  d.`store_type` = COALESCE(NULLIF(d.`store_type`, ''), s.`store_type`),
+  d.`agent_level` = COALESCE(NULLIF(d.`agent_level`, ''), s.`agent_level`),
+  d.`agent_region_id` = COALESCE(NULLIF(d.`agent_region_id`, ''), s.`agent_region_id`),
+  d.`agent_region_name` = COALESCE(NULLIF(d.`agent_region_name`, ''), s.`agent_region_name`);
+
+UPDATE `li_store_detail`
+SET `business_license_url` = `licence_photo`
+WHERE (`business_license_url` IS NULL OR `business_license_url` = '')
+  AND `licence_photo` IS NOT NULL
+  AND `licence_photo` != '';
+
+INSERT INTO `li_store_settlement_profile` (
+  `id`,
+  `create_by`,
+  `create_time`,
+  `update_by`,
+  `update_time`,
+  `delete_flag`,
+  `store_id`,
+  `bank_account_name`,
+  `bank_account_number`,
+  `bank_branch_name`,
+  `bank_joint_code`,
+  `settlement_cycle`,
+  `settlement_day`
+)
+SELECT
+  CONCAT('SSP_', d.`store_id`),
+  COALESCE(d.`create_by`, 'admin'),
+  COALESCE(d.`create_time`, NOW(6)),
+  d.`update_by`,
+  d.`update_time`,
+  COALESCE(d.`delete_flag`, b'0'),
+  d.`store_id`,
+  d.`settlement_bank_account_name`,
+  d.`settlement_bank_account_num`,
+  d.`settlement_bank_branch_name`,
+  d.`settlement_bank_joint_name`,
+  d.`settlement_cycle`,
+  d.`settlement_day`
+FROM `li_store_detail` d
+LEFT JOIN `li_store_settlement_profile` p ON p.`store_id` = d.`store_id`
+WHERE p.`store_id` IS NULL
+  AND (
+    NULLIF(d.`settlement_bank_account_name`, '') IS NOT NULL
+    OR NULLIF(d.`settlement_bank_account_num`, '') IS NOT NULL
+    OR NULLIF(d.`settlement_bank_branch_name`, '') IS NOT NULL
+    OR NULLIF(d.`settlement_bank_joint_name`, '') IS NOT NULL
+    OR NULLIF(d.`settlement_cycle`, '') IS NOT NULL
+    OR d.`settlement_day` IS NOT NULL
+  );
 
 CREATE TEMPORARY TABLE `tmp_wholesale_manager_menu_finalize_seed` (
   `id` bigint NOT NULL,

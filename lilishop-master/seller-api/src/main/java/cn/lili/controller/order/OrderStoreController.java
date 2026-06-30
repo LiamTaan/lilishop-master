@@ -11,8 +11,12 @@ import cn.lili.common.security.context.UserContext;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.member.entity.dto.MemberAddressDTO;
 import cn.lili.modules.member.service.StoreLogisticsService;
+import cn.lili.modules.order.order.entity.dto.OrderCancelDTO;
+import cn.lili.modules.order.order.entity.dto.OrderDeliveryDTO;
+import cn.lili.modules.order.order.entity.dto.OrderPriceUpdateDTO;
 import cn.lili.modules.order.order.entity.dto.OrderSearchParams;
 import cn.lili.modules.order.order.entity.dto.PartDeliveryParamsDTO;
+import cn.lili.modules.order.order.entity.dto.OrderSellerRemarkDTO;
 import cn.lili.modules.order.order.entity.vo.OrderDetailVO;
 import cn.lili.modules.order.order.entity.vo.OrderNumVO;
 import cn.lili.modules.order.order.entity.vo.OrderSimpleVO;
@@ -100,19 +104,18 @@ public class OrderStoreController {
     @Parameter(name = "orderSn", description = "订单sn", required = true)
     @PostMapping("/update/{orderSn}/consignee")
     public ResultMessage<Object> consignee(@NotNull(message = "参数非法") @PathVariable String orderSn,
-                                           @Valid MemberAddressDTO memberAddressDTO) {
+                                           @Valid @RequestBody MemberAddressDTO memberAddressDTO) {
         return ResultUtil.data(orderService.updateConsignee(orderSn, memberAddressDTO));
     }
 
     @PreventDuplicateSubmissions
     @Operation(description = "修改订单价格")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "orderPrice", description = "订单价格", required = true)
     @PutMapping("/update/{orderSn}/price")
     public ResultMessage<Object> updateOrderPrice(@PathVariable String orderSn,
-                                                  @NotNull(message = "订单价格不能为空") @RequestParam Double orderPrice) {
-        if (NumberUtil.isGreater(Convert.toBigDecimal(orderPrice), Convert.toBigDecimal(0))) {
-            return ResultUtil.data(orderPriceService.updatePrice(orderSn, orderPrice));
+                                                  @RequestBody @Valid OrderPriceUpdateDTO updateDTO) {
+        if (NumberUtil.isGreater(Convert.toBigDecimal(updateDTO.getPrice()), Convert.toBigDecimal(0))) {
+            return ResultUtil.data(orderPriceService.updatePrice(orderSn, updateDTO.getPrice()));
         } else {
             return ResultUtil.error(ResultCode.ORDER_PRICE_ERROR);
         }
@@ -121,25 +124,19 @@ public class OrderStoreController {
     @PreventDuplicateSubmissions
     @Operation(description = "订单发货")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "logisticsNo", description = "发货单号", required = true)
-    @Parameter(name = "logisticsId", description = "物流公司", required = true)
     @PostMapping("/{orderSn}/delivery")
     public ResultMessage<Object> delivery(@NotNull(message = "参数非法") @PathVariable String orderSn,
-                                          @NotNull(message = "发货单号不能为空") String logisticsNo,
-                                          @NotNull(message = "请选择物流公司") String logisticsId) {
-        return ResultUtil.data(orderService.delivery(orderSn, logisticsNo, logisticsId));
+                                          @RequestBody @Valid OrderDeliveryDTO deliveryDTO) {
+        return ResultUtil.data(orderService.delivery(orderSn, deliveryDTO.getLogisticsNo(), deliveryDTO.getLogisticsId()));
     }
 
     @PreventDuplicateSubmissions
     @Operation(description = "订单发货(阶段三对齐接口)")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "logisticsNo", description = "发货单号", required = true)
-    @Parameter(name = "logisticsId", description = "物流公司", required = true)
     @PutMapping("/{orderSn}/deliver")
     public ResultMessage<Object> deliver(@NotNull(message = "参数非法") @PathVariable String orderSn,
-                                         @NotNull(message = "发货单号不能为空") String logisticsNo,
-                                         @NotNull(message = "请选择物流公司") String logisticsId) {
-        return ResultUtil.data(orderService.delivery(orderSn, logisticsNo, logisticsId));
+                                         @RequestBody @Valid OrderDeliveryDTO deliveryDTO) {
+        return ResultUtil.data(orderService.delivery(orderSn, deliveryDTO.getLogisticsNo(), deliveryDTO.getLogisticsId()));
     }
 
     @PreventDuplicateSubmissions
@@ -153,10 +150,9 @@ public class OrderStoreController {
     @PreventDuplicateSubmissions
     @Operation(description = "取消订单")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "reason", description = "取消原因", required = true)
     @PostMapping("/{orderSn}/cancel")
-    public ResultMessage<Object> cancel(@PathVariable String orderSn, @RequestParam String reason) {
-        return ResultUtil.data(orderService.cancel(orderSn, reason));
+    public ResultMessage<Object> cancel(@PathVariable String orderSn, @RequestBody @Valid OrderCancelDTO cancelDTO) {
+        return ResultUtil.data(orderService.cancel(orderSn, cancelDTO.getReason()));
     }
 
 
@@ -216,11 +212,10 @@ public class OrderStoreController {
     @PreventDuplicateSubmissions
     @Operation(description = "创建电子面单")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "logisticsId", description = "物流公司", required = true)
     @PostMapping("/{orderSn}/createElectronicsFaceSheet")
     public ResultMessage<Object> createElectronicsFaceSheet(@NotNull(message = "参数非法") @PathVariable String orderSn,
-                                                            @NotNull(message = "请选择物流公司") String logisticsId) {
-        return ResultUtil.data(logisticsService.labelOrder(orderSn, logisticsId));
+                                                            @RequestBody @Valid OrderDeliveryDTO deliveryDTO) {
+        return ResultUtil.data(logisticsService.labelOrder(orderSn, deliveryDTO.getLogisticsId()));
     }
 
     
@@ -240,8 +235,6 @@ public class OrderStoreController {
 
     @Operation(description = "订单包裹发货")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "logisticsNo", description = "发货单号", required = true)
-    @Parameter(name = "logisticsId", description = "物流公司", required = true)
     @PostMapping("/{orderSn}/partDelivery")
     public ResultMessage<Object> delivery(@RequestBody PartDeliveryParamsDTO partDeliveryParamsDTO) {
         return ResultUtil.data(orderService.partDelivery(partDeliveryParamsDTO));
@@ -249,10 +242,9 @@ public class OrderStoreController {
 
     @Operation(description = "卖家订单备注")
     @Parameter(name = "orderSn", description = "订单sn", required = true)
-    @Parameter(name = "sellerRemark", description = "卖家备注", required = true)
     @PutMapping("/{orderSn}/sellerRemark")
-    public ResultMessage<Object> sellerRemark(@PathVariable String orderSn, @RequestParam String sellerRemark) {
-        orderService.updateSellerRemark(orderSn, sellerRemark);
+    public ResultMessage<Object> sellerRemark(@PathVariable String orderSn, @RequestBody @Valid OrderSellerRemarkDTO sellerRemarkDTO) {
+        orderService.updateSellerRemark(orderSn, sellerRemarkDTO.getSellerRemark());
         return ResultUtil.success();
     }
 }

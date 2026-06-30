@@ -52,7 +52,7 @@ public class StoreAddressController {
 
     @Operation(description = "添加")
     @PostMapping
-    public ResultMessage<StoreAddress> add(@Valid StoreAddress storeAddress) {
+    public ResultMessage<StoreAddress> add(@Valid @RequestBody StoreAddress storeAddress) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         storeAddress.setStoreId(storeId);
         storeAddressService.save(storeAddress);
@@ -62,7 +62,7 @@ public class StoreAddressController {
     @Operation(description = "编辑")
     @Parameter(name = "id", description = "自提点ID", required = true)
     @PutMapping("/{id}")
-    public ResultMessage<StoreAddress> edit(@PathVariable String id, @Valid StoreAddress storeAddress) {
+    public ResultMessage<StoreAddress> edit(@PathVariable String id, @Valid @RequestBody StoreAddress storeAddress) {
         OperationalJudgment.judgment(storeAddressService.getById(id));
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         storeAddress.setId(id);

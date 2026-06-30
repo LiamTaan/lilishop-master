@@ -37,4 +37,16 @@ public class PlatformHomeVO {
 
     @Schema(description = "常用店铺")
     private List<PlatformHomeStoreCardVO> frequentStores;
+
+    @Schema(description = "猜你喜欢商品")
+    private List<PlatformHomeGoodsCardVO> guessYouLikeGoods;
+
+    @Schema(description = "低价专区商品")
+    private List<PlatformHomeGoodsCardVO> lowPriceZoneGoods;
+
+    @Schema(description = "今日特惠商品")
+    private List<PlatformHomeGoodsCardVO> todaySpecialGoods;
+
+    @Schema(description = "推荐模块聚合列表")
+    private List<PlatformHomeRecommendationModuleVO> recommendationModules;
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import {
   createGoodsGroup,
   deleteGoodsGroup,
@@ -19,6 +20,7 @@ defineOptions({
 });
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const groupGoods = ref<Record<string, any>[]>([]);
 const detailRow = ref<Record<string, any> | null>(null);
 const dialogVisible = ref(false);
@@ -59,6 +61,9 @@ const filteredRows = computed(() =>
   rows.value.filter(item =>
     query.keyword ? String(item.groupName).includes(query.keyword) : true
   )
+);
+const selectedIds = computed(() =>
+  [...new Set(selectedRows.value.map(item => String(item.id || "")).filter(Boolean))]
 );
 
 const summaryCards = computed(() => [
@@ -107,6 +112,10 @@ function handleSearch(payload: { keyword: string; status: string }) {
 
 function handleReset() {
   query.keyword = "";
+}
+
+function handleSelectionChange(selection: Record<string, any>[]) {
+  selectedRows.value = selection;
 }
 
 function resetForm() {
@@ -184,6 +193,36 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedRows.value.length) {
+    message("请先选择要删除的商品分组", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认批量删除选中的 ${selectedRows.value.length} 个商品分组吗？`,
+    "批量删除确认",
+    {
+      type: "warning"
+    }
+  );
+  const results = await Promise.allSettled(
+    selectedRows.value.map(row => deleteGoodsGroup(String(row.id)))
+  );
+  const successCount = results.filter(item => item.status === "fulfilled").length;
+  const failCount = results.length - successCount;
+  if (failCount > 0) {
+    message(
+      `${successCount} 个商品分组删除成功，${failCount} 个删除失败，请先移除分组商品`,
+      {
+        type: successCount > 0 ? "warning" : "error"
+      }
+    );
+  } else {
+    message("商品分组批量删除成功", { type: "success" });
+  }
+  await loadData();
+}
+
 async function openGoodsDialog(row: Record<string, any>) {
   goodsGroupId.value = String(row.id);
   goodsForm.goodsIdsText = "";
@@ -225,6 +264,24 @@ async function submitGoodsBinding() {
   }
 }
 
+function exportGroups() {
+  if (!filteredRows.value.length) {
+    message("暂无可导出的商品分组", { type: "warning" });
+    return;
+  }
+  const worksheet = utils.json_to_sheet(
+    filteredRows.value.map(item => ({
+      分组名称: item.groupName,
+      分组描述: item.description,
+      更新时间: item.updateTime
+    }))
+  );
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "商品分组");
+  writeFile(workbook, "商品分组.xlsx");
+  message("商品分组导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -238,14 +295,20 @@ onMounted(() => {
     :columns="columns"
     :data="filteredRows"
     :summary-cards="summaryCards"
+    :selectable="true"
     :show-status-filter="false"
     keyword-label="分组名称"
     keyword-placeholder="请输入分组名称"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
       <el-button type="primary" @click="openCreate">新增分组</el-button>
+      <el-button :disabled="!filteredRows.length" @click="exportGroups">导出</el-button>
+      <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">
+        批量删除
+      </el-button>
     </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>

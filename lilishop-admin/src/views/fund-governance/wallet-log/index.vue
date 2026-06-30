@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { getMemberWallet, getWalletLogPage } from "@/api/fund-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
@@ -7,6 +8,7 @@ import {
   extractApiRecords,
   getWalletServiceTypeLabel
 } from "@/utils/admin-governance";
+import { message } from "@/utils/message";
 import { columns } from "./columns";
 
 defineOptions({
@@ -58,7 +60,10 @@ function normalizeWalletLogRecord(item: Record<string, any>) {
 }
 
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.memberName = query.keyword;
   const res = await getWalletLogPage(params);
   const rows = extractApiRecords(res).map(normalizeWalletLogRecord);
@@ -93,6 +98,26 @@ function handleReset() {
   loadData();
 }
 
+function exportWalletLogs() {
+  if (!filteredData.value.length) {
+    message("暂无可导出的余额记录", { type: "warning" });
+    return;
+  }
+  const table = filteredData.value.map(item => ({
+    流水号: item.sn,
+    会员名称: item.memberName,
+    流水类型: item.serviceTypeLabel,
+    变动金额: item.amount,
+    当前余额: item.balanceAfter,
+    创建时间: item.createTime
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "余额记录");
+  writeFile(workbook, "余额记录.xlsx");
+  message("余额记录导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -122,5 +147,9 @@ onMounted(() => {
     keyword-placeholder="请输入会员名称"
     @search="handleSearch"
     @reset="handleReset"
-  />
+  >
+    <template #table-extra>
+      <el-button @click="exportWalletLogs">导出</el-button>
+    </template>
+  </WholesaleAdminPage>
 </template>

@@ -9,7 +9,7 @@ import {
   updateManagerDepartment
 } from "@/api/system";
 import { addDialog } from "@/components/ReDialog";
-import { reactive, ref, onMounted, h } from "vue";
+import { reactive, ref, onMounted, h, computed } from "vue";
 import type { FormItemProps } from "../utils/types";
 import { cloneDeep, deviceDetection } from "@pureadmin/utils";
 import { extractApiRecords } from "@/utils/admin-governance";
@@ -58,10 +58,18 @@ export function useDept() {
 
   const formRef = ref();
   const dataList = ref<DepartmentRow[]>([]);
+  const selectedRows = ref<DepartmentRow[]>([]);
   const sourceTree = ref<DepartmentRow[]>([]);
   const loading = ref(true);
+  const selectedNum = computed(() => selectedRows.value.length);
 
   const columns: TableColumnList = [
+    {
+      type: "selection",
+      width: 54,
+      reserveSelection: true,
+      align: "center"
+    },
     {
       label: "部门名称",
       prop: "title",
@@ -94,7 +102,7 @@ export function useDept() {
   ];
 
   function handleSelectionChange(val) {
-    console.log("handleSelectionChange", val);
+    selectedRows.value = Array.isArray(val) ? val : [];
   }
 
   function resetForm(formEl) {
@@ -192,6 +200,24 @@ export function useDept() {
     }
   }
 
+  async function onbatchDel() {
+    const ids = selectedRows.value.map(item => item.id).filter(Boolean);
+    if (!ids.length) return;
+    try {
+      const response = await deleteManagerDepartments(ids);
+      if (!isSuccessResult(response)) {
+        throw new Error(response?.message || "批量删除部门失败");
+      }
+      selectedRows.value = [];
+      message(`已删除部门编号为 ${ids.join(", ")} 的数据`, {
+        type: "success"
+      });
+      await onSearch();
+    } catch (error: any) {
+      message(getErrorMessage(error, "批量删除部门失败"), { type: "error" });
+    }
+  }
+
   onMounted(() => {
     onSearch();
   });
@@ -205,6 +231,8 @@ export function useDept() {
     resetForm,
     openDialog,
     handleDelete,
+    onbatchDel,
+    selectedNum,
     handleSelectionChange
   };
 }

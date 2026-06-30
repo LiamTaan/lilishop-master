@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createMessageChannel,
@@ -13,6 +14,7 @@ import { message } from "@/utils/message";
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const currentRow = ref<Record<string, any> | null>(null);
 const query = reactive({
   keyword: "",
@@ -59,8 +61,17 @@ const summaryCards = computed(() => [
   }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 async function loadData() {
-  const params: Record<string, any> = {};
+  const params: Record<string, any> = {
+    pageNumber: 1,
+    pageSize: 200
+  };
   if (query.keyword) params.title = query.keyword;
   if (query.status) params.status = query.status;
   const res = await getMessageChannelPage(params);
@@ -72,6 +83,7 @@ async function loadData() {
     displayTime: item.createTime || item.sendTime || "-",
     displayRemark: item.content || item.remark || "-"
   }));
+  selectedRows.value = [];
 }
 
 function handleSearch(payload: { keyword: string; status: string }) {
@@ -84,6 +96,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 async function handleSendMessage() {
@@ -122,6 +138,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的消息", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 条消息吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteMessageChannel(id)));
+    selectedRows.value = [];
+    message("消息批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("消息批量删除失败，请稍后重试", { type: "error" });
+  }
+}
+
+function exportMessages() {
+  if (!rows.value.length) {
+    message("暂无可导出的消息发送数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    消息标题: item.displayName,
+    发送状态: item.displayStatus,
+    发送时间: item.displayTime,
+    消息内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "消息发送管理");
+  writeFile(workbook, "消息发送管理.xlsx");
+  message("消息发送数据导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -134,6 +188,7 @@ onMounted(() => {
     api-path="/manager/other/message"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :quick-actions="[
       { label: '发送动作', value: '已接入', type: 'primary' },
@@ -144,8 +199,11 @@ onMounted(() => {
     keyword-placeholder="请输入消息标题"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportMessages">导出</el-button>
       <el-button type="primary" @click="dialogVisible = true">发送消息</el-button>
     </template>
     <template #operation="{ row }">

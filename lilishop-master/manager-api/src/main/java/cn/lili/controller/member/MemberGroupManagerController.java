@@ -6,13 +6,12 @@ import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.member.entity.dos.MemberGroup;
 import cn.lili.modules.member.entity.dos.MemberGroupUser;
+import cn.lili.modules.member.entity.dto.MemberGroupUsersUpdateDTO;
+import cn.lili.modules.member.entity.dto.MemberUserGroupsUpdateDTO;
 import cn.lili.modules.member.service.MemberGroupService;
 import cn.lili.modules.member.service.MemberGroupUserService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@Tag(name = "管理端,客户分组接口")
 @RequestMapping("/manager/member/memberGroup")
 public class MemberGroupManagerController {
 
@@ -30,43 +28,33 @@ public class MemberGroupManagerController {
     @Autowired
     private MemberGroupUserService memberGroupUserService;
 
-    @Operation(description = "通过id获取客户分组")
-    @Parameter(name = "id", description = "客户分组ID", required = true)
     @GetMapping("/get/{id}")
     public ResultMessage<MemberGroup> get(@PathVariable String id) {
         return ResultUtil.data(memberGroupService.getById(id));
     }
 
-    @Operation(description = "获取客户分组分页")
-    @Parameter(name = "page", description = "分页参数")
     @GetMapping("/getByPage")
     public ResultMessage<IPage<MemberGroup>> getByPage(PageVO page) {
         return ResultUtil.data(memberGroupService.page(PageUtil.initPage(page)));
     }
 
-    @Operation(description = "添加客户分组")
-    @Parameter(name = "memberGroup", description = "客户分组")
     @PostMapping
-    public ResultMessage<Object> add(@Validated MemberGroup memberGroup) {
+    public ResultMessage<Object> add(@Validated @RequestBody MemberGroup memberGroup) {
         if (memberGroupService.save(memberGroup)) {
             return ResultUtil.success(ResultCode.SUCCESS);
         }
         return ResultUtil.error(ResultCode.ERROR);
     }
 
-    @Operation(description = "修改客户分组")
-    @Parameter(name = "id", description = "客户分组ID", required = true)
-    @Parameter(name = "memberGroup", description = "客户分组")
     @PutMapping("/update/{id}")
-    public ResultMessage<Object> update(@PathVariable String id, MemberGroup memberGroup) {
+    public ResultMessage<Object> update(@PathVariable String id, @RequestBody MemberGroup memberGroup) {
+        memberGroup.setId(id);
         if (memberGroupService.updateById(memberGroup)) {
             return ResultUtil.success(ResultCode.SUCCESS);
         }
         return ResultUtil.error(ResultCode.ERROR);
     }
 
-    @Operation(description = "删除客户分组")
-    @Parameter(name = "id", description = "客户分组ID", required = true)
     @DeleteMapping("/delete/{id}")
     public ResultMessage<Object> delete(@PathVariable String id) {
         long count = memberGroupUserService.countByGroupId(id);
@@ -79,28 +67,19 @@ public class MemberGroupManagerController {
         return ResultUtil.error(ResultCode.ERROR);
     }
 
-    @Operation(description = "给分组添加客户")
-    @Parameter(name = "groupId", description = "客户分组ID", required = true)
-    @Parameter(name = "memberIds", description = "客户ID列表", required = true)
     @PostMapping("/{groupId}/users")
-    public ResultMessage<Object> addUsers(@PathVariable String groupId, @RequestParam List<String> memberIds) {
-        if (memberGroupUserService.updateGroupUsers(groupId, memberIds)) {
+    public ResultMessage<Object> addUsers(@PathVariable String groupId, @RequestBody @Validated MemberGroupUsersUpdateDTO updateDTO) {
+        if (memberGroupUserService.updateGroupUsers(groupId, updateDTO.getMemberIds())) {
             return ResultUtil.success(ResultCode.SUCCESS);
         }
         return ResultUtil.error(ResultCode.ERROR);
     }
 
-    @Operation(description = "获取分组下客户分页")
-    @Parameter(name = "groupId", description = "客户分组ID", required = true)
-    @Parameter(name = "page", description = "分页参数")
     @GetMapping("/{groupId}/users")
     public ResultMessage<IPage<MemberGroupUser>> getGroupUsers(@PathVariable String groupId, PageVO page) {
         return ResultUtil.data(memberGroupUserService.pageByGroupId(groupId, page));
     }
 
-    @Operation(description = "移除分组中的客户")
-    @Parameter(name = "groupId", description = "客户分组ID", required = true)
-    @Parameter(name = "memberId", description = "客户ID", required = true)
     @DeleteMapping("/{groupId}/user/{memberId}")
     public ResultMessage<Object> removeUser(@PathVariable String groupId, @PathVariable String memberId) {
         if (memberGroupUserService.removeByGroupAndMember(groupId, memberId)) {
@@ -109,12 +88,9 @@ public class MemberGroupManagerController {
         return ResultUtil.error(ResultCode.ERROR);
     }
 
-    @Operation(description = "给客户设定分组")
-    @Parameter(name = "memberId", description = "客户ID", required = true)
-    @Parameter(name = "groupIds", description = "分组ID列表", required = true)
     @PostMapping("/user/{memberId}/groups")
-    public ResultMessage<Object> setUserGroups(@PathVariable String memberId, @RequestParam List<String> groupIds) {
-        if (memberGroupUserService.updateUserGroups(memberId, groupIds)) {
+    public ResultMessage<Object> setUserGroups(@PathVariable String memberId, @RequestBody @Validated MemberUserGroupsUpdateDTO updateDTO) {
+        if (memberGroupUserService.updateUserGroups(memberId, updateDTO.getGroupIds())) {
             return ResultUtil.success(ResultCode.SUCCESS);
         }
         return ResultUtil.error(ResultCode.ERROR);

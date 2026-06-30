@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import { useMenu } from "./utils/hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -25,6 +26,8 @@ const {
   resetForm,
   openDialog,
   handleDelete,
+  onbatchDel,
+  selectedNum,
   handleSelectionChange
 } = useMenu();
 
@@ -58,6 +61,33 @@ const summaryCards = computed(() => [
 function onFullscreen() {
   // 重置表格高度
   tableRef.value.setAdaptive();
+}
+
+function flattenMenus(list: Record<string, any>[], parentTitle = "") {
+  return list.flatMap(item => [
+    {
+      后端菜单: item.title,
+      管理端菜单: item.currentTitle,
+      路由名称: item.name || "-",
+      后端前端路由: item.frontRoute || "-",
+      管理端路径: item.currentPath || "-",
+      后端路径: item.path || "-",
+      所属菜单组: parentTitle || item.currentParentTitle || "-",
+      权限接口: item.permission || "-",
+      侧边栏显示: item.visibleInSidebar ? "显示" : "隐藏",
+      层级: item.level,
+      排序: item.sortOrder
+    },
+    ...flattenMenus(item.children ?? [], item.title || parentTitle)
+  ]);
+}
+
+function exportMenus() {
+  if (!dataList.value.length) return;
+  const worksheet = utils.json_to_sheet(flattenMenus(dataList.value as any[]));
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "菜单权限配置");
+  writeFile(workbook, "菜单权限配置.xlsx");
 }
 </script>
 
@@ -108,6 +138,12 @@ function onFullscreen() {
       @fullscreen="onFullscreen"
     >
       <template #buttons>
+        <el-button :disabled="!dataList.length" @click="exportMenus">导出</el-button>
+        <el-popconfirm title="是否确认批量删除已选菜单?" @confirm="onbatchDel">
+          <template #reference>
+            <el-button type="danger" :disabled="!selectedNum">批量删除</el-button>
+          </template>
+        </el-popconfirm>
         <el-button
           type="primary"
           :icon="useRenderIcon(AddFill)"

@@ -84,7 +84,7 @@ public class LogisticsStoreController {
     @Operation(description = "修改电子面单参数")
     @Parameter(name = "logisticsId", description = "物流公司ID", required = true)
     @PutMapping("/{logisticsId}/updateStoreLogistics")
-    public ResultMessage<StoreLogistics> updateStoreLogistics(@PathVariable String logisticsId,StoreLogisticsCustomerDTO storeLogisticsCustomerDTO){
+    public ResultMessage<StoreLogistics> updateStoreLogistics(@PathVariable String logisticsId, @RequestBody StoreLogisticsCustomerDTO storeLogisticsCustomerDTO){
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         return ResultUtil.data(storeLogisticsService.update(logisticsId, storeId,storeLogisticsCustomerDTO));
     }

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { message } from "@/utils/message";
 import AdminModuleShell from "@/components/AdminModuleShell";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import { getSettingConfig, saveSettingConfig } from "@/api/super-admin";
 import { isSuccessResult, unwrapResult } from "@/utils/result";
 
@@ -13,7 +14,7 @@ const props = defineProps<{
   fields: Array<{
     key: string;
     label: string;
-    type?: "text" | "textarea" | "number" | "switch" | "password" | "json";
+    type?: "text" | "textarea" | "number" | "switch" | "password" | "json" | "image";
     placeholder?: string;
     rows?: number;
   }>;
@@ -29,8 +30,21 @@ const declaredKeys = computed(() => props.fields.map(field => field.key));
 const missingFieldCount = computed(
   () => props.fields.filter(field => form[field.key] === "" || form[field.key] === undefined || form[field.key] === null).length
 );
+const configuredFieldCount = computed(
+  () => props.fields.length - missingFieldCount.value
+);
 const extraEntries = computed(() =>
   Object.entries(rawConfig.value).filter(([key]) => !declaredKeys.value.includes(key))
+);
+const missingFieldLabels = computed(() =>
+  props.fields
+    .filter(
+      field =>
+        form[field.key] === "" ||
+        form[field.key] === undefined ||
+        form[field.key] === null
+    )
+    .map(field => field.label)
 );
 
 const summaryCards = computed(() => [
@@ -47,9 +61,15 @@ const summaryCards = computed(() => [
     hint: "当前页面已承接配置项"
   },
   {
+    label: "已配置字段",
+    value: configuredFieldCount.value,
+    accent: "green" as const,
+    hint: "当前已有值的配置项"
+  },
+  {
     label: "待补字段",
     value: missingFieldCount.value,
-    accent: "green" as const,
+    accent: "purple" as const,
     hint: "当前配置页仍为空的字段"
   },
   {
@@ -174,6 +194,14 @@ onMounted(() => {
       title="后端返回了当前页面未映射的配置字段，联调时请关注原始配置预览。"
     />
 
+    <el-alert
+      v-if="missingFieldLabels.length"
+      type="info"
+      :closable="false"
+      class="mb-4"
+      :title="`待补字段：${missingFieldLabels.join('、')}`"
+    />
+
     <el-form
       label-width="120px"
       class="setting-form grid grid-cols-1 gap-4 lg:grid-cols-2"
@@ -196,6 +224,11 @@ onMounted(() => {
           v-model="form[field.key]"
           class="w-full!"
           :min="0"
+        />
+        <ImageUploadField
+          v-else-if="field.type === 'image'"
+          v-model="form[field.key]"
+          :tip="`${field.label} 统一走上传组件维护`"
         />
         <el-input
           v-else-if="field.type === 'password'"
@@ -235,6 +268,31 @@ onMounted(() => {
         保存配置
       </el-button>
     </div>
+
+    <div class="setting-status-grid mt-6">
+      <div class="setting-status-card">
+        <span class="setting-status-card__label">配置完成度</span>
+        <strong class="setting-status-card__value">
+          {{ configuredFieldCount }} / {{ props.fields.length }}
+        </strong>
+        <span class="setting-status-card__hint">
+          {{ missingFieldLabels.length ? "仍有字段待补齐" : "当前字段已全部配置" }}
+        </span>
+      </div>
+      <div class="setting-status-card">
+        <span class="setting-status-card__label">缺失字段</span>
+        <strong class="setting-status-card__value">
+          {{ missingFieldLabels.length || 0 }}
+        </strong>
+        <span class="setting-status-card__hint">
+          {{
+            missingFieldLabels.length
+              ? missingFieldLabels.slice(0, 3).join("、")
+              : "无缺失项"
+          }}
+        </span>
+      </div>
+    </div>
   </AdminModuleShell>
 
   <el-drawer v-model="previewVisible" title="原始配置预览" size="620px">
@@ -255,6 +313,40 @@ onMounted(() => {
   max-width: 1120px;
 }
 
+.setting-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 720px;
+}
+
+.setting-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--wholesale-card-border);
+  border-radius: 16px;
+}
+
+.setting-status-card__label {
+  color: #7b8493;
+  font-size: 13px;
+}
+
+.setting-status-card__value {
+  color: #22262d;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.setting-status-card__hint {
+  color: #8a93a1;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .setting-actions {
   flex-wrap: wrap;
 }
@@ -265,5 +357,11 @@ onMounted(() => {
   word-break: break-all;
   font-size: 12px;
   color: #5d6168;
+}
+
+@media (width <= 900px) {
+  .setting-status-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

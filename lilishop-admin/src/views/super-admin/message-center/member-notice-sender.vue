@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createMemberNoticeSender,
@@ -11,7 +12,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "MemberNoticeSenderManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -62,6 +68,12 @@ const summaryCards = computed(() => [
   }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -95,6 +107,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -164,6 +180,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的发送任务", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个发送任务吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteMemberNoticeSender(selectedIds.value);
+    selectedRows.value = [];
+    message("发送任务批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("发送任务批量删除失败", { type: "error" });
+  }
+}
+
+function exportSenders() {
+  if (!rows.value.length) {
+    message("暂无可导出的发送任务数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    任务标题: item.displayName,
+    任务状态: item.displayStatus,
+    发送时间: item.displayTime,
+    任务说明: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "发送任务");
+  writeFile(workbook, "发送任务.xlsx");
+  message("发送任务导出成功", { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -176,6 +230,7 @@ onMounted(() => {
     api-path="/manager/message/memberNoticeSenter/getByPage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :quick-actions="[
       { label: '创建任务', value: '已接入', type: 'primary' },
@@ -186,8 +241,11 @@ onMounted(() => {
     keyword-placeholder="请输入任务标题"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportSenders">导出</el-button>
       <el-button type="primary" @click="openCreate">新建发送任务</el-button>
     </template>
     <template #operation="{ row }">

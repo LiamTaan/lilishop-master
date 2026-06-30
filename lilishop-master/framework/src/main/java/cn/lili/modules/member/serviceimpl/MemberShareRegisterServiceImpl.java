@@ -9,14 +9,11 @@ import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dos.MemberShareBuyLog;
 import cn.lili.modules.member.entity.dos.MemberShareCode;
 import cn.lili.modules.member.entity.dos.MemberShareRegisterLog;
-import cn.lili.modules.member.entity.enums.ExperienceRuleEnum;
 import cn.lili.modules.member.entity.vo.MemberShareBuyLogVO;
-import cn.lili.modules.member.mapper.MemberExperienceLogMapper;
 import cn.lili.modules.member.mapper.MemberMapper;
 import cn.lili.modules.member.mapper.MemberShareBuyLogMapper;
 import cn.lili.modules.member.mapper.MemberShareCodeMapper;
 import cn.lili.modules.member.mapper.MemberShareRegisterLogMapper;
-import cn.lili.modules.member.service.MemberExperienceService;
 import cn.lili.modules.member.service.MemberShareRegisterService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -44,10 +41,6 @@ public class MemberShareRegisterServiceImpl implements MemberShareRegisterServic
     private MemberShareRegisterLogMapper memberShareRegisterLogMapper;
     @Autowired
     private MemberShareBuyLogMapper memberShareBuyLogMapper;
-    @Autowired
-    private MemberExperienceLogMapper memberExperienceLogMapper;
-    @Autowired
-    private MemberExperienceService memberExperienceService;
     @Autowired
     private Cache cache;
     @Autowired
@@ -108,16 +101,13 @@ public class MemberShareRegisterServiceImpl implements MemberShareRegisterServic
                 return;
             }
 
-            memberExperienceService.grantExperience(inviterId, ExperienceRuleEnum.SHARE_REGISTER, inviteeId, "邀请注册成功，赠送经验值");
-            Long rewardExperience = memberExperienceLogMapper.getVariableByMemberRuleAndBiz(inviterId, ExperienceRuleEnum.SHARE_REGISTER.name(), inviteeId);
-
             MemberShareRegisterLog registerLog = new MemberShareRegisterLog();
             registerLog.setInviterId(inviterId);
             registerLog.setInviteeId(inviteeId);
             registerLog.setInviteeMobile(invitee.getMobile());
             registerLog.setShareCode(shareCode);
-            registerLog.setRewardExperience(rewardExperience == null ? 0L : rewardExperience);
-            registerLog.setRewardStatus((rewardExperience != null && rewardExperience > 0) ? SUCCESS_STATUS : SKIPPED_STATUS);
+            registerLog.setRewardExperience(0L);
+            registerLog.setRewardStatus(SKIPPED_STATUS);
             memberShareRegisterLogMapper.insert(registerLog);
         } finally {
             cache.remove(CachePrefix.INVITER.getPrefix() + inviteeId);
@@ -140,16 +130,13 @@ public class MemberShareRegisterServiceImpl implements MemberShareRegisterServic
         if (CharSequenceUtil.isBlank(inviterId) || CharSequenceUtil.equals(inviterId, inviteeId)) {
             return;
         }
-        memberExperienceService.grantExperience(inviterId, ExperienceRuleEnum.SHARE_BUY, order.getSn(), "邀请用户支付订单，赠送经验值");
-        Long rewardExperience = memberExperienceLogMapper.getVariableByMemberRuleAndBiz(inviterId, ExperienceRuleEnum.SHARE_BUY.name(), order.getSn());
-
         MemberShareBuyLog buyLog = new MemberShareBuyLog();
         buyLog.setInviterId(inviterId);
         buyLog.setInviteeId(inviteeId);
         buyLog.setOrderSn(order.getSn());
         buyLog.setOrderAmount(order.getFlowPrice());
-        buyLog.setRewardExperience(rewardExperience == null ? 0L : rewardExperience);
-        buyLog.setRewardStatus((rewardExperience != null && rewardExperience > 0) ? SUCCESS_STATUS : SKIPPED_STATUS);
+        buyLog.setRewardExperience(0L);
+        buyLog.setRewardStatus(SKIPPED_STATUS);
         memberShareBuyLogMapper.insert(buyLog);
     }
 

@@ -32,6 +32,10 @@ export default async ({ mode }: ConfigEnv): Promise<UserConfigExport> => {
         "/common": {
           target: "http://127.0.0.1:8890",
           changeOrigin: true
+        },
+        "/files": {
+          target: "http://127.0.0.1:8890",
+          changeOrigin: true
         }
       },
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布

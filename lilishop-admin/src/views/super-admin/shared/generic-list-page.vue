@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import { createDefaultColumns, useSuperAdminPage } from "./menu-runtime";
 
@@ -29,6 +30,22 @@ const detailVisible = computed({
   }
 });
 const detailEntries = computed(() => pageState.detailEntries.value);
+
+function exportRows() {
+  if (!tableData.value.length) {
+    return;
+  }
+  const table = tableData.value.map(item => ({
+    名称: item.displayName || "-",
+    状态: item.displayStatus || "-",
+    更新时间: item.displayTime || "-",
+    备注: item.displayRemark || "-"
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, props.title);
+  writeFile(workbook, `${props.title}.xlsx`);
+}
 </script>
 
 <template>
@@ -52,6 +69,9 @@ const detailEntries = computed(() => pageState.detailEntries.value);
     @search="pageState.handleSearch"
     @reset="pageState.handleReset"
   >
+    <template #table-extra>
+      <el-button :disabled="!tableData.length" @click="exportRows">导出</el-button>
+    </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="pageState.showDetail(row)">
         详情

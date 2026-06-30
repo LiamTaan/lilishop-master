@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createAppVersion,
@@ -11,7 +12,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "AppVersionManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -39,6 +45,12 @@ const summaryCards = computed(() => [
   { label: "iOS", value: rows.value.filter(item => item.displayType === "IOS").length, accent: "blue" as const, hint: "iOS 版本数" },
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接真实版本接口" }
 ]);
+
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
 
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
@@ -71,6 +83,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -136,6 +152,45 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的版本", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个 APP 版本吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedIds.value.map(id => deleteAppVersion(id)));
+    selectedRows.value = [];
+    message("APP版本批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("APP版本批量删除失败", { type: "error" });
+  }
+}
+
+function exportAppVersions() {
+  if (!rows.value.length) {
+    message("暂无可导出的 APP 版本数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    版本号: item.displayName,
+    客户端: item.displayType,
+    强制更新: item.displayForce,
+    更新时间: item.displayTime,
+    升级内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "APP版本");
+  writeFile(workbook, "APP版本.xlsx");
+  message("APP版本导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -146,6 +201,7 @@ onMounted(loadData);
     api-path="/manager/other/appVersion"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -157,6 +213,7 @@ onMounted(loadData);
     keyword-placeholder="请输入版本号"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #filters-extra>
       <el-form-item label="客户端">
@@ -167,6 +224,8 @@ onMounted(loadData);
       </el-form-item>
     </template>
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportAppVersions">导出</el-button>
       <el-button type="primary" @click="openCreate">新增版本</el-button>
     </template>
     <template #operation="{ row }">

@@ -96,6 +96,7 @@ spring:
 # 忽略TOKEN 鉴权 的url
 ignored:
   urls:
+    - /v3/api-docs
     - /editor-app/**
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
@@ -108,7 +109,6 @@ ignored:
     - /buyer/other/wechat/h5/callback
     - /buyer/goods/**
     - /buyer/store/**
-    - /buyer/passport/connect/**
     - /buyer/members/**
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**
@@ -145,7 +145,8 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    version: openapi_3_0
   swagger-ui:
     enabled: false
   packages-to-scan: cn.lili.controller
@@ -163,7 +164,7 @@ lili:
   # jwt 细节设定
   jwt-setting:
     # token过期时间（分钟）
-    tokenExpireTime: 259200
+    tokenExpireTime: 10080
 
   # 使用Spring @Cacheable注解失效时间
   cache:

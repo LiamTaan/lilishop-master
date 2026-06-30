@@ -233,6 +233,7 @@ login:
   pureReadAccept: I have read it carefully and accept
   purePrivacyPolicy: Privacy Policy
   pureGetVerifyCode: Get VerifyCode
+  pureSendVerifyCode: SMS verification code sent successfully
   pureInfo: Seconds
   pureUsernameReg: Please enter username
   purePassWordReg: Please enter password

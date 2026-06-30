@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
+import ImageUploadField from "@/components/ImageUploadField/index.vue";
 import {
   createVerificationSource,
   deleteVerificationSource,
@@ -18,6 +20,7 @@ import {
 import { message } from "@/utils/message";
 
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -41,6 +44,12 @@ const summaryCards = computed(() => [
   { label: "治理动作", value: "新增/编辑/删除", accent: "purple" as const, hint: "承接滑块验证码资源维护接口" }
 ]);
 
+const selectedIds = computed(() =>
+  selectedRows.value
+    .map(item => String(item.id || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -55,7 +64,7 @@ function normalizeRecord(item: Record<string, any>): Record<string, any> {
 
 async function loadData() {
   try {
-    const res = await getVerificationSourcePage();
+    const res = await getVerificationSourcePage({ pageNumber: 1, pageSize: 200 });
     let list = extractApiRecords(res).map(normalizeRecord);
     if (query.keyword) {
       list = list.filter(
@@ -65,6 +74,7 @@ async function loadData() {
       );
     }
     rows.value = list;
+    selectedRows.value = [];
   } catch (_error) {
     message("验证码资源加载失败，请稍后重试", { type: "error" });
   }
@@ -78,6 +88,10 @@ function handleSearch(payload: { keyword: string }) {
 function handleReset() {
   query.keyword = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -144,6 +158,44 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) {
+    message("请先勾选需要删除的验证码资源", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedIds.value.length} 个验证码资源吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await deleteVerificationSource(selectedIds.value);
+    selectedRows.value = [];
+    message("验证码资源批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("验证码资源批量删除失败", { type: "error" });
+  }
+}
+
+function exportVerificationSources() {
+  if (!rows.value.length) {
+    message("暂无可导出的验证码资源数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    资源类型: item.displayType,
+    资源标识: item.displayName,
+    更新时间: item.displayTime,
+    说明: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "验证码资源");
+  writeFile(workbook, "验证码资源.xlsx");
+  message("验证码资源导出成功", { type: "success" });
+}
+
 onMounted(loadData);
 </script>
 
@@ -154,6 +206,7 @@ onMounted(loadData);
     api-path="/manager/other/verificationSource"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :show-status-filter="false"
     :quick-actions="[
@@ -165,8 +218,11 @@ onMounted(loadData);
     keyword-placeholder="请输入资源类型或资源标识"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportVerificationSources">导出</el-button>
       <el-button type="primary" @click="openCreate">新增资源</el-button>
     </template>
     <template #operation="{ row }">
@@ -184,7 +240,12 @@ onMounted(loadData);
           <el-option label="滑块" value="SLIDER" />
         </el-select>
       </el-form-item>
-      <el-form-item label="资源标识" required><el-input v-model="form.resource" placeholder="请输入资源标识" /></el-form-item>
+      <el-form-item label="资源图片" required>
+        <ImageUploadField
+          v-model="form.resource"
+          tip="验证码资源图片统一走上传组件维护"
+        />
+      </el-form-item>
       <el-form-item label="说明"><el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入说明" /></el-form-item>
     </el-form>
     <template #footer>
@@ -197,6 +258,9 @@ onMounted(loadData);
     <el-descriptions v-if="currentRow" :column="1" border>
       <el-descriptions-item label="资源类型">{{ currentRow.displayType }}</el-descriptions-item>
       <el-descriptions-item label="资源标识">{{ currentRow.displayName }}</el-descriptions-item>
+      <el-descriptions-item v-if="currentRow.displayName && currentRow.displayName !== '-'" label="资源预览">
+        <img :src="currentRow.displayName" alt="resource" class="resource-preview" />
+      </el-descriptions-item>
       <el-descriptions-item label="更新时间">{{ currentRow.displayTime }}</el-descriptions-item>
       <el-descriptions-item label="说明">{{ currentRow.displayRemark }}</el-descriptions-item>
       <el-descriptions-item label="原始数据"><pre class="detail-json">{{ JSON.stringify(currentRow, null, 2) }}</pre></el-descriptions-item>
@@ -206,4 +270,12 @@ onMounted(loadData);
 
 <style scoped>
 .detail-json { margin: 0; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: #5d6168; }
+
+.resource-preview {
+  max-width: 220px;
+  max-height: 160px;
+  border-radius: 12px;
+  border: 1px solid #ebe6dc;
+  object-fit: cover;
+}
 </style>

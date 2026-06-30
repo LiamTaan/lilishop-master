@@ -138,14 +138,6 @@ logging:
     # 指定路径
     path: lili-logs
 
-springdoc:
-  api-docs:
-    enabled: false
-  swagger-ui:
-    enabled: false
-  packages-to-scan: cn.lili.controller
-  paths-to-match: /manager/**
-  override-with-generic-response: false
   logback:
     rollingpolicy:
       # 最大保存天数
@@ -226,3 +218,13 @@ rocketmq:
     send-message-timeout: 30000
   consumer:
     group: lili_consumer_group
+
+springdoc:
+  api-docs:
+    enabled: true
+    version: openapi_3_0
+  swagger-ui:
+    enabled: false
+  packages-to-scan: cn.lili.controller
+  paths-to-match: /manager/**
+  override-with-generic-response: false

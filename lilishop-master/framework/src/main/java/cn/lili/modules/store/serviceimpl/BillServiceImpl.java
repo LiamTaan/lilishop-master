@@ -15,6 +15,7 @@ import cn.lili.modules.order.order.entity.dto.StoreFlowQueryDTO;
 import cn.lili.modules.order.order.entity.enums.FlowTypeEnum;
 import cn.lili.modules.order.order.service.StoreFlowService;
 import cn.lili.modules.store.entity.dos.Bill;
+import cn.lili.modules.store.entity.dos.StoreSettlementProfile;
 import cn.lili.modules.store.entity.dto.BillSearchParams;
 import cn.lili.modules.store.entity.enums.BillStatusEnum;
 import cn.lili.modules.store.entity.vos.BillListVO;
@@ -24,6 +25,7 @@ import cn.lili.modules.store.entity.vos.StoreFlowRefundDownloadVO;
 import cn.lili.modules.store.mapper.BillMapper;
 import cn.lili.modules.store.service.BillService;
 import cn.lili.modules.store.service.StoreDetailService;
+import cn.lili.modules.store.service.StoreSettlementProfileService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -65,11 +67,15 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Lazy
     private StoreFlowService storeFlowService;
 
+    @Autowired
+    private StoreSettlementProfileService storeSettlementProfileService;
+
     @Override
     public void createBill(String storeId, Date startTime, DateTime endTime) {
 
         //获取结算店铺
         StoreDetailVO store = storeDetailService.getStoreDetailVO(storeId);
+        StoreSettlementProfile settlementProfile = storeSettlementProfileService.getByStoreId(storeId);
         Bill bill = new Bill();
 
         /**
@@ -84,10 +90,12 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         /**
          * @TODO 结算单基础信息
          */
-        bill.setBankAccountName(store.getSettlementBankAccountName());
-        bill.setBankAccountNumber(store.getSettlementBankAccountNum());
-        bill.setBankCode(store.getSettlementBankJointName());
-        bill.setBankName(store.getSettlementBankBranchName());
+        if (settlementProfile != null) {
+            bill.setBankAccountName(settlementProfile.getBankAccountName());
+            bill.setBankAccountNumber(settlementProfile.getBankAccountNumber());
+            bill.setBankCode(settlementProfile.getBankJointCode());
+            bill.setBankName(settlementProfile.getBankBranchName());
+        }
 
         //店铺结算单号
         bill.setSn(SnowFlake.createStr("B"));
@@ -158,7 +166,9 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
             bill.setKanjiaSettlementPrice(orderBill.getKanjiaSettlementPrice() != null ? orderBill.getKanjiaSettlementPrice() : 0D);
         }
         //最终结算金额=入款结算金额-退款结算金额
-        Double finalPrice = CurrencyUtil.sub(orderBill.getBillPrice(), refundBill.getBillPrice());
+        Double orderBillPrice = orderBill != null && orderBill.getBillPrice() != null ? orderBill.getBillPrice() : 0D;
+        Double refundBillPrice = refundBill != null && refundBill.getBillPrice() != null ? refundBill.getBillPrice() : 0D;
+        Double finalPrice = CurrencyUtil.sub(orderBillPrice, refundBillPrice);
         //店铺最终结算金额=最终结算金额
         bill.setBillPrice(finalPrice);
 

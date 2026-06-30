@@ -12,6 +12,7 @@ import cn.lili.modules.agent.service.AgentRoleRelationService;
 import cn.lili.modules.agent.service.AgentStoreBindService;
 import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderPackage;
+import cn.lili.modules.order.order.entity.dto.OrderCancelDTO;
 import cn.lili.modules.order.order.entity.dto.OrderSearchParams;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.entity.vo.OrderDetailVO;
@@ -103,10 +104,10 @@ public class OrderBuyerController {
             @Parameter(name = "reason", description = "取消原因", required = true)
     })
     @PostMapping("/{orderSn}/cancel")
-    public ResultMessage<Object> cancel(@PathVariable String orderSn, @RequestParam String reason) {
+    public ResultMessage<Object> cancel(@PathVariable String orderSn, @RequestBody @jakarta.validation.Valid OrderCancelDTO cancelDTO) {
         Order order = OperationalJudgment.judgment(orderService.getBySn(orderSn));
         this.checkCurrentAgentStorePermission(order.getStoreId());
-        orderService.cancel(orderSn, reason);
+        orderService.cancel(orderSn, cancelDTO.getReason());
         return ResultUtil.success();
     }
 

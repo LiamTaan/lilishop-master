@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   createSmsTemplate,
@@ -12,7 +13,12 @@ import {
 import { extractApiRecords } from "@/utils/admin-governance";
 import { message } from "@/utils/message";
 
+defineOptions({
+  name: "SmsTemplateManage"
+});
+
 const rows = ref<Record<string, any>[]>([]);
+const selectedRows = ref<Record<string, any>[]>([]);
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const saving = ref(false);
@@ -64,6 +70,12 @@ const summaryCards = computed(() => [
   }
 ]);
 
+const selectedCodes = computed(() =>
+  selectedRows.value
+    .map(item => String(item.displayCode || item.templateCode || "").trim())
+    .filter(Boolean)
+);
+
 function normalizeRecord(item: Record<string, any>): Record<string, any> {
   return {
     ...item,
@@ -105,6 +117,10 @@ function handleReset() {
   query.keyword = "";
   query.status = "";
   loadData();
+}
+
+function handleSelectionChange(rows: Record<string, any>[]) {
+  selectedRows.value = rows;
 }
 
 function openCreate() {
@@ -176,6 +192,26 @@ async function handleDelete(row: Record<string, any>) {
   }
 }
 
+async function handleBatchDelete() {
+  if (!selectedCodes.value.length) {
+    message("请先勾选需要删除的短信模板", { type: "warning" });
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认删除已勾选的 ${selectedCodes.value.length} 个短信模板吗？`,
+    "批量删除确认",
+    { type: "warning" }
+  );
+  try {
+    await Promise.all(selectedCodes.value.map(code => deleteSmsTemplate(code)));
+    selectedRows.value = [];
+    message("短信模板批量删除成功", { type: "success" });
+    await loadData();
+  } catch (_error) {
+    message("短信模板批量删除失败", { type: "error" });
+  }
+}
+
 async function handleQueryStatus() {
   try {
     await querySmsTemplateStatus();
@@ -184,6 +220,25 @@ async function handleQueryStatus() {
   } catch (_error) {
     message("短信模板状态查询失败", { type: "error" });
   }
+}
+
+function exportSmsTemplates() {
+  if (!rows.value.length) {
+    message("暂无可导出的短信模板数据", { type: "warning" });
+    return;
+  }
+  const table = rows.value.map(item => ({
+    模板名称: item.displayName,
+    模板状态: item.displayStatus,
+    模板编码: item.displayCode,
+    更新时间: item.displayTime,
+    模板内容: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, "短信模板");
+  writeFile(workbook, "短信模板.xlsx");
+  message("短信模板导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -198,6 +253,7 @@ onMounted(() => {
     api-path="/manager/sms/template/querySmsTemplatePage"
     :columns="columns"
     :data="rows"
+    selectable
     :summary-cards="summaryCards"
     :quick-actions="[
       { label: '新增模板', value: '已接入', type: 'primary' },
@@ -213,8 +269,11 @@ onMounted(() => {
     ]"
     @search="handleSearch"
     @reset="handleReset"
+    @selection-change="handleSelectionChange"
   >
     <template #table-extra>
+      <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+      <el-button @click="exportSmsTemplates">导出</el-button>
       <el-button plain @click="handleQueryStatus">查询模板状态</el-button>
       <el-button type="primary" @click="openCreate">新增模板</el-button>
     </template>

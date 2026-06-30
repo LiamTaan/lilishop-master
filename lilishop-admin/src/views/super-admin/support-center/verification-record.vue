@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { utils, writeFile } from "xlsx";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
 import {
   getVerificationExceptionPage,
@@ -157,6 +158,28 @@ function openDetail(row: Record<string, any>) {
   detailVisible.value = true;
 }
 
+function exportVerificationRecords() {
+  const targetRows = displayRows.value;
+  if (!targetRows.length) {
+    message(`暂无可导出的${activeView.value === "normal" ? "核销" : "异常核销"}数据`, {
+      type: "warning"
+    });
+    return;
+  }
+  const table = targetRows.map(item => ({
+    订单号: item.displayName,
+    核销状态: item.displayStatus,
+    核销时间: item.displayTime,
+    门店或核销员: item.displayRemark
+  }));
+  const worksheet = utils.json_to_sheet(table);
+  const workbook = utils.book_new();
+  const sheetName = activeView.value === "normal" ? "正常核销" : "异常核销";
+  utils.book_append_sheet(workbook, worksheet, sheetName);
+  writeFile(workbook, `${sheetName}.xlsx`);
+  message(`${sheetName}数据导出成功`, { type: "success" });
+}
+
 onMounted(() => {
   loadData();
 });
@@ -189,6 +212,7 @@ onMounted(() => {
         <el-radio-button label="normal">正常核销</el-radio-button>
         <el-radio-button label="exception">异常核销</el-radio-button>
       </el-radio-group>
+      <el-button @click="exportVerificationRecords">导出</el-button>
     </template>
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>

@@ -6,8 +6,10 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.store.entity.dto.StoreAfterSaleAddressDTO;
 import cn.lili.modules.store.entity.dto.StoreDeliverGoodsAddressDTO;
 import cn.lili.modules.store.entity.dto.StoreSettingDTO;
+import cn.lili.modules.store.entity.dto.StoreSettlementProfileDTO;
 import cn.lili.modules.store.entity.vos.StoreVO;
 import cn.lili.modules.store.service.StoreDetailService;
+import cn.lili.modules.store.service.StoreSettlementProfileService;
 import cn.lili.modules.store.service.StoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,6 +45,9 @@ public class StoreSettingsController {
     @Autowired
     private StoreDetailService storeDetailService;
 
+    @Autowired
+    private StoreSettlementProfileService storeSettlementProfileService;
+
     @Operation(description = "获取商家设置")
     @GetMapping
     public ResultMessage<StoreVO> get() {
@@ -50,9 +56,8 @@ public class StoreSettingsController {
     }
 
     @Operation(description = "修改商家设置")
-    @Parameter(name = "storeSettingDTO", description = "商家设置DTO", required = true)
     @PutMapping
-    public ResultMessage<Object> edit(@Valid StoreSettingDTO storeSettingDTO) {
+    public ResultMessage<Object> edit(@Valid @RequestBody StoreSettingDTO storeSettingDTO) {
         //修改商家设置
         Boolean result = storeDetailService.editStoreSetting(storeSettingDTO);
         return ResultUtil.data(result);
@@ -84,9 +89,8 @@ public class StoreSettingsController {
     }
 
     @Operation(description = "修改商家退货收件地址")
-    @Parameter(name = "storeAfterSaleAddressDTO", description = "商家退货收件地址DTO", required = true)
     @PutMapping("/storeAfterSaleAddress")
-    public ResultMessage<Object> editStoreAfterSaleAddress(@Valid StoreAfterSaleAddressDTO storeAfterSaleAddressDTO) {
+    public ResultMessage<Object> editStoreAfterSaleAddress(@Valid @RequestBody StoreAfterSaleAddressDTO storeAfterSaleAddressDTO) {
         //修改商家退货收件地址
         boolean result = storeDetailService.editStoreAfterSaleAddressDTO(storeAfterSaleAddressDTO);
         return ResultUtil.data(result);
@@ -100,11 +104,24 @@ public class StoreSettingsController {
     }
 
     @Operation(description = "修改商家发货地址")
-    @Parameter(name = "storeDeliverGoodsAddressDTO", description = "商家发货地址DTO", required = true)
     @PutMapping("/storeDeliverGoodsAddress")
-    public ResultMessage<Object> editStoreDeliverGoodsAddress(@Valid StoreDeliverGoodsAddressDTO storeDeliverGoodsAddressDTO) {
+    public ResultMessage<Object> editStoreDeliverGoodsAddress(@Valid @RequestBody StoreDeliverGoodsAddressDTO storeDeliverGoodsAddressDTO) {
         //修改商家退货收件地址
         boolean result = storeDetailService.editStoreDeliverGoodsAddressDTO(storeDeliverGoodsAddressDTO);
         return ResultUtil.data(result);
+    }
+
+    @Operation(description = "获取店铺结算资料")
+    @GetMapping("/settlementProfile")
+    public ResultMessage<StoreSettlementProfileDTO> getSettlementProfile() {
+        String storeId = storeService.getStoreDetail().getId();
+        return ResultUtil.data(storeSettlementProfileService.getProfile(storeId));
+    }
+
+    @Operation(description = "修改店铺结算资料")
+    @PutMapping("/settlementProfile")
+    public ResultMessage<Object> editSettlementProfile(@Valid @RequestBody StoreSettlementProfileDTO storeSettlementProfileDTO) {
+        String storeId = storeService.getStoreDetail().getId();
+        return ResultUtil.data(storeSettlementProfileService.saveOrUpdateProfile(storeId, storeSettlementProfileDTO));
     }
 }

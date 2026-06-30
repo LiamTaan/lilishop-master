@@ -17,6 +17,11 @@ public interface TradeMapper extends BaseMapper<Trade> {
      *
      * @param tradeSn 交易编号
      */
-    @Update("UPDATE li_trade SET flow_price =(SELECT SUM(flow_price) FROM li_order WHERE trade_sn=#{tradeSn}) WHERE sn=#{tradeSn}")
+    @Update("UPDATE li_trade SET " +
+            "flow_price =(SELECT IFNULL(SUM(flow_price),0) FROM li_order WHERE trade_sn=#{tradeSn})," +
+            "freight_price =(SELECT IFNULL(SUM(freight_price),0) FROM li_order WHERE trade_sn=#{tradeSn})," +
+            "goods_price =(SELECT IFNULL(SUM(goods_price),0) FROM li_order WHERE trade_sn=#{tradeSn})," +
+            "discount_price =(SELECT IFNULL(SUM(discount_price),0) FROM li_order WHERE trade_sn=#{tradeSn}) " +
+            "WHERE sn=#{tradeSn}")
     void updateTradePrice(String tradeSn);
 }

@@ -69,7 +69,10 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -132,6 +135,14 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     @Override
     public IPage<StoreVO> findByConditionPage(StoreSearchParams storeSearchParams, PageVO page) {
         return this.baseMapper.getStoreList(PageUtil.initPage(page), storeSearchParams.queryWrapper("s"));
+    }
+
+    @Override
+    public List<Store> listByIds(Collection<? extends Serializable> idList) {
+        if (idList == null || idList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return super.listByIds(idList);
     }
 
     @Override

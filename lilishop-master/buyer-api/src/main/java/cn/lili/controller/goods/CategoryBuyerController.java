@@ -2,6 +2,7 @@ package cn.lili.controller.goods;
 
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
+import cn.lili.modules.goods.entity.dos.Category;
 import cn.lili.modules.goods.entity.vos.CategoryVO;
 import cn.lili.modules.goods.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,5 +40,11 @@ public class CategoryBuyerController {
     public ResultMessage<List<CategoryVO>> list(@NotNull(message = "分类ID不能为空") @PathVariable String parentId) {
 
         return ResultUtil.data(categoryService.listAllChildren(parentId));
+    }
+
+    @Operation(summary = "获取一级商品分类列表")
+    @GetMapping("/first")
+    public ResultMessage<List<Category>> first() {
+        return ResultUtil.data(categoryService.firstCategory());
     }
 }

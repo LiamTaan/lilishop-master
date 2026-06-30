@@ -61,10 +61,14 @@ public class TradeCashier implements CashierExecute {
         if (payParam.getOrderType().equals(CashierEnum.TRADE.name())) {
             //准备返回的数据
             CashierParam cashierParam = new CashierParam();
+            String tradeSn = resolveTradeSn(payParam.getSn());
             //订单信息获取
-            Trade trade = tradeService.getBySn(payParam.getSn());
+            Trade trade = tradeService.getBySn(tradeSn);
+            if (trade == null) {
+                throw new ServiceException(ResultCode.PAY_NOT_EXIST_ORDER);
+            }
 
-            List<Order> orders = orderService.getByTradeSn(payParam.getSn());
+            List<Order> orders = orderService.getByTradeSn(tradeSn);
 
 
             String orderSns = orders.stream().map(Order::getSn).collect(Collectors.joining(", "));
@@ -82,7 +86,11 @@ public class TradeCashier implements CashierExecute {
             }
 
 
-            cashierParam.setPrice(trade.getFlowPrice());
+            Double price = trade.getFlowPrice();
+            if ((price == null || price <= 0D) && !orders.isEmpty()) {
+                price = orders.stream().map(Order::getFlowPrice).filter(java.util.Objects::nonNull).reduce(0D, Double::sum);
+            }
+            cashierParam.setPrice(price);
 
             try {
                 BaseSetting baseSetting = JSONUtil.toBean(settingService.get(SettingEnum.BASE_SETTING.name()).getSettingValue(), BaseSetting.class);
@@ -104,10 +112,11 @@ public class TradeCashier implements CashierExecute {
     @Override
     public void paymentSuccess(PaymentSuccessParams paymentSuccessParams) {
         if (paymentSuccessParams.getPayParam().getOrderType().equals(CashierEnum.TRADE.name())) {
-            tradeService.payTrade(paymentSuccessParams.getPayParam().getSn(),
+            String tradeSn = resolveTradeSn(paymentSuccessParams.getPayParam().getSn());
+            tradeService.payTrade(tradeSn,
                     paymentSuccessParams.getPaymentMethod(),
                     paymentSuccessParams.getReceivableNo());
-            log.info("交易{}支付成功,方式{},流水号{},", paymentSuccessParams.getPayParam().getSn(),
+            log.info("交易{}支付成功,方式{},流水号{},", tradeSn,
                     paymentSuccessParams.getPaymentMethod(),
                     paymentSuccessParams.getReceivableNo());
         }
@@ -117,7 +126,8 @@ public class TradeCashier implements CashierExecute {
     public Boolean paymentResult(PayParam payParam) {
 
         if (payParam.getOrderType().equals(CashierEnum.TRADE.name())) {
-            Trade trade = tradeService.getBySn(payParam.getSn());
+            String tradeSn = resolveTradeSn(payParam.getSn());
+            Trade trade = tradeService.getBySn(tradeSn);
             if (trade != null) {
                 return PayStatusEnum.PAID.name().equals(trade.getPayStatus());
             } else {
@@ -125,5 +135,17 @@ public class TradeCashier implements CashierExecute {
             }
         }
         return false;
+    }
+
+    private String resolveTradeSn(String sn) {
+        Trade trade = tradeService.getBySn(sn);
+        if (trade != null) {
+            return trade.getSn();
+        }
+        Order order = orderService.getBySn(sn);
+        if (order != null && order.getTradeSn() != null) {
+            return order.getTradeSn();
+        }
+        return sn;
     }
 }

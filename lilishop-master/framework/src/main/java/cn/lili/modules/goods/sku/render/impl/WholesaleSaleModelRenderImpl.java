@@ -42,7 +42,6 @@ public class WholesaleSaleModelRenderImpl implements SalesModelRender {
         wholesaleService.removeByGoodsId(goodsSku.getGoodsId());
         wholesaleService.saveOrUpdateBatch(collect);
         goodsSku.setPrice(collect.get(0).getPrice());
-        goodsSku.setCost(collect.get(0).getPrice());
     }
 
     @Override
@@ -53,7 +52,6 @@ public class WholesaleSaleModelRenderImpl implements SalesModelRender {
         List<Wholesale> collect = goodsOperationDTO.getWholesaleList().stream().sorted(Comparator.comparing(Wholesale::getPrice)).collect(Collectors.toList());
         for (GoodsSku skus : goodsSkus) {
             skus.setPrice(collect.get(0).getPrice());
-            skus.setCost(collect.get(0).getPrice());
         }
         if (Boolean.TRUE.equals(goodsOperationDTO.getGoodsTemplateFlag())) {
             wholesaleService.removeByTemplateId(goodsSkus.get(0).getGoodsId());

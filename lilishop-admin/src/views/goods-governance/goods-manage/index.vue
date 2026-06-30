@@ -309,9 +309,8 @@ const selectedIds = computed(() =>
 );
 
 function normalizeGoodsRecord(item: Record<string, any>) {
-  const salePrice = item.salePrice || item.price || item.originalPrice || 0;
-  const costPrice =
-    item.costPrice || item.cost || item.buyingPrice || salePrice;
+  const isWholesaleGoods =
+    String(item.salesModel || "").toUpperCase() === "WHOLESALE";
   const authFlag = item.authFlag || item.auditStatus || "TOBEAUDITED";
   const marketEnable = item.marketEnable || item.goodsStatus || "DOWN";
   const deleteFlag = Boolean(item.deleteFlag);
@@ -341,6 +340,24 @@ function normalizeGoodsRecord(item: Record<string, any>) {
             Number(left?.num || 0) - Number(right?.num || 0)
         )
     : [];
+  const validWholesalePrices = wholesaleList
+    .map(rule => Number(rule?.price || 0))
+    .filter(price => price > 0);
+  const skuCostPrices = skuList
+    .map(sku => Number(sku?.cost || 0))
+    .filter(cost => cost > 0);
+  const salePrice =
+    isWholesaleGoods && validWholesalePrices.length
+      ? Math.min(...validWholesalePrices)
+      : item.salePrice || item.price || item.originalPrice || 0;
+  const costPrice =
+    skuCostPrices.length > 0
+      ? Math.min(...skuCostPrices)
+      : item.costPrice || item.cost || item.buyingPrice || 0;
+  const profitAmount =
+    Number(salePrice || 0) > 0 && Number(costPrice || 0) > 0
+      ? Number(salePrice) - Number(costPrice)
+      : null;
   const goodsParamsDTOList = mergeGoodsParams(
     normalizeGoodsParams(item.goodsParamsDTOList),
     normalizeGoodsParams(item.params),
@@ -368,7 +385,9 @@ function normalizeGoodsRecord(item: Record<string, any>) {
     specText,
     costPrice,
     salePrice,
-    profitAmount: Number(salePrice || 0) - Number(costPrice || 0),
+    profitAmount,
+    salePriceLabel: isWholesaleGoods ? "起批价" : "售价",
+    profitLabel: isWholesaleGoods ? "最低阶梯毛利" : "利润",
     stock: item.quantity || item.stock || item.goodsStock || 0,
     marketEnable,
     authFlag,
@@ -444,7 +463,26 @@ async function loadData() {
   if (extraFilters.salesModel) params.salesModel = extraFilters.salesModel;
   const res = await getGoodsPage(params);
   const page = extractApiPayload(res);
-  data.value = extractApiRecords(page).map(normalizeGoodsRecord);
+  const records = extractApiRecords(page).map(normalizeGoodsRecord);
+  data.value = records;
+  const hydratedRecords = await Promise.all(
+    records.map(async item => {
+      const goodsId = String(item.id || "").trim();
+      if (!goodsId) {
+        return item;
+      }
+      try {
+        const detailRes = await getWholesaleGoodsDetail(goodsId);
+        return normalizeGoodsRecord({
+          ...item,
+          ...(extractApiPayload(detailRes) || {})
+        });
+      } catch (_error) {
+        return item;
+      }
+    })
+  );
+  data.value = hydratedRecords;
 }
 
 async function loadGoodsUnits() {
@@ -607,7 +645,8 @@ function exportGoods() {
     商品类型: getGoodsTypeLabel(item.goodsType),
     规格: item.specText,
     成本价: item.costPrice,
-    售价: item.salePrice,
+    售价或起批价: item.salePrice,
+    利润或毛利: item.profitAmount ?? "-",
     库存: item.stock,
     销售状态: getGoodsMarketStatusLabel(item.marketEnable),
     审核状态: getGoodsAuditStatusLabel(item.authFlag),
@@ -877,11 +916,14 @@ onMounted(() => {
         <el-descriptions-item label="分类">
           {{ detailData?.categoryName || "-" }}
         </el-descriptions-item>
-        <el-descriptions-item label="售价">
+        <el-descriptions-item :label="detailData?.salePriceLabel || '售价'">
           ¥ {{ detailData?.salePrice || "-" }}
         </el-descriptions-item>
         <el-descriptions-item label="成本价">
           ¥ {{ detailData?.costPrice || "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="detailData?.profitLabel || '利润'">
+          ¥ {{ detailData?.profitAmount ?? "-" }}
         </el-descriptions-item>
         <el-descriptions-item label="库存">
           {{ detailData?.stock || 0 }}
@@ -983,7 +1025,7 @@ onMounted(() => {
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="售价" min-width="100">
+          <el-table-column label="售价/起批价" min-width="100">
             <template #default="{ row }">¥ {{ row.price ?? "-" }}</template>
           </el-table-column>
           <el-table-column label="成本价" min-width="100">

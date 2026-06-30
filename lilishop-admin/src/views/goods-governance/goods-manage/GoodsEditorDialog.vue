@@ -81,6 +81,13 @@ type WholesaleRuleEntry = {
   price: number;
 };
 
+type FreightOption = {
+  label: string;
+  value: string;
+  pricingMethod: string;
+  ruleCount: number;
+};
+
 const visible = computed({
   get: () => props.modelValue,
   set: value => emit("update:modelValue", value)
@@ -94,7 +101,7 @@ const paramLoading = ref(false);
 const storeOptions = ref<Record<string, any>[]>([]);
 const categoryOptions = ref<TreeOption[]>([]);
 const goodsUnitOptions = ref<Record<string, any>[]>([]);
-const freightOptions = ref<Record<string, any>[]>([]);
+const freightOptions = ref<FreightOption[]>([]);
 const goodsParams = ref<ParameterTemplate[]>([]);
 const specDrafts = ref<SpecDraftEntry[]>([]);
 
@@ -120,6 +127,31 @@ const form = reactive({
 const dialogTitle = computed(() =>
   props.mode === "create" ? "新增商品" : "编辑商品"
 );
+
+const currentStoreLabel = computed(() => {
+  const target = String(form.storeId || "").trim();
+  if (!target) return "";
+  return (
+    storeOptions.value.find(item => String(item.value || "").trim() === target)
+      ?.label || target
+  );
+});
+
+const freightPlaceholder = computed(() => {
+  if (!isPhysicalGoods.value) {
+    return "虚拟商品无需选择运费模板";
+  }
+  if (!form.storeId) {
+    return "请先选择店铺";
+  }
+  if (freightLoading.value) {
+    return "运费模板加载中";
+  }
+  if (!freightOptions.value.length) {
+    return "当前店铺暂无运费模板";
+  }
+  return "请选择运费模板";
+});
 
 const isEdit = computed(() => props.mode === "edit");
 
@@ -289,6 +321,7 @@ async function ensureOptionsLoaded() {
 }
 
 async function loadFreightOptions(storeId: string) {
+  const previousTemplate = String(form.templateId || "").trim();
   if (!storeId) {
     freightOptions.value = [];
     form.templateId = "";
@@ -298,10 +331,26 @@ async function loadFreightOptions(storeId: string) {
   try {
     const response = await getStoreFreightTemplates(storeId);
     freightOptions.value = (extractApiPayload(response) || []).map(
-      (item: Record<string, any>) => ({
-        label: item.name || item.templateName || item.id,
-        value: String(item.id || item.templateId || "")
-      })
+      (item: Record<string, any>) => {
+        const pricingMethod = String(item.pricingMethod || "").trim();
+        const ruleCount = Array.isArray(item.freightTemplateChildList)
+          ? item.freightTemplateChildList.length
+          : 0;
+        const pricingText =
+          pricingMethod === "NUM"
+            ? "按件"
+            : pricingMethod === "WEIGHT"
+              ? "按重量"
+              : pricingMethod === "FREE"
+                ? "包邮"
+                : pricingMethod || "未设置";
+        return {
+          label: `${item.name || item.templateName || item.id} / ${pricingText} / ${ruleCount}条规则`,
+          value: String(item.id || item.templateId || ""),
+          pricingMethod,
+          ruleCount
+        };
+      }
     );
     const currentTemplate = String(form.templateId || "").trim();
     if (
@@ -309,11 +358,31 @@ async function loadFreightOptions(storeId: string) {
       !freightOptions.value.some(item => item.value === currentTemplate)
     ) {
       form.templateId = "";
+      message("当前店铺下不再存在原运费模板，已为你清空，请重新选择", {
+        type: "warning"
+      });
+    }
+    if (!freightOptions.value.length && isPhysicalGoods.value) {
+      message(
+        `店铺「${currentStoreLabel.value || storeId}」还没有可用运费模板，请先到「系统支撑 -> 运费模板」统一维护`,
+        {
+          type: "warning"
+        }
+      );
+    } else if (
+      previousTemplate &&
+      previousTemplate === currentTemplate &&
+      freightOptions.value.some(item => item.value === previousTemplate)
+    ) {
+      form.templateId = previousTemplate;
     }
   } catch (error: any) {
     freightOptions.value = [];
     message(
-      getErrorMessage(error, "运费模板加载失败，请确认该店铺已配置模板"),
+      getErrorMessage(
+        error,
+        "运费模板加载失败，请到「系统支撑 -> 运费模板」检查该店铺是否已配置模板"
+      ),
       {
         type: "warning"
       }
@@ -391,7 +460,7 @@ function normalizeSkuRows(source: unknown): SkuEntry[] {
       sn: String(item.sn || item.displayCode || "").trim(),
       barcode: String(item.barcode || item.displayBarcode || "").trim(),
       price: Number(item.price || 0),
-      cost: Number(item.cost || item.price || 0),
+      cost: Number(item.cost || 0),
       weight: Number(item.weight || 0),
       quantity: Number(item.quantity || 0),
       alertQuantity: Number(item.alertQuantity || 0),
@@ -695,7 +764,7 @@ function buildPayload() {
       sn: item.sn.trim(),
       barcode: item.barcode.trim() || undefined,
       price: isWholesaleGoods.value ? skuPrice : Number(item.price || 0),
-      cost: isWholesaleGoods.value ? skuPrice : Number(item.cost || 0),
+      cost: Number(item.cost || 0),
       quantity: Number(item.quantity || 0),
       weight: Number(item.weight || 0),
       alertQuantity: Number(item.alertQuantity || 0)
@@ -770,7 +839,10 @@ function validateForm() {
     return false;
   }
   if (isPhysicalGoods.value && !form.templateId) {
-    message("实物商品必须选择运费模板", { type: "warning" });
+    message(
+      "实物商品必须选择运费模板；如果下拉为空，请先到「系统支撑 -> 运费模板」为该店铺创建模板",
+      { type: "warning" }
+    );
     return false;
   }
   if (!form.goodsGalleryList.some(item => item.trim())) {
@@ -784,15 +856,16 @@ function validateForm() {
   const invalidSku = form.skuList.find(
     item =>
       !item.sn.trim() ||
-      (!isWholesaleGoods.value &&
-        (Number(item.price) <= 0 || Number(item.cost) <= 0)) ||
+      (isWholesaleGoods.value
+        ? Number(item.cost) <= 0
+        : Number(item.price) <= 0 || Number(item.cost) <= 0) ||
       Number(item.quantity) < 0 ||
       (isPhysicalGoods.value && Number(item.weight) < 0)
   );
   if (invalidSku) {
     message(
       isWholesaleGoods.value
-        ? "请补全 SKU 编码，并确认库存、重量合法"
+        ? "请补全 SKU 编码、成本价，并确认库存、重量合法"
         : "请补全 SKU 编码、零售价、成本价，并确认库存、重量合法",
       {
         type: "warning"
@@ -975,19 +1048,28 @@ async function handleSubmit() {
             </el-radio-group>
           </el-form-item>
           <el-form-item label="运费模板" required>
-            <el-select
-              v-model="form.templateId"
-              :disabled="!isPhysicalGoods"
-              :loading="freightLoading"
-              placeholder="请选择运费模板"
-            >
-              <el-option
-                v-for="item in freightOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
+            <div class="goods-editor__field-stack">
+              <el-select
+                v-model="form.templateId"
+                :disabled="!isPhysicalGoods || !form.storeId"
+                :loading="freightLoading"
+                :placeholder="freightPlaceholder"
+              >
+                <el-option
+                  v-for="item in freightOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+              <span class="goods-editor__hint">
+                运费模板已改为平台统一维护。
+                <template v-if="form.storeId">
+                  当前按店铺「{{ currentStoreLabel || form.storeId }}」加载模板；
+                </template>
+                若无可选项，请到「系统支撑 -> 运费模板」先配置。
+              </span>
+            </div>
           </el-form-item>
           <el-form-item label="商品条码">
             <div class="goods-editor__field-stack">
@@ -1172,7 +1254,7 @@ async function handleSubmit() {
                     style="width: 100%"
                   />
                 </el-form-item>
-                <el-form-item v-if="!isWholesaleGoods" label="成本价">
+                <el-form-item label="成本价">
                   <el-input-number
                     v-model="sku.cost"
                     :min="0.01"

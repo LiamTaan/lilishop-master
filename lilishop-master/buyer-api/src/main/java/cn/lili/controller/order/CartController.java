@@ -16,6 +16,7 @@ import cn.lili.modules.order.cart.entity.dto.CartSkuNumUpdateDTO;
 import cn.lili.modules.order.cart.entity.dto.CartStoreAddressDTO;
 import cn.lili.modules.order.cart.entity.dto.TradeDTO;
 import cn.lili.modules.order.cart.entity.enums.CartTypeEnum;
+import cn.lili.modules.order.cart.entity.vo.CreateTradeVO;
 import cn.lili.modules.order.cart.entity.vo.TradeParams;
 import cn.lili.modules.order.cart.service.CartService;
 import cn.lili.modules.order.order.entity.vo.ReceiptVO;
@@ -294,7 +295,7 @@ public class CartController {
     @PreventDuplicateSubmissions
     @Operation(summary = "创建交易")
     @PostMapping(path = "/create/trade")
-    public ResultMessage<Object> crateTrade(@RequestBody TradeParams tradeParams) {
+    public ResultMessage<CreateTradeVO> crateTrade(@RequestBody TradeParams tradeParams) {
         try {
             //读取选中的列表
             return ResultUtil.data(this.cartService.createTrade(tradeParams));

@@ -59,7 +59,7 @@ export const auditWholesaleGoods = (
   authFlag: "PASS" | "REFUSE"
 ) => {
   return http.request<ResultMessage<null>>("put", "/manager/goods/goods/auth", {
-    data: { goodsIds: joinIds(goodsIds), authFlag }
+    data: { goodsIds, authFlag }
   });
 };
 

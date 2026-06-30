@@ -34,6 +34,13 @@ export default {
       meta: { title: "物流公司" }
     },
     {
+      path: "/support-center/freight-template-manage",
+      name: "SupportFreightTemplateManage",
+      component: () =>
+        import("@/views/super-admin/support-center/freight-template-manage.vue"),
+      meta: { title: "运费模板" }
+    },
+    {
       path: "/support-center/after-sale-reason",
       name: "SupportAfterSaleReason",
       component: () =>

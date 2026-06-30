@@ -126,10 +126,14 @@ public class CheckDataRender implements CartRenderStep {
                     cartSkuVO.getGoodsSku() != null &&
                     cartSkuVO.getGoodsSku().getUpdateTime() != null &&
                     dataSku.getUpdateTime().after(cartSkuVO.getGoodsSku().getUpdateTime());
+            boolean checkStoreChanged = dataSku != null &&
+                    cartSkuVO.getGoodsSku() != null &&
+                    (!CharSequenceUtil.equals(dataSku.getStoreId(), cartSkuVO.getGoodsSku().getStoreId()) ||
+                            !CharSequenceUtil.equals(dataSku.getStoreName(), cartSkuVO.getGoodsSku().getStoreName()));
 
 
-            if (checkGoodsStatus || checkGoodsValid) {
-                if (checkGoodsValid) {
+            if (checkGoodsStatus || checkGoodsValid || checkStoreChanged) {
+                if (checkGoodsValid || checkStoreChanged) {
                     cartSkuVO.rebuildBySku(dataSku);
                 }
                 if (checkGoodsStatus) {
@@ -173,40 +177,50 @@ public class CheckDataRender implements CartRenderStep {
     private void groupStore(TradeDTO tradeDTO) {
         //渲染的购物车
         List<CartVO> cartList = new ArrayList<>();
-        if (tradeDTO.getCartList() == null || tradeDTO.getCartList().size() == 0) {
-            //根据店铺分组
-            Map<String, List<CartSkuVO>> storeCollect = tradeDTO.getSkuList().stream().collect(Collectors.groupingBy(CartSkuVO::getStoreId));
-            Map<String, String> storeLogoMap = storeService.listByIds(storeCollect.keySet()).stream()
-                    .collect(Collectors.toMap(Store::getId, Store::getStoreLogo, (left, right) -> left));
-            for (Map.Entry<String, List<CartSkuVO>> storeCart : storeCollect.entrySet()) {
-                if (!storeCart.getValue().isEmpty()) {
-                    CartVO cartVO = new CartVO(storeCart.getValue().get(0));
-                    cartVO.setStoreLogo(storeLogoMap.get(storeCart.getKey()));
-                    if (CharSequenceUtil.isEmpty(cartVO.getDeliveryMethod())) {
-                        cartVO.setDeliveryMethod(DeliveryMethodEnum.LOGISTICS.name());
-                    }
-                    cartVO.setSkuList(storeCart.getValue());
-                    try {
-                        //筛选属于当前店铺的优惠券
-                        storeCart.getValue().forEach(i -> i.getPromotionMap().forEach((key, value) -> {
-                            if (key.contains(PromotionTypeEnum.COUPON.name())) {
-                                Coupon coupon = JSON.parseObject(value.toString(), Coupon.class);
-                                if (key.contains(PromotionTypeEnum.COUPON.name()) && coupon.getStoreId().equals(storeCart.getKey())) {
-                                    cartVO.getCanReceiveCoupon().add(new CouponVO(coupon));
-                                }
-                            }
-                        }));
-                    } catch (Exception e) {
-                        log.error("筛选属于当前店铺的优惠券发生异常！", e);
-                    }
-                    storeCart.getValue().stream().filter(i -> Boolean.TRUE.equals(i.getChecked())).findFirst().ifPresent(cartSkuVO -> cartVO.setChecked(true));
-                    cartList.add(cartVO);
-                }
-            }
+        if (CollUtil.isEmpty(tradeDTO.getSkuList())) {
             tradeDTO.setCartList(cartList);
+            return;
         }
 
+        Map<String, CartVO> oldCartMap = CollUtil.isEmpty(tradeDTO.getCartList())
+                ? Map.of()
+                : tradeDTO.getCartList().stream().collect(Collectors.toMap(CartVO::getStoreId, item -> item, (left, right) -> left));
 
+        // 根据最新SKU店铺信息重新分组，避免复用缓存中的旧店铺购物车。
+        Map<String, List<CartSkuVO>> storeCollect = tradeDTO.getSkuList().stream().collect(Collectors.groupingBy(CartSkuVO::getStoreId));
+        Map<String, String> storeLogoMap = storeService.listByIds(storeCollect.keySet()).stream()
+                .collect(Collectors.toMap(Store::getId, Store::getStoreLogo, (left, right) -> left));
+        for (Map.Entry<String, List<CartSkuVO>> storeCart : storeCollect.entrySet()) {
+            if (!storeCart.getValue().isEmpty()) {
+                CartVO cartVO = new CartVO(storeCart.getValue().get(0));
+                CartVO oldCart = oldCartMap.get(storeCart.getKey());
+                cartVO.setStoreLogo(storeLogoMap.get(storeCart.getKey()));
+                if (oldCart != null) {
+                    cartVO.setDeliveryMethod(oldCart.getDeliveryMethod());
+                    cartVO.setRemark(oldCart.getRemark());
+                }
+                if (CharSequenceUtil.isEmpty(cartVO.getDeliveryMethod())) {
+                    cartVO.setDeliveryMethod(DeliveryMethodEnum.LOGISTICS.name());
+                }
+                cartVO.setSkuList(storeCart.getValue());
+                try {
+                    //筛选属于当前店铺的优惠券
+                    storeCart.getValue().forEach(i -> i.getPromotionMap().forEach((key, value) -> {
+                        if (key.contains(PromotionTypeEnum.COUPON.name())) {
+                            Coupon coupon = JSON.parseObject(value.toString(), Coupon.class);
+                            if (key.contains(PromotionTypeEnum.COUPON.name()) && coupon.getStoreId().equals(storeCart.getKey())) {
+                                cartVO.getCanReceiveCoupon().add(new CouponVO(coupon));
+                            }
+                        }
+                    }));
+                } catch (Exception e) {
+                    log.error("筛选属于当前店铺的优惠券发生异常！", e);
+                }
+                storeCart.getValue().stream().filter(i -> Boolean.TRUE.equals(i.getChecked())).findFirst().ifPresent(cartSkuVO -> cartVO.setChecked(true));
+                cartList.add(cartVO);
+            }
+        }
+        tradeDTO.setCartList(cartList);
     }
 
     /**

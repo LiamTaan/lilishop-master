@@ -27,6 +27,7 @@ import cn.lili.modules.order.cart.entity.enums.CartTypeEnum;
 import cn.lili.modules.order.cart.entity.enums.DeliveryMethodEnum;
 import cn.lili.modules.order.cart.entity.vo.CartSkuVO;
 import cn.lili.modules.order.cart.entity.vo.CartVO;
+import cn.lili.modules.order.cart.entity.vo.CreateTradeVO;
 import cn.lili.modules.order.cart.entity.vo.TradeParams;
 import cn.lili.modules.order.cart.render.TradeBuilder;
 import cn.lili.modules.order.order.entity.dos.Trade;
@@ -564,7 +565,7 @@ public class CartServiceImpl implements CartService {
 
 
     @Override
-    public Trade createTrade(TradeParams tradeParams) {
+    public CreateTradeVO createTrade(TradeParams tradeParams) {
         //获取购物车
         CartTypeEnum cartTypeEnum = getCartType(tradeParams.getWay());
         TradeDTO tradeDTO = this.readDTO(cartTypeEnum);
@@ -579,7 +580,7 @@ public class CartServiceImpl implements CartService {
         //构建交易
         Trade trade = tradeBuilder.createTrade(tradeDTO);
         this.cleanChecked(this.readDTO(cartTypeEnum));
-        return trade;
+        return new CreateTradeVO(trade, tradeDTO.getOrderVO());
     }
 
     @Override

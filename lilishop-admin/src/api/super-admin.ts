@@ -1025,6 +1025,54 @@ export const deleteLogistics = (id: string) => {
   );
 };
 
+export const getAllStores = () => {
+  return http.request<ResultMessage<Record<string, any>[]>>(
+    "get",
+    "/manager/store/store/all"
+  );
+};
+
+export const getFreightTemplateList = (storeId: string) => {
+  return http.request<ResultMessage<Record<string, any>[]>>(
+    "get",
+    `/manager/goods/freightTemplate/store/${storeId}`
+  );
+};
+
+export const getFreightTemplateDetail = (id: string) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    `/manager/goods/freightTemplate/${id}`
+  );
+};
+
+export const createFreightTemplate = (data: Record<string, any>) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "post",
+    "/manager/goods/freightTemplate",
+    { data }
+  );
+};
+
+export const updateFreightTemplate = (
+  id: string,
+  data: Record<string, any>
+) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "put",
+    `/manager/goods/freightTemplate/${id}`,
+    { data }
+  );
+};
+
+export const deleteFreightTemplate = (id: string, storeId: string) => {
+  return http.request<ResultMessage<boolean>>(
+    "delete",
+    `/manager/goods/freightTemplate/${id}`,
+    { params: { storeId } }
+  );
+};
+
 export const getRegionRootList = () => {
   return http.request<ResultMessage<Record<string, any>[]>>(
     "get",

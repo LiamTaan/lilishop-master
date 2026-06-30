@@ -71,6 +71,9 @@ public class OrderSimpleVO {
     @Schema(description = "店铺ID")
     private String storeId;
 
+    @Schema(description = "店铺logo")
+    private String storeLogo;
+
     /**
      * @see ClientTypeEnum
      */
@@ -241,6 +244,11 @@ public class OrderSimpleVO {
     public AllowOperation getAllowOperationVO() {
         //设置订单的可操作状态
         return new AllowOperation(this);
+    }
+
+    @Schema(description = "订单编号")
+    public String getOrderSn() {
+        return this.sn;
     }
 
     @Schema(description = "履约类型 LOGISTICS/PICKUP/VERIFICATION")

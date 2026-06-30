@@ -365,7 +365,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         //查询发票信息
         Receipt receipt = receiptService.getByOrderSn(orderSn);
         //查询订单和自订单，然后写入vo返回
-        return new OrderDetailVO(order, orderItems, orderLogs, receipt);
+        OrderDetailVO orderDetailVO = new OrderDetailVO(order, orderItems, orderLogs, receipt);
+        if (CharSequenceUtil.isNotEmpty(order.getStoreId())) {
+            cn.lili.modules.store.entity.vos.StoreDetailVO storeDetailVO = storeDetailService.getStoreDetailVO(order.getStoreId());
+            if (storeDetailVO != null) {
+                orderDetailVO.setStoreLogo(storeDetailVO.getStoreLogo());
+            }
+        }
+        return orderDetailVO;
     }
 
     @Override

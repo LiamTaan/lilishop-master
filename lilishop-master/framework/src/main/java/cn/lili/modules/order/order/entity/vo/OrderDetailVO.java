@@ -35,6 +35,12 @@ public class OrderDetailVO implements Serializable {
      */
     private Order order;
 
+    @Schema(description = "订单编号")
+    private String orderSn;
+
+    @Schema(description = "店铺logo")
+    private String storeLogo;
+
     /**
      * 子订单信息
      */
@@ -79,6 +85,7 @@ public class OrderDetailVO implements Serializable {
 
     public OrderDetailVO(Order order, List<OrderItem> orderItems, List<OrderLog> orderLogs, Receipt receipt) {
         this.order = order;
+        this.orderSn = order == null ? null : order.getSn();
         this.orderItems = orderItems;
         this.orderLogs = orderLogs;
         this.receipt = receipt;

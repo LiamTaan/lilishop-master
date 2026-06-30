@@ -55,6 +55,15 @@ public interface FreightTemplateService extends IService<FreightTemplate> {
     FreightTemplateVO addFreightTemplate(FreightTemplateVO freightTemplateVO);
 
     /**
+     * 平台为指定店铺添加运费模板
+     *
+     * @param storeId           店铺ID
+     * @param freightTemplateVO 运费模板
+     * @return 运费模板
+     */
+    FreightTemplateVO addFreightTemplate(String storeId, FreightTemplateVO freightTemplateVO);
+
+    /**
      * 修改商家运费模板
      *
      * @param freightTemplateVO 运费模板
@@ -62,6 +71,17 @@ public interface FreightTemplateService extends IService<FreightTemplate> {
      */
     @CacheEvict(key = "#freightTemplateVO.id")
     FreightTemplateVO editFreightTemplate(FreightTemplateVO freightTemplateVO);
+
+    /**
+     * 平台修改指定店铺的运费模板
+     *
+     * @param storeId           店铺ID
+     * @param id                运费模板ID
+     * @param freightTemplateVO 运费模板
+     * @return 运费模板
+     */
+    @CacheEvict(key = "#id")
+    FreightTemplateVO editFreightTemplate(String storeId, String id, FreightTemplateVO freightTemplateVO);
 
     /**
      * 删除商家运费模板
@@ -72,5 +92,15 @@ public interface FreightTemplateService extends IService<FreightTemplate> {
      */
     @CacheEvict(key = "#id")
     boolean removeFreightTemplate(String id);
+
+    /**
+     * 平台删除指定店铺的运费模板
+     *
+     * @param storeId 店铺ID
+     * @param id      运费模板ID
+     * @return 操作状态
+     */
+    @CacheEvict(key = "#id")
+    boolean removeFreightTemplate(String storeId, String id);
 
 }

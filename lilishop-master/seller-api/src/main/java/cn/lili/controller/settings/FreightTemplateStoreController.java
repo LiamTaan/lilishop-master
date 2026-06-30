@@ -1,6 +1,8 @@
 package cn.lili.controller.settings;
 
+import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
+import cn.lili.common.exception.ServiceException;
 import cn.lili.common.security.OperationalJudgment;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.vo.ResultMessage;
@@ -47,25 +49,20 @@ public class FreightTemplateStoreController {
     @Operation(description = "添加商家运费模板")
     @PostMapping
     public ResultMessage<FreightTemplateVO> add(@Valid @RequestBody FreightTemplateVO freightTemplateVO) {
-        String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
-        freightTemplateVO.setStoreId(storeId);
-        return ResultUtil.data(freightTemplateService.addFreightTemplate(freightTemplateVO));
+        throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR, "运费模板已改为平台统一维护，请联系平台管理员");
     }
 
     @Operation(description = "修改商家运费模板")
     @Parameter(name = "id", description = "商家模板ID", required = true)
     @PutMapping("/{id}")
     public ResultMessage<FreightTemplateVO> edit(@PathVariable String id, @RequestBody @Valid FreightTemplateVO freightTemplateVO) {
-        OperationalJudgment.judgment(freightTemplateService.getFreightTemplate(id));
-        return ResultUtil.data(freightTemplateService.editFreightTemplate(freightTemplateVO));
+        throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR, "运费模板已改为平台统一维护，请联系平台管理员");
     }
 
     @Operation(description = "删除商家运费模板")
     @Parameter(name = "id", description = "商家模板ID", required = true)
     @DeleteMapping("/{id}")
     public ResultMessage<Object> edit(@PathVariable String id) {
-        OperationalJudgment.judgment(freightTemplateService.getFreightTemplate(id));
-        freightTemplateService.removeFreightTemplate(id);
-        return ResultUtil.success();
+        throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR, "运费模板已改为平台统一维护，请联系平台管理员");
     }
 }

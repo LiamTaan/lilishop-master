@@ -3,6 +3,7 @@ package cn.lili.modules.order.cart.service;
 
 import cn.lili.modules.order.cart.entity.dto.TradeDTO;
 import cn.lili.modules.order.cart.entity.enums.CartTypeEnum;
+import cn.lili.modules.order.cart.entity.vo.CreateTradeVO;
 import cn.lili.modules.order.cart.entity.vo.TradeParams;
 import cn.lili.modules.order.order.entity.dos.Trade;
 import cn.lili.modules.order.order.entity.vo.ReceiptVO;
@@ -168,7 +169,7 @@ public interface CartService {
      * @param tradeParams 创建交易参数
      * @return 交易信息
      */
-    Trade createTrade(TradeParams tradeParams);
+    CreateTradeVO createTrade(TradeParams tradeParams);
 
     /***
      * 获取可使用的配送方式

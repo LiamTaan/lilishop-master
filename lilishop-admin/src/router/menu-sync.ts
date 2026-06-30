@@ -155,6 +155,7 @@ const backendMenuAliasMap: Record<string, string> = {
   "verification-source": "/support-center/verification-source",
   "region-manage": "/support-center/region-manage",
   "logistics-manage": "/support-center/logistics-manage",
+  "freight-template-manage": "/support-center/freight-template-manage",
   "after-sale-reason": "/support-center/after-sale-reason",
   "feedback-manage": "/support-center/feedback-manage",
   "setting-log": "/support-center/setting-log",

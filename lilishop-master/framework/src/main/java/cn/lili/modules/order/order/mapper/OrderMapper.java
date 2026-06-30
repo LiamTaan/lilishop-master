@@ -82,7 +82,7 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @return 简短订单分页
      */
     @Select("select o.sn,o.flow_price,o.create_time,o.order_status,o.pay_status,o.payment_method,o.payment_time,o.member_name,o.member_id,o.store_name as " +
-            "store_name,o.store_id as store_id,o.client_type,o.order_type,o.deliver_status,o.delivery_method,o.verification_code," +
+            "store_name,o.store_id as store_id,s.store_logo as store_logo,o.client_type,o.order_type,o.deliver_status,o.delivery_method,o.verification_code," +
             "o.store_address_path,o.store_address_mobile,o.store_address_center,o.order_promotion_type,o.seller_remark " +
             ",GROUP_CONCAT(oi.goods_id) as group_goods_id," +
             " GROUP_CONCAT(oi.sku_id) as group_sku_id," +
@@ -96,7 +96,7 @@ public interface OrderMapper extends BaseMapper<Order> {
             ",GROUP_CONCAT(oi.goods_price) as group_goods_price " +
             ",GROUP_CONCAT(oi.is_refund) as group_is_refund " +
             ",GROUP_CONCAT(oi.refund_price) as group_refund_price " +
-            " FROM li_order o LEFT JOIN li_order_item AS oi on o.sn = oi.order_sn ${ew.customSqlSegment} ")
+            " FROM li_order o LEFT JOIN li_order_item AS oi on o.sn = oi.order_sn LEFT JOIN li_store s on o.store_id = s.id ${ew.customSqlSegment} ")
     IPage<OrderSimpleVO> queryByParams(IPage<OrderSimpleVO> page, @Param(Constants.WRAPPER) Wrapper<OrderSimpleVO> queryWrapper);
 
     @Select("select COUNT(CASE WHEN order_status = 'UNPAID' THEN 1 END) as waitPayNum,"+

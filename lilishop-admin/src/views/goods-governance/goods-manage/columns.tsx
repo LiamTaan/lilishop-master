@@ -66,18 +66,22 @@ export const columns: TableColumnList = [
       h("span", { class: "money-text" }, `¥ ${row.costPrice || "-"}`)
   },
   {
-    label: "售价",
+    label: "售价/起批价",
     prop: "salePrice",
     minWidth: 110,
     cellRenderer: ({ row }) =>
       h("span", { class: "money-text" }, `¥ ${row.salePrice || "-"}`)
   },
   {
-    label: "利润",
+    label: "利润/毛利",
     prop: "profitAmount",
     minWidth: 110,
     cellRenderer: ({ row }) =>
-      h("span", { class: "money-text money-text--profit" }, `¥ ${row.profitAmount || "-"}`)
+      h(
+        "span",
+        { class: "money-text money-text--profit" },
+        row.profitAmount == null ? "¥ -" : `¥ ${row.profitAmount}`
+      )
   },
   { label: "库存", prop: "stock", minWidth: 90 },
   {

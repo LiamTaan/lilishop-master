@@ -202,7 +202,7 @@ public class Goods extends BaseEntity {
             if ((!sku.containsKey("price") || StringUtil.isEmpty(sku.get("price").toString()) || Convert.toDouble(sku.get("price")) <= 0) && !goodsOperationDTO.getSalesModel().equals(GoodsSalesModeEnum.WHOLESALE.name())) {
                 throw new ServiceException(ResultCode.GOODS_SKU_PRICE_ERROR);
             }
-            if ((!sku.containsKey("cost") || StringUtil.isEmpty(sku.get("cost").toString()) || Convert.toDouble(sku.get("cost")) <= 0) && !goodsOperationDTO.getSalesModel().equals(GoodsSalesModeEnum.WHOLESALE.name())) {
+            if (!sku.containsKey("cost") || StringUtil.isEmpty(sku.get("cost").toString()) || Convert.toDouble(sku.get("cost")) <= 0) {
                 throw new ServiceException(ResultCode.GOODS_SKU_COST_ERROR);
             }
             //虚拟商品没有重量字段

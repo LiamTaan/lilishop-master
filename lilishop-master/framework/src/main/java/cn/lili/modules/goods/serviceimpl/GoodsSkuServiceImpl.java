@@ -984,14 +984,15 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
             return;
         }
         JSONObject jsonObject = JSON.parseObject(goodsSku.getSpecs());
-        List<String> images = jsonObject.getJSONArray("images").toJavaList(String.class);
-        GoodsGallery goodsGallery;
-        if (images != null && !images.isEmpty()) {
-            goodsGallery = goodsGalleryService.getGoodsGallery(images.get(0));
-        } else {
-            goodsGallery = goodsGalleryService.getGoodsGallery(goodsImages.get(0));
+        JSONArray imageArray = jsonObject == null ? null : jsonObject.getJSONArray("images");
+        List<String> images = imageArray == null ? Collections.emptyList() : imageArray.toJavaList(String.class);
+        String origin = images.stream().filter(CharSequenceUtil::isNotBlank).findFirst()
+                .orElseGet(() -> goodsImages.stream().filter(CharSequenceUtil::isNotBlank).findFirst().orElse(null));
+        if (CharSequenceUtil.isBlank(origin)) {
+            return;
         }
 
+        GoodsGallery goodsGallery = goodsGalleryService.getGoodsGallery(origin);
         goodsSku.setBig(goodsGallery.getOriginal());
         goodsSku.setOriginal(goodsGallery.getOriginal());
         goodsSku.setThumbnail(goodsGallery.getThumbnail());

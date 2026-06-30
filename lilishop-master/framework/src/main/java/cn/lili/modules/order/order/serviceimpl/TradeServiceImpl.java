@@ -109,6 +109,8 @@ public class TradeServiceImpl extends ServiceImpl<TradeMapper, Trade> implements
         this.save(trade);
         //添加订单
         orderService.intoDB(tradeDTO);
+        //创建订单后按子订单金额汇总交易金额，保证交易总价可靠落库
+        this.updateTradePrice(trade.getSn());
         //砍价订单处理
         kanjiaPretreatment(tradeDTO);
         //写入缓存，给消费者调用
@@ -163,6 +165,7 @@ public class TradeServiceImpl extends ServiceImpl<TradeMapper, Trade> implements
             orderService.payOrder(order.getSn(), paymentName, receivableNo);
         }
         Trade trade = this.getBySn(tradeSn);
+        trade.setPaymentMethod(paymentName);
         trade.setPayStatus(PayStatusEnum.PAID.name());
         this.saveOrUpdate(trade);
     }

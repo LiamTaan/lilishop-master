@@ -68,7 +68,7 @@ public class PromotionGoodsSearchParams extends BasePromotionsSearchParams {
         if (skuIds != null && !skuIds.isEmpty()) {
             queryWrapper.in("sku_id", skuIds);
         }
-        if (promotionIds != null && promotionIds.isEmpty()) {
+        if (promotionIds != null && !promotionIds.isEmpty()) {
             queryWrapper.in("promotion_id", promotionIds);
         }
         return queryWrapper;

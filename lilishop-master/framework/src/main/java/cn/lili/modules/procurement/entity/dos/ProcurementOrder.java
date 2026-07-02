@@ -29,6 +29,15 @@ public class ProcurementOrder extends BaseEntity {
     @Schema(description = "店铺名称")
     private String storeName;
 
+    @Schema(description = "来源订单编号")
+    private String sourceOrderSn;
+
+    @Schema(description = "供货商店铺ID")
+    private String supplierStoreId;
+
+    @Schema(description = "供货商店铺名称")
+    private String supplierStoreName;
+
     @Schema(description = "采购总金额")
     private Double totalAmount;
 

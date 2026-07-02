@@ -1,7 +1,5 @@
 package cn.lili.modules.sms.plugin.impl;
 
-import cn.lili.modules.sms.entity.dos.SmsSign;
-import cn.lili.modules.sms.entity.dos.SmsTemplate;
 import cn.lili.modules.sms.entity.enums.SmsEnum;
 import cn.lili.modules.sms.plugin.SmsPlugin;
 import cn.lili.modules.system.entity.dto.SmsSetting;
@@ -63,47 +61,6 @@ public class HuaweiSmsPlugin implements SmsPlugin {
             e.printStackTrace();
         }
     }
-
-    @Override
-    public void addSmsSign(SmsSign smsSign) throws Exception {
-
-    }
-
-    @Override
-    public void deleteSmsSign(String signName) throws Exception {
-
-    }
-
-    @Override
-    public Map<String, Object> querySmsSign(String signName) throws Exception {
-        return null;
-    }
-
-    @Override
-    public void modifySmsSign(SmsSign smsSign) throws Exception {
-
-    }
-
-    @Override
-    public void modifySmsTemplate(SmsTemplate smsTemplate) throws Exception {
-
-    }
-
-    @Override
-    public Map<String, Object> querySmsTemplate(String templateCode) throws Exception {
-        return null;
-    }
-
-    @Override
-    public String addSmsTemplate(SmsTemplate smsTemplate) throws Exception {
-        return null;
-    }
-
-    @Override
-    public void deleteSmsTemplate(String templateCode) throws Exception {
-
-    }
-
 
     // 发送短信
     private void sendSms(String signName, String mobile, String param, String templateCode) throws Exception {

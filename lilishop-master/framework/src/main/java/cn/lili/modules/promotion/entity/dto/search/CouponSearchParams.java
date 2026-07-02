@@ -64,8 +64,11 @@ public class CouponSearchParams extends BasePromotionsSearchParams implements Se
         if (CharSequenceUtil.isNotEmpty(couponName)) {
             queryWrapper.like("coupon_name", couponName);
         }
-        if (memberId != null) {
-            queryWrapper.eq("member_id", memberId);
+        if (CharSequenceUtil.isNotEmpty(memberId)) {
+            queryWrapper.apply(
+                    "id IN (SELECT coupon_id FROM li_member_coupon WHERE delete_flag = 0 AND member_id = {0})",
+                    memberId
+            );
         }
         if (CharSequenceUtil.isNotEmpty(couponType)) {
             queryWrapper.eq("coupon_type", CouponTypeEnum.valueOf(couponType).name());
@@ -77,7 +80,11 @@ public class CouponSearchParams extends BasePromotionsSearchParams implements Se
             queryWrapper.eq("scope_id", scopeId);
         }
         if (CharSequenceUtil.isNotEmpty(getType)) {
-            queryWrapper.eq("get_type", CouponGetEnum.valueOf(getType).name());
+            if (CouponGetEnum.FREE.name().equals(getType)) {
+                queryWrapper.in("get_type", CouponGetEnum.FREE.name(), "FREE_GET");
+            } else {
+                queryWrapper.eq("get_type", CouponGetEnum.valueOf(getType).name());
+            }
         }
         if (CharSequenceUtil.isNotEmpty(this.getPromotionStatus())) {
             queryWrapper.and(p -> {

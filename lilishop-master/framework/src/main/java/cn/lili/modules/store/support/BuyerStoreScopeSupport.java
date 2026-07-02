@@ -55,11 +55,11 @@ public class BuyerStoreScopeSupport {
         if (goodsSearchParams == null) {
             return;
         }
-        String bizType = resolveVisibleStoreBizType(identityCode);
-        if (CharSequenceUtil.isBlank(bizType)) {
+        List<String> storeIds = listVisibleStoreIds(identityCode);
+        if (storeIds.isEmpty()) {
             return;
         }
-        goodsSearchParams.setStoreIds(buildVisibleStoreIds(bizType));
+        goodsSearchParams.setStoreIds(storeIds);
     }
 
     public void applyEsGoodsScope(EsGoodsSearchDTO searchDTO) {
@@ -70,11 +70,23 @@ public class BuyerStoreScopeSupport {
         if (searchDTO == null) {
             return;
         }
-        String bizType = resolveVisibleStoreBizType(identityCode);
-        if (CharSequenceUtil.isBlank(bizType)) {
+        List<String> storeIds = listVisibleStoreIds(identityCode);
+        if (storeIds.isEmpty()) {
             return;
         }
-        searchDTO.setStoreIds(buildVisibleStoreIds(bizType));
+        searchDTO.setStoreIds(storeIds);
+    }
+
+    public List<String> listVisibleStoreIds() {
+        return listVisibleStoreIds(getCurrentIdentityCode());
+    }
+
+    public List<String> listVisibleStoreIds(LoginIdentityCodeEnum identityCode) {
+        String bizType = resolveVisibleStoreBizType(identityCode);
+        if (CharSequenceUtil.isBlank(bizType)) {
+            return Collections.emptyList();
+        }
+        return buildVisibleStoreIds(bizType);
     }
 
     public String resolveVisibleStoreBizType(LoginIdentityCodeEnum identityCode) {

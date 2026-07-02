@@ -26,6 +26,11 @@ const props = withDefaults(
     selectable?: boolean;
     pageSize?: number;
     pageSizes?: number[];
+    paginationEnabled?: boolean;
+    remotePagination?: boolean;
+    total?: number;
+    currentPage?: number;
+    tableProps?: Record<string, any>;
   }>(),
   {
     keywordLabel: "关键字",
@@ -37,6 +42,11 @@ const props = withDefaults(
     selectable: false,
     pageSize: 20,
     pageSizes: () => [20, 50, 100],
+    paginationEnabled: true,
+    remotePagination: false,
+    total: 0,
+    currentPage: 1,
+    tableProps: () => ({}),
     statusOptions: () => [
       { label: "待处理", value: "PENDING" },
       { label: "进行中", value: "PROCESSING" },
@@ -51,6 +61,7 @@ const emit = defineEmits<{
   search: [payload: { keyword: string; status: string }];
   reset: [];
   selectionChange: [rows: Record<string, any>[]];
+  paginationChange: [payload: { pageNumber: number; pageSize: number }];
 }>();
 
 const slots = useSlots();
@@ -60,7 +71,7 @@ const queryForm = reactive({
 });
 const pagination = reactive({
   pageSize: props.pageSize,
-  currentPage: 1
+  currentPage: props.currentPage
 });
 
 const tableColumns = computed(() => {
@@ -77,6 +88,9 @@ const tableColumns = computed(() => {
 });
 
 const pagedData = computed(() => {
+  if (!props.paginationEnabled || props.remotePagination) {
+    return props.data;
+  }
   const start = (pagination.currentPage - 1) * pagination.pageSize;
   return props.data.slice(start, start + pagination.pageSize);
 });
@@ -85,16 +99,25 @@ const tablePagination = computed(() => ({
   pageSize: pagination.pageSize,
   currentPage: pagination.currentPage,
   pageSizes: props.pageSizes,
-  total: props.data.length,
+  total: props.remotePagination ? props.total : props.data.length,
   align: "right" as const,
   background: true,
   size: "default" as const
 }));
 
 watch(
-  () => [props.data.length, pagination.pageSize],
+  () => [props.currentPage, props.pageSize],
+  ([currentPage, pageSize]) => {
+    pagination.currentPage = currentPage;
+    pagination.pageSize = pageSize;
+  }
+);
+
+watch(
+  () => [props.remotePagination ? props.total : props.data.length, pagination.pageSize],
   () => {
-    const maxPage = Math.max(1, Math.ceil(props.data.length / pagination.pageSize));
+    const total = props.remotePagination ? props.total : props.data.length;
+    const maxPage = Math.max(1, Math.ceil(total / pagination.pageSize));
     if (pagination.currentPage > maxPage) {
       pagination.currentPage = 1;
     }
@@ -119,10 +142,22 @@ function handleReset() {
 function handlePageSizeChange(size: number) {
   pagination.pageSize = size;
   pagination.currentPage = 1;
+  if (props.remotePagination) {
+    emit("paginationChange", {
+      pageNumber: pagination.currentPage,
+      pageSize: pagination.pageSize
+    });
+  }
 }
 
 function handlePageCurrentChange(page: number) {
   pagination.currentPage = page;
+  if (props.remotePagination) {
+    emit("paginationChange", {
+      pageNumber: pagination.currentPage,
+      pageSize: pagination.pageSize
+    });
+  }
 }
 </script>
 
@@ -176,9 +211,10 @@ function handlePageCurrentChange(page: number) {
         row-key="id"
         showOverflowTooltip
         table-layout="auto"
+        v-bind="props.tableProps"
         :data="pagedData"
         :columns="tableColumns"
-        :pagination="tablePagination"
+        :pagination="props.paginationEnabled ? tablePagination : undefined"
         :header-cell-style="{
           background: '#f5f6f8',
           color: '#4f5560',

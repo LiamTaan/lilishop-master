@@ -109,6 +109,17 @@ public interface PromotionGoodsService extends IService<PromotionGoods> {
      */
     Integer findInnerOverlapPromotionGoods(String promotionType, String skuId, Date startTime, Date endTime, String promotionId);
 
+    /**
+     * 查询指定时间段内已参与指定促销类型的SKU。
+     *
+     * @param promotionTypes 促销类型
+     * @param startTime      开始时间
+     * @param endTime        结束时间
+     * @param promotionId    排除的促销活动id
+     * @return 冲突SKU ID集合
+     */
+    List<String> findOverlapSkuIds(List<PromotionTypeEnum> promotionTypes, Date startTime, Date endTime, String promotionId);
+
 
     /**
      * 获取促销活动商品库存

@@ -58,6 +58,7 @@ import cn.lili.modules.statistics.service.IndexStatisticsService;
 import cn.lili.modules.store.entity.dos.Store;
 import cn.lili.modules.store.entity.enums.StoreStatusEnum;
 import cn.lili.modules.store.service.StoreService;
+import cn.lili.modules.store.support.BuyerStoreScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -129,12 +130,15 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
     private FootprintService footprintService;
     @Autowired
     private PromotionGoodsService promotionGoodsService;
+    @Autowired
+    private BuyerStoreScopeSupport buyerStoreScopeSupport;
 
     @Override
     public PlatformHomeVO getPlatformHome(String clientType) {
         String effectiveClientType = normalizeClientType(clientType);
         PageDataVO pageDataVO = getIndexPageData(effectiveClientType);
         RecommendationConfigBundle configBundle = resolveRecommendationConfig(pageDataVO);
+        List<String> visibleStoreIds = buyerStoreScopeSupport.listVisibleStoreIds();
 
         PlatformHomeVO vo = new PlatformHomeVO();
         vo.setClientType(effectiveClientType);
@@ -142,24 +146,26 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         vo.setShortcutNavList(resolveShortcutNav(effectiveClientType));
         vo.setFloorModules(resolveFloorModules(pageDataVO));
 
-        PlatformHomeSeckillVO seckill = resolveSeckill();
+        PlatformHomeSeckillVO seckill = resolveSeckill(visibleStoreIds);
+        List<PlatformHomeGoodsCardVO> monthlyHotGoods = resolveMonthlyHotGoods(DEFAULT_HOT_GOODS_LIMIT, visibleStoreIds);
+        List<PlatformHomeGoodsCardVO> newGoods = resolveNewGoods(DEFAULT_NEW_GOODS_LIMIT, visibleStoreIds);
+        List<PlatformHomeStoreCardVO> frequentStores = resolveFrequentStores(configBundle.getFrequentStoresConfig(), visibleStoreIds);
+
+        List<PlatformHomeGoodsCardVO> guessYouLikeGoods = resolveGuessYouLike(configBundle.getGuessYouLikeConfig(), new LinkedHashSet<>(), visibleStoreIds);
+        List<PlatformHomeGoodsCardVO> lowPriceZoneGoods = resolveLowPriceZone(configBundle.getLowPriceZoneConfig(), new LinkedHashSet<>(), visibleStoreIds);
+        List<PlatformHomeGoodsCardVO> todaySpecialGoods = resolveTodaySpecial(configBundle.getTodaySpecialConfig(), new LinkedHashSet<>(), visibleStoreIds);
+        normalizeGoodsCardStoreNames(
+                seckill == null ? null : seckill.getGoodsList(),
+                monthlyHotGoods,
+                newGoods,
+                guessYouLikeGoods,
+                lowPriceZoneGoods,
+                todaySpecialGoods
+        );
         vo.setSeckill(seckill);
-        vo.setMonthlyHotGoods(resolveMonthlyHotGoods(DEFAULT_HOT_GOODS_LIMIT));
-        vo.setNewGoods(resolveNewGoods(DEFAULT_NEW_GOODS_LIMIT));
-        List<PlatformHomeStoreCardVO> frequentStores = resolveFrequentStores(configBundle.getFrequentStoresConfig());
+        vo.setMonthlyHotGoods(monthlyHotGoods);
+        vo.setNewGoods(newGoods);
         vo.setFrequentStores(frequentStores);
-
-        Set<String> usedGoodsIds = new LinkedHashSet<>();
-        if (seckill != null && seckill.getGoodsList() != null) {
-            seckill.getGoodsList().stream()
-                    .map(PlatformHomeGoodsCardVO::getGoodsId)
-                    .filter(CharSequenceUtil::isNotBlank)
-                    .forEach(usedGoodsIds::add);
-        }
-
-        List<PlatformHomeGoodsCardVO> guessYouLikeGoods = resolveGuessYouLike(configBundle.getGuessYouLikeConfig(), usedGoodsIds);
-        List<PlatformHomeGoodsCardVO> lowPriceZoneGoods = resolveLowPriceZone(configBundle.getLowPriceZoneConfig(), usedGoodsIds);
-        List<PlatformHomeGoodsCardVO> todaySpecialGoods = resolveTodaySpecial(configBundle.getTodaySpecialConfig(), usedGoodsIds);
         vo.setGuessYouLikeGoods(guessYouLikeGoods);
         vo.setLowPriceZoneGoods(lowPriceZoneGoods);
         vo.setTodaySpecialGoods(todaySpecialGoods);
@@ -457,26 +463,38 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         return config;
     }
 
-    private PlatformHomeSeckillVO resolveSeckill() {
+    private PlatformHomeSeckillVO resolveSeckill(List<String> visibleStoreIds) {
         List<SeckillTimelineVO> timeLineList = seckillApplyService.getSeckillTimeline();
         if (timeLineList == null || timeLineList.isEmpty()) {
             return null;
         }
-        SeckillTimelineVO active = timeLineList.stream()
-                .min(Comparator.comparing(item -> item.getDistanceStartTime() == null ? Long.MAX_VALUE : item.getDistanceStartTime()))
-                .orElse(timeLineList.get(0));
+        SeckillTimelineVO active = null;
+        List<SeckillGoodsVO> visibleGoodsList = Collections.emptyList();
+        for (SeckillTimelineVO timeline : timeLineList) {
+            List<SeckillGoodsVO> filteredGoods = timeline.getSeckillGoodsList() == null
+                    ? Collections.emptyList()
+                    : timeline.getSeckillGoodsList().stream()
+                    .filter(item -> isVisibleStore(item.getStoreId(), visibleStoreIds))
+                    .limit(DEFAULT_SECKILL_GOODS_LIMIT)
+                    .collect(Collectors.toList());
+            if (!filteredGoods.isEmpty()) {
+                active = timeline;
+                visibleGoodsList = filteredGoods;
+                break;
+            }
+        }
+        if (active == null) {
+            return null;
+        }
         PlatformHomeSeckillVO seckillVO = new PlatformHomeSeckillVO();
         seckillVO.setTimeLine(active.getTimeLine());
         seckillVO.setStartTime(active.getStartTime());
         seckillVO.setDistanceStartTime(active.getDistanceStartTime());
-        List<SeckillGoodsVO> goodsList = active.getSeckillGoodsList() == null
-                ? Collections.emptyList()
-                : active.getSeckillGoodsList().stream().limit(DEFAULT_SECKILL_GOODS_LIMIT).collect(Collectors.toList());
-        seckillVO.setGoodsList(goodsList.stream().map(this::buildSeckillGoodsCard).collect(Collectors.toList()));
+        seckillVO.setGoodsList(visibleGoodsList.stream().map(this::buildSeckillGoodsCard).collect(Collectors.toList()));
         return seckillVO;
     }
 
-    private List<PlatformHomeGoodsCardVO> resolveMonthlyHotGoods(int limit) {
+    private List<PlatformHomeGoodsCardVO> resolveMonthlyHotGoods(int limit, List<String> visibleStoreIds) {
         if (limit <= 0) {
             return Collections.emptyList();
         }
@@ -486,7 +504,9 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         queryParam.setMonth(dateTime.monthBaseOne());
         List<GoodsStatisticsDataVO> statistics = indexStatisticsService.goodsStatistics(queryParam);
         if (statistics == null || statistics.isEmpty()) {
-            return Collections.emptyList();
+            return loadHotGoodsFallback(limit, visibleStoreIds).stream()
+                    .map(item -> buildGoodsCard(item, item.getBuyCount()))
+                    .collect(Collectors.toList());
         }
         List<String> goodsIds = statistics.stream()
                 .map(GoodsStatisticsDataVO::getGoodsId)
@@ -497,7 +517,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         List<PlatformHomeGoodsCardVO> result = new ArrayList<>();
         for (GoodsStatisticsDataVO statistic : statistics) {
             Goods goods = goodsMap.get(statistic.getGoodsId());
-            if (!isActiveGoods(goods)) {
+            if (!isActiveGoods(goods) || !isVisibleStore(goods.getStoreId(), visibleStoreIds)) {
                 continue;
             }
             result.add(buildGoodsCard(goods, parseInteger(statistic.getNum())));
@@ -505,10 +525,18 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 break;
             }
         }
+        if (result.size() < limit) {
+            appendGoodsCards(
+                    result,
+                    loadHotGoodsFallback(limit * GOODS_QUERY_BUFFER, visibleStoreIds),
+                    result.stream().map(PlatformHomeGoodsCardVO::getGoodsId).collect(Collectors.toSet()),
+                    limit
+            );
+        }
         return result;
     }
 
-    private List<Goods> loadHotGoods(int limit) {
+    private List<Goods> loadHotGoods(int limit, List<String> visibleStoreIds) {
         if (limit <= 0) {
             return Collections.emptyList();
         }
@@ -518,7 +546,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         queryParam.setMonth(dateTime.monthBaseOne());
         List<GoodsStatisticsDataVO> statistics = indexStatisticsService.goodsStatistics(queryParam);
         if (statistics == null || statistics.isEmpty()) {
-            return Collections.emptyList();
+            return loadHotGoodsFallback(limit, visibleStoreIds);
         }
         List<String> goodsIds = statistics.stream()
                 .map(GoodsStatisticsDataVO::getGoodsId)
@@ -526,20 +554,35 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 .distinct()
                 .limit(limit)
                 .collect(Collectors.toList());
-        return reorderGoodsByIds(goodsIds);
-    }
-
-    private List<PlatformHomeGoodsCardVO> resolveNewGoods(int limit) {
-        return loadNewGoods(limit, null).stream()
-                .map(item -> buildGoodsCard(item, item.getBuyCount()))
+        return reorderGoodsByIds(goodsIds).stream()
+                .filter(goods -> isVisibleStore(goods.getStoreId(), visibleStoreIds))
                 .collect(Collectors.toList());
     }
 
-    private List<Goods> loadNewGoods(int limit, Date createdAfter) {
+    private List<Goods> loadHotGoodsFallback(int limit, List<String> visibleStoreIds) {
         if (limit <= 0) {
             return Collections.emptyList();
         }
         LambdaQueryWrapper<Goods> queryWrapper = buildActiveGoodsQuery();
+        applyGoodsStoreFilter(queryWrapper, visibleStoreIds);
+        queryWrapper.orderByDesc(Goods::getBuyCount)
+                .orderByDesc(Goods::getCreateTime)
+                .last("limit " + Math.min(limit, MAX_GOODS_QUERY_SIZE));
+        return goodsService.list(queryWrapper);
+    }
+
+    private List<PlatformHomeGoodsCardVO> resolveNewGoods(int limit, List<String> visibleStoreIds) {
+        return loadNewGoods(limit, null, visibleStoreIds).stream()
+                .map(item -> buildGoodsCard(item, item.getBuyCount()))
+                .collect(Collectors.toList());
+    }
+
+    private List<Goods> loadNewGoods(int limit, Date createdAfter, List<String> visibleStoreIds) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<Goods> queryWrapper = buildActiveGoodsQuery();
+        applyGoodsStoreFilter(queryWrapper, visibleStoreIds);
         if (createdAfter != null) {
             queryWrapper.ge(Goods::getCreateTime, createdAfter);
         }
@@ -549,7 +592,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         return goodsService.list(queryWrapper);
     }
 
-    private List<PlatformHomeStoreCardVO> resolveFrequentStores(PlatformHomeRecommendationConfigVO config) {
+    private List<PlatformHomeStoreCardVO> resolveFrequentStores(PlatformHomeRecommendationConfigVO config, List<String> visibleStoreIds) {
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return Collections.emptyList();
         }
@@ -559,12 +602,14 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         Set<String> storeIds = new LinkedHashSet<>();
 
         if (currentUser != null && UserEnums.MEMBER.equals(currentUser.getRole())) {
-            appendOrderedStores(storeIds, sourceMap, loadMemberOrderStoreIds(currentUser.getId()), "ORDER", limit);
-            appendOrderedStores(storeIds, sourceMap, loadMemberCollectionStoreIds(currentUser.getId()), "COLLECTION", limit);
-            appendOrderedStores(storeIds, sourceMap, loadMemberFootprintStoreIds(currentUser.getId()), "FOOTPRINT", limit);
+            appendOrderedStores(storeIds, sourceMap, filterStoreIds(loadMemberOrderStoreIds(currentUser.getId()), visibleStoreIds), "ORDER", limit);
+            appendOrderedStores(storeIds, sourceMap, filterStoreIds(loadMemberCollectionStoreIds(currentUser.getId()), visibleStoreIds), "COLLECTION", limit);
+            appendOrderedStores(storeIds, sourceMap, filterStoreIds(loadMemberFootprintStoreIds(currentUser.getId()), visibleStoreIds), "FOOTPRINT", limit);
         }
 
-        appendOrderedStores(storeIds, sourceMap, loadHotStoreIds(), "HOT", limit);
+        appendOrderedStores(storeIds, sourceMap, filterStoreIds(loadHotStoreIds(), visibleStoreIds), "HOT", limit);
+        appendOrderedStores(storeIds, sourceMap, loadFallbackStoreIdsByGoods(limit * GOODS_QUERY_BUFFER, visibleStoreIds), "HOT", limit);
+        appendOrderedStores(storeIds, sourceMap, loadOpenStoreIds(limit * GOODS_QUERY_BUFFER, visibleStoreIds), "HOT", limit);
         if (storeIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -596,8 +641,40 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         return result;
     }
 
+    private List<String> loadFallbackStoreIdsByGoods(int limit, List<String> visibleStoreIds) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return loadHotGoodsFallback(Math.min(limit, MAX_GOODS_QUERY_SIZE), visibleStoreIds).stream()
+                .map(Goods::getStoreId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<String> loadOpenStoreIds(int limit, List<String> visibleStoreIds) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<Store> queryWrapper = Wrappers.<Store>lambdaQuery()
+                .eq(Store::getStoreDisable, StoreStatusEnum.OPEN.name())
+                .eq(Store::getDeleteFlag, false)
+                .orderByDesc(Store::getGoodsNum)
+                .orderByDesc(Store::getCollectionNum)
+                .orderByDesc(Store::getCreateTime)
+                .last("limit " + Math.min(limit, MAX_GOODS_QUERY_SIZE));
+        if (hasStoreScope(visibleStoreIds)) {
+            queryWrapper.in(Store::getId, visibleStoreIds);
+        }
+        return storeService.list(queryWrapper).stream()
+                .map(Store::getId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .collect(Collectors.toList());
+    }
+
     private List<PlatformHomeGoodsCardVO> resolveGuessYouLike(PlatformHomeRecommendationConfigVO config,
-                                                              Set<String> usedGoodsIds) {
+                                                              Set<String> usedGoodsIds,
+                                                              List<String> visibleStoreIds) {
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return Collections.emptyList();
         }
@@ -608,18 +685,18 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
 
         LinkedHashMap<String, Goods> candidateMap = new LinkedHashMap<>();
         if (!behaviorContext.getCategoryScoreMap().isEmpty()) {
-            appendCandidateGoods(candidateMap, queryGoodsByCategoryIds(topCategoryIds(behaviorContext.getCategoryScoreMap(), 10), MAX_GOODS_QUERY_SIZE));
+            appendCandidateGoods(candidateMap, queryGoodsByCategoryIds(topCategoryIds(behaviorContext.getCategoryScoreMap(), 10), MAX_GOODS_QUERY_SIZE, visibleStoreIds));
         }
         if (!behaviorContext.getPreferredStoreIds().isEmpty()) {
-            appendCandidateGoods(candidateMap, queryGoodsByStoreIds(behaviorContext.getPreferredStoreIds(), MAX_GOODS_QUERY_SIZE / 2));
+            appendCandidateGoods(candidateMap, queryGoodsByStoreIds(behaviorContext.getPreferredStoreIds(), MAX_GOODS_QUERY_SIZE / 2, visibleStoreIds));
         }
 
-        List<Goods> hotGoods = loadHotGoods(MAX_GOODS_QUERY_SIZE / 2);
-        List<Goods> newGoods = loadNewGoods(MAX_GOODS_QUERY_SIZE / 2, sevenDaysAgo);
+        List<Goods> hotGoods = loadHotGoods(MAX_GOODS_QUERY_SIZE / 2, visibleStoreIds);
+        List<Goods> newGoods = loadNewGoods(MAX_GOODS_QUERY_SIZE / 2, sevenDaysAgo, visibleStoreIds);
         appendCandidateGoods(candidateMap, hotGoods);
         appendCandidateGoods(candidateMap, newGoods);
         if (Boolean.TRUE.equals(config.getPreferRecommendFlag())) {
-            appendCandidateGoods(candidateMap, queryRecommendGoods(MAX_GOODS_QUERY_SIZE / 2));
+            appendCandidateGoods(candidateMap, queryRecommendGoods(MAX_GOODS_QUERY_SIZE / 2, visibleStoreIds));
         }
 
         Set<String> hotGoodsIds = hotGoods.stream().map(Goods::getId).collect(Collectors.toSet());
@@ -672,7 +749,8 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
     }
 
     private List<PlatformHomeGoodsCardVO> resolveLowPriceZone(PlatformHomeRecommendationConfigVO config,
-                                                              Set<String> usedGoodsIds) {
+                                                              Set<String> usedGoodsIds,
+                                                              List<String> visibleStoreIds) {
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return Collections.emptyList();
         }
@@ -684,14 +762,15 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         List<LowPriceCandidate> candidates = queryLowPriceCandidates(
                 config.getCategoryRange(),
                 priceUpperBound,
-                limit * GOODS_QUERY_BUFFER
+                limit * GOODS_QUERY_BUFFER,
+                visibleStoreIds
         );
         if (candidates.size() < limit && config.getCategoryRange() != null && !config.getCategoryRange().isEmpty()) {
             LinkedHashMap<String, LowPriceCandidate> merged = new LinkedHashMap<>();
             appendLowPriceCandidates(merged, candidates);
             appendLowPriceCandidates(
                     merged,
-                    queryLowPriceCandidates(Collections.emptyList(), priceUpperBound, limit * GOODS_QUERY_BUFFER)
+                    queryLowPriceCandidates(Collections.emptyList(), priceUpperBound, limit * GOODS_QUERY_BUFFER, visibleStoreIds)
             );
             candidates = new ArrayList<>(merged.values());
         }
@@ -702,7 +781,8 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
     }
 
     private List<PlatformHomeGoodsCardVO> resolveTodaySpecial(PlatformHomeRecommendationConfigVO config,
-                                                              Set<String> usedGoodsIds) {
+                                                              Set<String> usedGoodsIds,
+                                                              List<String> visibleStoreIds) {
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return Collections.emptyList();
         }
@@ -712,11 +792,20 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         if (promotionTypes.isEmpty()) {
             return Collections.emptyList();
         }
+        int limit = normalizeLimit(config.getLimit(), 12);
+        int queryLimit = Math.min(limit * GOODS_QUERY_BUFFER, MAX_GOODS_QUERY_SIZE);
 
         QueryWrapper<PromotionGoods> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("delete_flag", false);
+        applyPromotionStoreFilter(queryWrapper, visibleStoreIds);
         queryWrapper.in("promotion_type", promotionTypes);
+        queryWrapper.gt("quantity", 0);
+        queryWrapper.gt("original_price", 0);
+        queryWrapper.isNotNull("goods_id");
+        queryWrapper.isNotNull("price");
+        queryWrapper.apply("price <= original_price");
         queryWrapper.and(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START));
+        queryWrapper.last("order by (original_price - price) / original_price desc, end_time asc, num desc limit " + queryLimit);
         List<PromotionGoods> promotionGoodsList = promotionGoodsService.list(queryWrapper);
         if (promotionGoodsList == null || promotionGoodsList.isEmpty()) {
             return Collections.emptyList();
@@ -757,7 +846,6 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         List<PromotionGoods> rankedPromotions = new ArrayList<>(bestPromotionByGoodsId.values());
         rankedPromotions.sort((left, right) -> comparePromotionGoods(left, right));
 
-        int limit = normalizeLimit(config.getLimit(), 12);
         List<PlatformHomeGoodsCardVO> result = new ArrayList<>();
         for (PromotionGoods promotionGoods : rankedPromotions) {
             if (usedGoodsIds.contains(promotionGoods.getGoodsId())) {
@@ -864,11 +952,12 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 .collect(Collectors.toList());
     }
 
-    private List<Goods> queryGoodsByCategoryIds(List<String> categoryIds, int limit) {
+    private List<Goods> queryGoodsByCategoryIds(List<String> categoryIds, int limit, List<String> visibleStoreIds) {
         if (categoryIds == null || categoryIds.isEmpty() || limit <= 0) {
             return Collections.emptyList();
         }
         LambdaQueryWrapper<Goods> queryWrapper = buildActiveGoodsQuery();
+        applyGoodsStoreFilter(queryWrapper, visibleStoreIds);
         applyGoodsCategoryFilter(queryWrapper, categoryIds);
         queryWrapper.orderByDesc(Goods::getBuyCount)
                 .orderByDesc(Goods::getCreateTime)
@@ -878,23 +967,28 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 .collect(Collectors.toList());
     }
 
-    private List<Goods> queryGoodsByStoreIds(Set<String> storeIds, int limit) {
+    private List<Goods> queryGoodsByStoreIds(Set<String> storeIds, int limit, List<String> visibleStoreIds) {
         if (storeIds == null || storeIds.isEmpty() || limit <= 0) {
             return Collections.emptyList();
         }
+        List<String> filteredStoreIds = filterStoreIds(new ArrayList<>(storeIds), visibleStoreIds);
+        if (filteredStoreIds.isEmpty() && hasStoreScope(visibleStoreIds)) {
+            return Collections.emptyList();
+        }
         LambdaQueryWrapper<Goods> queryWrapper = buildActiveGoodsQuery();
-        queryWrapper.in(Goods::getStoreId, storeIds)
+        queryWrapper.in(Goods::getStoreId, filteredStoreIds.isEmpty() ? storeIds : filteredStoreIds)
                 .orderByDesc(Goods::getBuyCount)
                 .orderByDesc(Goods::getCreateTime)
                 .last("limit " + Math.min(limit, MAX_GOODS_QUERY_SIZE));
         return goodsService.list(queryWrapper);
     }
 
-    private List<Goods> queryRecommendGoods(int limit) {
+    private List<Goods> queryRecommendGoods(int limit, List<String> visibleStoreIds) {
         if (limit <= 0) {
             return Collections.emptyList();
         }
         LambdaQueryWrapper<Goods> queryWrapper = buildActiveGoodsQuery();
+        applyGoodsStoreFilter(queryWrapper, visibleStoreIds);
         queryWrapper.eq(Goods::getRecommend, true)
                 .orderByDesc(Goods::getBuyCount)
                 .orderByDesc(Goods::getCreateTime)
@@ -904,10 +998,12 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
 
     private List<LowPriceCandidate> queryLowPriceCandidates(List<String> categoryRange,
                                                             double priceUpperBound,
-                                                            int limit) {
+                                                            int limit,
+                                                            List<String> visibleStoreIds) {
         LinkedHashMap<String, LowPriceCandidate> candidateMap = new LinkedHashMap<>();
 
         LambdaQueryWrapper<Goods> goodsQueryWrapper = buildActiveGoodsQuery();
+        applyGoodsStoreFilter(goodsQueryWrapper, visibleStoreIds);
         goodsQueryWrapper.le(Goods::getPrice, priceUpperBound);
         applyGoodsCategoryFilter(goodsQueryWrapper, categoryRange);
         goodsQueryWrapper.orderByAsc(Goods::getPrice)
@@ -927,6 +1023,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 .orderByDesc("num")
                 .orderByDesc("end_time")
                 .last("limit " + Math.min(limit, MAX_GOODS_QUERY_SIZE));
+        applyPromotionStoreFilter(promotionQueryWrapper, visibleStoreIds);
         applyCategoryPathFilter(promotionQueryWrapper, "category_path", categoryRange);
 
         List<PromotionGoods> promotionGoodsList = promotionGoodsService.list(promotionQueryWrapper);
@@ -971,6 +1068,38 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                 .eq(Goods::getMarketEnable, GoodsStatusEnum.UPPER.name())
                 .gt(Goods::getQuantity, 0)
                 .eq(Goods::getDeleteFlag, false);
+    }
+
+    private void applyGoodsStoreFilter(LambdaQueryWrapper<Goods> queryWrapper, List<String> visibleStoreIds) {
+        if (queryWrapper != null && hasStoreScope(visibleStoreIds)) {
+            queryWrapper.in(Goods::getStoreId, visibleStoreIds);
+        }
+    }
+
+    private void applyPromotionStoreFilter(QueryWrapper<PromotionGoods> queryWrapper, List<String> visibleStoreIds) {
+        if (queryWrapper != null && hasStoreScope(visibleStoreIds)) {
+            queryWrapper.in("store_id", visibleStoreIds);
+        }
+    }
+
+    private boolean isVisibleStore(String storeId, List<String> visibleStoreIds) {
+        return !hasStoreScope(visibleStoreIds)
+                || (CharSequenceUtil.isNotBlank(storeId) && visibleStoreIds.contains(storeId));
+    }
+
+    private boolean hasStoreScope(List<String> visibleStoreIds) {
+        return visibleStoreIds != null && !visibleStoreIds.isEmpty();
+    }
+
+    private List<String> filterStoreIds(List<String> storeIds, List<String> visibleStoreIds) {
+        if (storeIds == null || storeIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return storeIds.stream()
+                .filter(CharSequenceUtil::isNotBlank)
+                .filter(storeId -> isVisibleStore(storeId, visibleStoreIds))
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private void appendCandidateGoods(Map<String, Goods> bucket, List<Goods> goodsList) {
@@ -1274,7 +1403,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
                                                  String code,
                                                  PlatformHomeRecommendationConfigVO config,
                                                  List<PlatformHomeGoodsCardVO> goodsList) {
-        if (config == null || !Boolean.TRUE.equals(config.getEnabled()) || goodsList == null || goodsList.isEmpty()) {
+        if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return;
         }
         PlatformHomeRecommendationModuleVO moduleVO = new PlatformHomeRecommendationModuleVO();
@@ -1283,7 +1412,7 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         moduleVO.setSortOrder(config.getSortOrder());
         moduleVO.setModuleType(RECOMMENDATION_MODULE_TYPE_GOODS);
         moduleVO.setStoreList(Collections.emptyList());
-        moduleVO.setGoodsList(goodsList);
+        moduleVO.setGoodsList(goodsList == null ? Collections.emptyList() : goodsList);
         modules.add(moduleVO);
     }
 
@@ -1446,6 +1575,42 @@ public class PlatformHomeServiceImpl implements PlatformHomeService {
         cardVO.setStoreName(firstNotBlank(promotionGoods.getStoreName(), goods == null ? null : goods.getStoreName()));
         cardVO.setSalesNum(safeInteger(promotionGoods.getNum()));
         return cardVO;
+    }
+
+    @SafeVarargs
+    private final void normalizeGoodsCardStoreNames(List<PlatformHomeGoodsCardVO>... goodsGroups) {
+        if (goodsGroups == null || goodsGroups.length == 0) {
+            return;
+        }
+        Set<String> storeIds = new LinkedHashSet<>();
+        for (List<PlatformHomeGoodsCardVO> goodsGroup : goodsGroups) {
+            if (goodsGroup == null || goodsGroup.isEmpty()) {
+                continue;
+            }
+            goodsGroup.stream()
+                    .map(PlatformHomeGoodsCardVO::getStoreId)
+                    .filter(CharSequenceUtil::isNotBlank)
+                    .forEach(storeIds::add);
+        }
+        if (storeIds.isEmpty()) {
+            return;
+        }
+        Map<String, Store> storeMap = storeService.listByIds(storeIds).stream()
+                .collect(Collectors.toMap(Store::getId, Function.identity(), (left, right) -> left));
+        for (List<PlatformHomeGoodsCardVO> goodsGroup : goodsGroups) {
+            if (goodsGroup == null || goodsGroup.isEmpty()) {
+                continue;
+            }
+            for (PlatformHomeGoodsCardVO goodsCard : goodsGroup) {
+                if (goodsCard == null || CharSequenceUtil.isBlank(goodsCard.getStoreId())) {
+                    continue;
+                }
+                Store store = storeMap.get(goodsCard.getStoreId());
+                if (store != null && CharSequenceUtil.isNotBlank(store.getStoreName())) {
+                    goodsCard.setStoreName(store.getStoreName());
+                }
+            }
+        }
     }
 
     private Integer safeInteger(Integer value) {

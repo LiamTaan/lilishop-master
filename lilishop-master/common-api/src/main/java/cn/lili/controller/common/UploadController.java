@@ -15,6 +15,8 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.file.entity.File;
 import cn.lili.modules.file.plugin.FilePluginFactory;
 import cn.lili.modules.file.service.FileService;
+import cn.lili.modules.member.entity.dto.LoginSessionDTO;
+import cn.lili.modules.member.service.AppLoginSessionService;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.enums.SettingEnum;
 import cn.lili.modules.system.service.SettingService;
@@ -49,12 +51,15 @@ public class UploadController {
     private FilePluginFactory filePluginFactory;
     @Autowired
     private Cache cache;
+    @Autowired
+    private AppLoginSessionService appLoginSessionService;
 
     @Operation(summary = "文件上传")
     @PostMapping("/file")
     public ResultMessage<Object> upload(MultipartFile file,
                                         String base64,
                                         @RequestParam String directoryPath,
+                                        @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken,
                                         HttpServletRequest request) {
 
         if(StrUtil.isBlank(directoryPath)){
@@ -62,10 +67,7 @@ public class UploadController {
         }
 
         AuthUser authUser = UserContext.getAuthUser(cache, UserContext.resolveAccessToken(request));
-        //如果用户未登录，则无法上传图片
-        if (authUser == null) {
-            throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
-        }
+        authUser = resolveUploadAuthUser(authUser, loginSessionToken);
         if (file == null) {
             throw new ServiceException(ResultCode.FILE_NOT_EXIST_ERROR);
         }
@@ -127,6 +129,25 @@ public class UploadController {
             throw new ServiceException(ResultCode.OSS_EXCEPTION_ERROR);
         }
         return ResultUtil.data(result);
+    }
+
+    private AuthUser resolveUploadAuthUser(AuthUser authUser, String loginSessionToken) {
+        if (authUser != null) {
+            return authUser;
+        }
+        if (StrUtil.isBlank(loginSessionToken)) {
+            throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
+        }
+        LoginSessionDTO loginSession = appLoginSessionService.getSession(loginSessionToken);
+        if (loginSession == null || StrUtil.isBlank(loginSession.getMemberId())) {
+            throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
+        }
+        return AuthUser.builder()
+                .id(loginSession.getMemberId())
+                .username(loginSession.getMobile())
+                .nickName(loginSession.getMobile())
+                .role(UserEnums.MEMBER)
+                .build();
     }
 
     /**

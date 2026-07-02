@@ -1,27 +1,23 @@
 package cn.lili.modules.agent.serviceimpl;
 
 import cn.lili.common.utils.CurrencyUtil;
+import cn.lili.modules.agent.entity.params.StoreDashboardTrendQueryParams;
 import cn.lili.modules.agent.entity.vos.StoreAssetOverviewVO;
-import cn.lili.modules.agent.entity.vos.StoreDashboardVO;
+import cn.lili.modules.agent.entity.vos.StoreWorkbenchOverviewVO;
+import cn.lili.modules.agent.entity.vos.StoreDashboardTrendDetailVO;
+import cn.lili.modules.agent.entity.vos.StoreDashboardTrendVO;
+import cn.lili.modules.agent.service.StoreDashboardAnalyticsService;
 import cn.lili.modules.agent.service.StoreDashboardService;
 import cn.lili.modules.store.entity.dos.Bill;
 import cn.lili.modules.store.entity.enums.BillStatusEnum;
 import cn.lili.modules.store.service.BillService;
-import cn.lili.modules.statistics.entity.dto.GoodsStatisticsQueryParam;
-import cn.lili.modules.statistics.entity.dto.StatisticsQueryParam;
-import cn.lili.modules.statistics.entity.vo.GoodsStatisticsDataVO;
-import cn.lili.modules.statistics.entity.vo.OrderOverviewVO;
-import cn.lili.modules.statistics.entity.vo.StoreIndexStatisticsVO;
-import cn.lili.modules.statistics.service.IndexStatisticsService;
-import cn.lili.modules.statistics.service.OrderStatisticsService;
-import cn.lili.modules.statistics.service.StoreFlowStatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /**
- * 供货端经营概览服务实现
+ * 供货端工作台服务实现
  *
  * @author dawn
  * @since 2026/6/17
@@ -30,32 +26,24 @@ import java.util.List;
 public class StoreDashboardServiceImpl implements StoreDashboardService {
 
     @Autowired
-    private IndexStatisticsService indexStatisticsService;
-
-    @Autowired
-    private OrderStatisticsService orderStatisticsService;
-
-    @Autowired
-    private StoreFlowStatisticsService storeFlowStatisticsService;
+    private StoreDashboardAnalyticsService storeDashboardAnalyticsService;
 
     @Autowired
     private BillService billService;
 
     @Override
-    public StoreDashboardVO dashboard(String storeId) {
-        StoreDashboardVO vo = new StoreDashboardVO();
-        StoreIndexStatisticsVO storeIndexStatistics = indexStatisticsService.storeIndexStatistics();
-        StatisticsQueryParam statisticsQueryParam = new StatisticsQueryParam();
-        statisticsQueryParam.setStoreId(storeId);
-        OrderOverviewVO orderOverview = orderStatisticsService.overview(statisticsQueryParam);
-        GoodsStatisticsQueryParam goodsStatisticsQueryParam = new GoodsStatisticsQueryParam();
-        goodsStatisticsQueryParam.setStoreId(storeId);
-        goodsStatisticsQueryParam.setType("PRICE");
-        List<GoodsStatisticsDataVO> goodsRankList = storeFlowStatisticsService.getGoodsStatisticsData(goodsStatisticsQueryParam, 10);
-        vo.setStoreIndexStatistics(storeIndexStatistics);
-        vo.setOrderOverview(orderOverview);
-        vo.setGoodsRankList(goodsRankList);
-        return vo;
+    public StoreWorkbenchOverviewVO dashboard(String storeId) {
+        return storeDashboardAnalyticsService.overview(storeId);
+    }
+
+    @Override
+    public StoreDashboardTrendVO trend(String storeId, StoreDashboardTrendQueryParams params) {
+        return storeDashboardAnalyticsService.trend(storeId, params);
+    }
+
+    @Override
+    public List<StoreDashboardTrendDetailVO> trendDetail(String storeId, StoreDashboardTrendQueryParams params) {
+        return storeDashboardAnalyticsService.trendDetail(storeId, params);
     }
 
     @Override

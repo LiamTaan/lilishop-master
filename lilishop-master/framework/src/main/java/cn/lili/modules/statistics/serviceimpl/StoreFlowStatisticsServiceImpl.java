@@ -73,15 +73,17 @@ public class StoreFlowStatisticsServiceImpl extends ServiceImpl<StoreFlowStatist
 
     @Override
     public Map<String, Object> getOrderStatisticsPrice() {
+        AuthUser authUser = UserContext.getCurrentUser();
+        String storeId = authUser != null && authUser.getRole().equals(UserEnums.STORE) ? authUser.getStoreId() : null;
+        return getOrderStatisticsPrice(storeId);
+    }
+
+    @Override
+    public Map<String, Object> getOrderStatisticsPrice(String storeId) {
         QueryWrapper queryWrapper = Wrappers.query();
         //支付订单
         queryWrapper.eq("flow_type", FlowTypeEnum.PAY.name());
-
-        //商家查询，则增加商家判定
-        AuthUser authUser = UserContext.getCurrentUser();
-        if (authUser.getRole().equals(UserEnums.STORE)) {
-            queryWrapper.eq("store_id", authUser.getStoreId());
-        }
+        queryWrapper.eq(!StringUtils.isEmpty(storeId), "store_id", storeId);
         //大于今天凌晨
         queryWrapper.ge("create_time", cn.lili.common.utils.DateUtil.startOfTodDayTime());
 

@@ -76,6 +76,11 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
             chain.doFilter(request, response);
             return;
         }
+        if (!isLikelyJwt(jwt)) {
+            log.warn("StoreAuthenticationFilter-> ignore malformed token, uri: {}, tokenPreview: {}", request.getRequestURI(), jwt);
+            chain.doFilter(request, response);
+            return;
+        }
         //获取用户信息，存入context
         UsernamePasswordAuthenticationToken authentication = getAuthentication(jwt, response);
         if (authentication == null) {
@@ -195,6 +200,19 @@ public class StoreAuthenticationFilter extends BasicAuthenticationFilter {
             return false;
         }
         return PatternMatchUtils.simpleMatch(permissions.toArray(new String[0]), url);
+    }
+
+    private boolean isLikelyJwt(String jwt) {
+        if (StrUtil.isBlank(jwt)) {
+            return false;
+        }
+        int dotCount = 0;
+        for (int i = 0; i < jwt.length(); i++) {
+            if (jwt.charAt(i) == '.') {
+                dotCount++;
+            }
+        }
+        return dotCount == 2;
     }
 
 }

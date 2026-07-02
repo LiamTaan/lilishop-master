@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 促销商品数据处理层
@@ -55,6 +56,39 @@ public interface PromotionGoodsMapper extends BaseMapper<PromotionGoods> {
                                                     @Param("startTime") Date startTime,
                                                     @Param("endTime") Date endTime,
                                                     @Param("promotionId") String promotionId);
+
+    /**
+     * 查询指定时间内参与指定类型活动的SKU。
+     *
+     * @param promotionTypes 促销类型
+     * @param startTime      开始时间
+     * @param endTime        结束时间
+     * @param promotionId    排除的促销活动ID
+     * @return 冲突SKU ID集合
+     */
+    @Select({
+            "<script>",
+            "select distinct sku_id from li_promotion_goods",
+            "where promotion_type in",
+            "<foreach collection='promotionTypes' item='promotionType' open='(' separator=',' close=')'>",
+            "#{promotionType}",
+            "</foreach>",
+            "and sku_id is not null",
+            "and (",
+            "( start_time &lt; #{startTime} and end_time &gt; #{startTime} ) or",
+            "( start_time &lt; #{endTime} and end_time &gt; #{endTime} ) or",
+            "( start_time &lt;= #{startTime} and end_time &gt;= #{endTime} ) or",
+            "( start_time &gt;= #{startTime} and end_time &lt;= #{endTime} )",
+            ")",
+            "<if test='promotionId != null and promotionId != \"\"'>",
+            "and promotion_id != #{promotionId}",
+            "</if>",
+            "</script>"
+    })
+    List<String> selectOverlapSkuIds(@Param("promotionTypes") List<String> promotionTypes,
+                                     @Param("startTime") Date startTime,
+                                     @Param("endTime") Date endTime,
+                                     @Param("promotionId") String promotionId);
 
     /**
      * 查询参加活动促销商品价格

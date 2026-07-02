@@ -14,6 +14,7 @@ import cn.lili.modules.message.entity.enums.NoticeMessageParameterEnum;
 import cn.lili.modules.message.mapper.NoticeMessageTemplateMapper;
 import cn.lili.modules.message.service.MemberMessageService;
 import cn.lili.modules.message.service.NoticeMessageService;
+import cn.lili.modules.message.support.MessageBizTypeResolver;
 import cn.lili.modules.wechat.entity.dos.WechatMPMessage;
 import cn.lili.modules.wechat.entity.dos.WechatMessage;
 import cn.lili.modules.wechat.service.WechatMPMessageService;
@@ -76,6 +77,7 @@ public class NoticeMessageServiceImpl extends ServiceImpl<NoticeMessageTemplateM
                 memberMessage.setMemberId(noticeMessageDTO.getMemberId());
                 memberMessage.setTitle(noticeMessage.getNoticeTitle());
                 memberMessage.setContent(noticeMessage.getNoticeContent());
+                memberMessage.setBizType(MessageBizTypeResolver.fromNoticeNode(noticeMessageDTO.getNoticeMessageNodeEnum()));
                 //参数不为空，替换内容
                 if (noticeMessageDTO.getParameter() != null) {
                     memberMessage.setContent(replaceNoticeContent(noticeMessage.getNoticeContent(), noticeMessageDTO.getParameter()));

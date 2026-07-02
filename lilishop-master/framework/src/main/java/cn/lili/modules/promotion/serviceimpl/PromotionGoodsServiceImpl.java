@@ -168,6 +168,19 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
         }
     }
 
+    @Override
+    public List<String> findOverlapSkuIds(List<PromotionTypeEnum> promotionTypes, Date startTime, Date endTime, String promotionId) {
+        if (CollUtil.isEmpty(promotionTypes) || startTime == null || endTime == null) {
+            return Collections.emptyList();
+        }
+        return this.baseMapper.selectOverlapSkuIds(
+                promotionTypes.stream().map(PromotionTypeEnum::name).collect(Collectors.toList()),
+                startTime,
+                endTime,
+                promotionId
+        );
+    }
+
     /**
      * 获取促销活动商品库存
      *

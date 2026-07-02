@@ -40,8 +40,8 @@ public class LoginIdentityOptionVO implements Serializable {
     private Boolean available;
 
     @Schema(
-            description = "身份状态。`AVAILABLE` 可进入，`NOT_OPENED` 未开通，`PENDING` 审核中，`REJECTED` 审核拒绝，`DISABLED` 已禁用或未初始化。",
-            allowableValues = {"AVAILABLE", "NOT_OPENED", "PENDING", "REJECTED", "DISABLED"},
+            description = "身份状态。`AVAILABLE` 可进入，`NOT_OPENED` 未开通，`PENDING` 审核中，`REJECTED` 审核拒绝，`DISABLED` 已禁用或未初始化，`CONFLICT` 表示当前账号已占用另一种互斥身份，不能同时开通。",
+            allowableValues = {"AVAILABLE", "NOT_OPENED", "PENDING", "REJECTED", "DISABLED", "CONFLICT"},
             example = "AVAILABLE"
     )
     private LoginIdentityStatusEnum status;

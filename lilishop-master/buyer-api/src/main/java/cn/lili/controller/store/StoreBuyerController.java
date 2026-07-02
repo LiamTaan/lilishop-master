@@ -106,40 +106,89 @@ public class StoreBuyerController {
 
     @Operation(summary = "选择入驻主体类型")
     @PutMapping("/apply/type")
-    public ResultMessage<Object> selectApplyType(@Valid @RequestBody StoreApplyTypeSelectDTO applyTypeSelectDTO) {
-        storeService.selectApplyType(applyTypeSelectDTO);
+    public ResultMessage<Object> selectApplyType(@Valid @RequestBody StoreApplyTypeSelectDTO applyTypeSelectDTO,
+                                                 @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.selectApplyType(applyTypeSelectDTO, loginSessionToken);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "选择供货商/批发商入驻主体类型")
+    @PutMapping("/apply/supplier/type")
+    public ResultMessage<Object> selectSupplierApplyType(@Valid @RequestBody StoreApplyTypeSelectDTO applyTypeSelectDTO,
+                                                         @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.selectSupplierApplyType(applyTypeSelectDTO, loginSessionToken);
         return ResultUtil.success();
     }
 
     @Operation(summary = "个人主体提交入驻资料")
     @PutMapping("/apply/personal")
     public ResultMessage<Object> applyPersonal(@Valid @RequestBody StorePersonalApplyDTO personalApplyDTO,
-                                               @RequestHeader String uuid) {
-        storeService.applyPersonal(personalApplyDTO, uuid);
+                                               @RequestHeader String uuid,
+                                               @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applyPersonal(personalApplyDTO, uuid, loginSessionToken);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "个人主体提交供货商/批发商入驻资料")
+    @PutMapping("/apply/supplier/personal")
+    public ResultMessage<Object> applySupplierPersonal(@Valid @RequestBody StorePersonalApplyDTO personalApplyDTO,
+                                                       @RequestHeader String uuid,
+                                                       @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applySupplierPersonal(personalApplyDTO, uuid, loginSessionToken);
         return ResultUtil.success();
     }
 
     @Operation(summary = "个体户提交入驻资料")
     @PutMapping("/apply/individual")
     public ResultMessage<Object> applyIndividual(@Valid @RequestBody StoreIndividualApplyDTO individualApplyDTO,
-                                                 @RequestHeader String uuid) {
-        storeService.applyIndividual(individualApplyDTO, uuid);
+                                                 @RequestHeader String uuid,
+                                                 @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applyIndividual(individualApplyDTO, uuid, loginSessionToken);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "个体户提交供货商/批发商入驻资料")
+    @PutMapping("/apply/supplier/individual")
+    public ResultMessage<Object> applySupplierIndividual(@Valid @RequestBody StoreIndividualApplyDTO individualApplyDTO,
+                                                         @RequestHeader String uuid,
+                                                         @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applySupplierIndividual(individualApplyDTO, uuid, loginSessionToken);
         return ResultUtil.success();
     }
 
     @Operation(summary = "企业法人提交入驻资料")
     @PutMapping("/apply/company/legal")
     public ResultMessage<Object> applyCompanyLegal(@Valid @RequestBody StoreCompanyLegalApplyDTO companyLegalApplyDTO,
-                                                   @RequestHeader String uuid) {
-        storeService.applyCompanyLegal(companyLegalApplyDTO, uuid);
+                                                   @RequestHeader String uuid,
+                                                   @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applyCompanyLegal(companyLegalApplyDTO, uuid, loginSessionToken);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "企业法人提交供货商/批发商入驻资料")
+    @PutMapping("/apply/supplier/company/legal")
+    public ResultMessage<Object> applySupplierCompanyLegal(@Valid @RequestBody StoreCompanyLegalApplyDTO companyLegalApplyDTO,
+                                                           @RequestHeader String uuid,
+                                                           @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applySupplierCompanyLegal(companyLegalApplyDTO, uuid, loginSessionToken);
         return ResultUtil.success();
     }
 
     @Operation(summary = "企业被授权人提交入驻资料")
     @PutMapping("/apply/company/authorized")
     public ResultMessage<Object> applyCompanyAuthorized(@Valid @RequestBody StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO,
-                                                        @RequestHeader String uuid) {
-        storeService.applyCompanyAuthorized(companyAuthorizedApplyDTO, uuid);
+                                                        @RequestHeader String uuid,
+                                                        @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applyCompanyAuthorized(companyAuthorizedApplyDTO, uuid, loginSessionToken);
+        return ResultUtil.success();
+    }
+
+    @Operation(summary = "企业被授权人提交供货商/批发商入驻资料")
+    @PutMapping("/apply/supplier/company/authorized")
+    public ResultMessage<Object> applySupplierCompanyAuthorized(@Valid @RequestBody StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO,
+                                                                @RequestHeader String uuid,
+                                                                @RequestHeader(value = "loginSessionToken", required = false) String loginSessionToken) {
+        storeService.applySupplierCompanyAuthorized(companyAuthorizedApplyDTO, uuid, loginSessionToken);
         return ResultUtil.success();
     }
 

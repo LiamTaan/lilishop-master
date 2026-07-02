@@ -23,6 +23,15 @@ public interface AfterSaleStatisticsService extends IService<AfterSale> {
     long applyNum(String serviceType);
 
     /**
+     * 按指定店铺获取待处理售后数量
+     *
+     * @param storeId      店铺ID
+     * @param serviceType  售后类型
+     * @return 待处理售后数量
+     */
+    long applyNum(String storeId, String serviceType);
+
+    /**
      * 获取统计的售后
      *
      * @param statisticsQueryParam 统计搜索参数

@@ -110,7 +110,7 @@ function exportUsers() {
   <AdminModuleShell
     title="平台账号台账"
     description="承接平台账号、组织归属、角色分配和基础账号动作维护。"
-    api-path="/system/user"
+    api-path="/merchant-grant/backend-account"
     :tips="['账号查询', '角色分配', '组织树联动', '支持重置密码']"
     :summary-cards="summaryCards"
   >

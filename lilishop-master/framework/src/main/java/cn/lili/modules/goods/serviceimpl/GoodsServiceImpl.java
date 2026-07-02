@@ -24,7 +24,9 @@ import cn.lili.modules.goods.entity.dos.*;
 import cn.lili.modules.goods.entity.dto.GoodsOperationDTO;
 import cn.lili.modules.goods.entity.dto.GoodsParamsDTO;
 import cn.lili.modules.goods.entity.dto.GoodsSearchParams;
+import cn.lili.modules.goods.entity.dto.WholesaleDTO;
 import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
+import cn.lili.modules.goods.entity.enums.GoodsSalesModeEnum;
 import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
 import cn.lili.modules.goods.entity.vos.GoodsNumVO;
 import cn.lili.modules.goods.entity.vos.GoodsSkuVO;
@@ -37,6 +39,7 @@ import cn.lili.modules.member.service.MemberEvaluationService;
 import cn.lili.modules.search.utils.EsIndexUtil;
 import cn.lili.modules.store.entity.dos.FreightTemplate;
 import cn.lili.modules.store.entity.dos.Store;
+import cn.lili.modules.store.entity.enums.StoreBizTypeEnum;
 import cn.lili.modules.store.entity.enums.StoreStatusEnum;
 import cn.lili.modules.store.entity.vos.StoreVO;
 import cn.lili.modules.store.service.FreightTemplateService;
@@ -183,7 +186,9 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     @Transactional(rollbackFor = Exception.class)
     @SystemLogPoint(description = "添加商品", customerLog = "'新增商品名称:['+#goodsOperationDTO.goodsName+']'")
     public void addGoods(GoodsOperationDTO goodsOperationDTO) {
+        this.normalizeWholesalePayload(goodsOperationDTO, null);
         Goods goods = new Goods(goodsOperationDTO);
+        this.checkStoreGoodsCreationPermission();
         //检查商品
         this.checkGoods(goods);
         this.checkDuplicateBarcodes(goods, goodsOperationDTO);
@@ -228,8 +233,10 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     @Transactional(rollbackFor = Exception.class)
     @SystemLogPoint(description = "管理端添加商品", customerLog = "'新增商品名称:['+#goodsOperationDTO.goodsName+']，归属店铺:['+#storeId+']'")
     public void addGoodsByManager(GoodsOperationDTO goodsOperationDTO, String storeId) {
+        this.normalizeWholesalePayload(goodsOperationDTO, null);
         Goods goods = new Goods(goodsOperationDTO);
         this.bindManagedStore(goods, storeId);
+        this.checkManagedStoreGoodsCreationPermission(storeId);
         this.checkGoods(goods);
         this.checkDuplicateBarcodes(goods, goodsOperationDTO);
         if (goodsOperationDTO.getGoodsGalleryList().size() > 0) {
@@ -266,8 +273,10 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     @Transactional(rollbackFor = Exception.class)
     @SystemLogPoint(description = "修改商品", customerLog = "'操作的商品ID:['+#goodsId+']'")
     public void editGoods(GoodsOperationDTO goodsOperationDTO, String goodsId) {
+        this.normalizeWholesalePayload(goodsOperationDTO, goodsId);
         Goods goods = new Goods(goodsOperationDTO);
         goods.setId(goodsId);
+        this.checkStoreGoodsEditPermission(goodsId);
         //检查商品信息
         this.checkGoods(goods);
         this.checkDuplicateBarcodes(goods, goodsOperationDTO);
@@ -313,9 +322,11 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     @Transactional(rollbackFor = Exception.class)
     @SystemLogPoint(description = "管理端修改商品", customerLog = "'操作的商品ID:['+#goodsId+']，归属店铺:['+#storeId+']'")
     public void editGoodsByManager(GoodsOperationDTO goodsOperationDTO, String goodsId, String storeId) {
+        this.normalizeWholesalePayload(goodsOperationDTO, goodsId);
         Goods goods = new Goods(goodsOperationDTO);
         goods.setId(goodsId);
         this.bindManagedStore(goods, storeId);
+        this.checkManagedStoreGoodsEditPermission(storeId, goodsId);
         this.checkGoods(goods);
         this.checkDuplicateBarcodes(goods, goodsOperationDTO);
         this.setGoodsGalleryParam(goodsOperationDTO.getGoodsGalleryList().get(0), goods);
@@ -347,6 +358,38 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         }
         cache.remove(CachePrefix.GOODS.getPrefix() + goodsId);
         this.generateEs(goods);
+    }
+
+    private void normalizeWholesalePayload(GoodsOperationDTO goodsOperationDTO, String goodsId) {
+        if (!GoodsSalesModeEnum.WHOLESALE.name().equals(goodsOperationDTO.getSalesModel())) {
+            return;
+        }
+        List<WholesaleDTO> wholesaleList = goodsOperationDTO.getWholesaleList();
+        if (CollUtil.isNotEmpty(wholesaleList)) {
+            goodsOperationDTO.setPrice(this.getMinWholesalePrice(wholesaleList));
+            return;
+        }
+        if (CharSequenceUtil.isBlank(goodsId)) {
+            return;
+        }
+        List<Wholesale> existingWholesaleList = wholesaleService.findByGoodsId(goodsId);
+        if (CollUtil.isEmpty(existingWholesaleList)) {
+            throw new ServiceException(ResultCode.MUST_HAVE_SALES_MODEL);
+        }
+        if (existingWholesaleList.size() > 1) {
+            throw new ServiceException(ResultCode.MUST_HAVE_SALES_MODEL, "批发商品修改时必须完整提交 wholesaleList");
+        }
+        WholesaleDTO wholesaleDTO = new WholesaleDTO(existingWholesaleList.get(0));
+        wholesaleDTO.setPrice(goodsOperationDTO.getPrice());
+        goodsOperationDTO.setWholesaleList(Collections.singletonList(wholesaleDTO));
+    }
+
+    private Double getMinWholesalePrice(List<WholesaleDTO> wholesaleList) {
+        return wholesaleList.stream()
+                .map(WholesaleDTO::getPrice)
+                .filter(Objects::nonNull)
+                .min(Double::compareTo)
+                .orElseThrow(() -> new ServiceException(ResultCode.MUST_HAVE_SALES_MODEL));
     }
 
 
@@ -980,6 +1023,39 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         goods.setStoreId(store.getId());
         goods.setStoreName(store.getStoreName());
         goods.setSelfOperated(store.getSelfOperated());
+    }
+
+    private void checkStoreGoodsCreationPermission() {
+        AuthUser currentUser = this.checkStoreAuthority();
+        if (currentUser == null) {
+            return;
+        }
+        this.checkManagedStoreGoodsCreationPermission(currentUser.getStoreId());
+    }
+
+    private void checkManagedStoreGoodsCreationPermission(String storeId) {
+        Store store = storeService.getById(storeId);
+        if (store != null && StoreBizTypeEnum.AGENT.name().equalsIgnoreCase(store.getStoreType())) {
+            throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR, "代理商店铺不能直接新增源头商品");
+        }
+    }
+
+    private void checkStoreGoodsEditPermission(String goodsId) {
+        AuthUser currentUser = this.checkStoreAuthority();
+        if (currentUser == null) {
+            return;
+        }
+        this.checkManagedStoreGoodsEditPermission(currentUser.getStoreId(), goodsId);
+    }
+
+    private void checkManagedStoreGoodsEditPermission(String storeId, String goodsId) {
+        Store store = storeService.getById(storeId);
+        if (store != null && StoreBizTypeEnum.AGENT.name().equalsIgnoreCase(store.getStoreType())) {
+            Goods existingGoods = this.getById(goodsId);
+            if (existingGoods == null || CharSequenceUtil.isBlank(existingGoods.getSourceGoodsId())) {
+                throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR, "代理商只能维护同步后的商品");
+            }
+        }
     }
 
     /**

@@ -1,0 +1,1535 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "common-api",
+    "version": "v3"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8890",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/common/resource/fileDirectory": {
+      "get": {
+        "tags": [
+          "文件目录管理接口"
+        ],
+        "summary": "获取文件目录列表",
+        "operationId": "getSceneFileList",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageListFileDirectoryDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "文件目录管理接口"
+        ],
+        "summary": "修改文件目录",
+        "operationId": "editSceneFileList",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "文件目录",
+                "properties": {
+                  "directoryType": {
+                    "type": "string",
+                    "description": "文件目录类型"
+                  },
+                  "directoryName": {
+                    "type": "string",
+                    "description": "拥有者名称"
+                  },
+                  "ownerId": {
+                    "type": "string",
+                    "description": "拥有者id"
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "description": "父分类ID"
+                  },
+                  "level": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "层级",
+                    "maximum": 2,
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "level"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageFileDirectory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "文件目录管理接口"
+        ],
+        "summary": "添加文件目录",
+        "operationId": "addSceneFileList",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "文件目录",
+                "properties": {
+                  "directoryType": {
+                    "type": "string",
+                    "description": "文件目录类型"
+                  },
+                  "directoryName": {
+                    "type": "string",
+                    "description": "拥有者名称"
+                  },
+                  "ownerId": {
+                    "type": "string",
+                    "description": "拥有者id"
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "description": "父分类ID"
+                  },
+                  "level": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "层级",
+                    "maximum": 2,
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "level"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageFileDirectory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/upload/file": {
+      "post": {
+        "tags": [
+          "文件上传接口"
+        ],
+        "summary": "文件上传",
+        "operationId": "upload",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          {
+            "name": "base64",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "directoryPath",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/slider/{verificationEnums}": {
+      "get": {
+        "tags": [
+          "滑块验证码接口"
+        ],
+        "summary": "获取校验接口,一分钟同一个ip请求10次",
+        "operationId": "getSliderImage",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verificationEnums",
+            "in": "path",
+            "description": "请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOGIN",
+                "REGISTER",
+                "FIND_USER",
+                "UPDATE_PASSWORD",
+                "WALLET_PASSWORD",
+                "BIND_MOBILE",
+                "STORE_APPLY"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "滑块验证码接口"
+        ],
+        "summary": "验证码预校验",
+        "operationId": "verificationImage",
+        "parameters": [
+          {
+            "name": "xPos",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verificationEnums",
+            "in": "path",
+            "description": "请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOGIN",
+                "REGISTER",
+                "FIND_USER",
+                "UPDATE_PASSWORD",
+                "WALLET_PASSWORD",
+                "BIND_MOBILE",
+                "STORE_APPLY"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/file/rename": {
+      "post": {
+        "tags": [
+          "文件管理接口"
+        ],
+        "summary": "文件重命名",
+        "operationId": "upload_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/auth/login/sms": {
+      "post": {
+        "tags": [
+          "App统一认证接口"
+        ],
+        "summary": "App-短信认证登录",
+        "description": "校验短信验证码后创建 App 登录会话，不直接签发业务 token。成功后返回 `loginSessionToken` 和可选身份列表，前端需继续调用身份选择接口换取最终登录 token。若手机号未注册，系统会自动创建会员账号。",
+        "operationId": "smsLogin",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "header",
+            "description": "短信验证码会话标识。需与发送验证码接口返回或前端持有的 `uuid` 保持一致，用于校验本次登录验证码。",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "5d2c6c4c-1c6d-4c35-8c5e-0f9b7aa12abc"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mobile": {
+                    "type": "string",
+                    "description": "用于登录或自动注册的手机号。若该手机号尚未注册，认证成功后系统会自动创建会员账号。",
+                    "example": 13800138000,
+                    "minLength": 1
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "登录短信验证码，需要与请求头中的 `uuid` 对应。",
+                    "example": 123456,
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "code",
+                  "mobile"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求参数缺失或格式错误，业务码 `4002`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSessionSnapshotVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/auth/login/one-click": {
+      "post": {
+        "tags": [
+          "App统一认证接口"
+        ],
+        "summary": "App-本机号码一键登录认证",
+        "description": "使用运营商一键登录凭证换取手机号并创建 App 登录会话，不直接签发业务 token。成功后返回 `loginSessionToken` 和可选身份列表，前端需继续调用身份选择接口换取最终登录 token。若换取到的手机号未注册，系统会自动创建会员账号。",
+        "operationId": "oneClickLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "loginToken": {
+                    "type": "string",
+                    "description": "运营商或服务商返回的一键登录临时凭证。后端会基于该凭证换取手机号。",
+                    "example": "eyJhbGciOiJIUzI1NiJ9.app-login-token",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "loginToken"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求参数缺失或格式错误，业务码 `4002`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSessionSnapshotVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/sms/{verificationEnums}/{mobile}": {
+      "get": {
+        "tags": [
+          "短信验证码接口"
+        ],
+        "summary": "发送短信验证码,一分钟同一个ip请求1次",
+        "operationId": "getSmsCode",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "header",
+            "description": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mobile",
+            "in": "path",
+            "description": "手机号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verificationEnums",
+            "in": "path",
+            "description": "请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOGIN",
+                "REGISTER",
+                "FIND_USER",
+                "UPDATE_PASSWORD",
+                "WALLET_PASSWORD",
+                "BIND_MOBILE",
+                "STORE_APPLY"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/site": {
+      "get": {
+        "tags": [
+          "站点基础接口"
+        ],
+        "summary": "获取站点基础信息",
+        "operationId": "baseSetting",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/region/region": {
+      "get": {
+        "tags": [
+          "地址信息接口"
+        ],
+        "summary": "点地图获取地址信息",
+        "operationId": "getRegion",
+        "parameters": [
+          {
+            "name": "cityCode",
+            "in": "query",
+            "description": "城市code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "townName",
+            "in": "query",
+            "description": "镇名称",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/region/name": {
+      "get": {
+        "tags": [
+          "地址信息接口"
+        ],
+        "summary": "根据名字获取地区地址id",
+        "operationId": "getItemByLastName",
+        "parameters": [
+          {
+            "name": "lastName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/region/item/{id}": {
+      "get": {
+        "tags": [
+          "地址信息接口"
+        ],
+        "summary": "通过id获取子地区",
+        "operationId": "getItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "地区ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageListRegion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/region/allCity": {
+      "get": {
+        "tags": [
+          "地址信息接口"
+        ],
+        "summary": "获取所有的省-市",
+        "operationId": "getAllCity",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageListRegionVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/file": {
+      "get": {
+        "tags": [
+          "文件管理接口"
+        ],
+        "summary": "获取自己的图片资源",
+        "operationId": "getFileList",
+        "parameters": [
+          {
+            "name": "fileOwnerDTO",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FileOwnerDTO"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "description": "名称模糊匹配"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageIPageFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/IM": {
+      "get": {
+        "tags": [
+          "IM 中心"
+        ],
+        "summary": "获取IM接口前缀",
+        "operationId": "getUrl",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/auth/login/identities/{loginSessionToken}": {
+      "get": {
+        "tags": [
+          "App统一认证接口"
+        ],
+        "summary": "App-获取登录会话身份列表",
+        "description": "根据 `loginSessionToken` 查询当前登录会话下可进入的身份列表。登录会话默认有效期 10 分钟，过期后需要重新发起短信认证或一键登录认证。",
+        "operationId": "identities",
+        "parameters": [
+          {
+            "name": "loginSessionToken",
+            "in": "path",
+            "description": "短信认证或一键登录成功后返回的登录会话 token。",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "LOGIN_SESSION196877654321"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "登录会话已过期，业务码 `20046`",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSessionSnapshotVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/resource/fileDirectory/{id}": {
+      "delete": {
+        "tags": [
+          "文件目录管理接口"
+        ],
+        "summary": "删除文件目录",
+        "operationId": "deleteSceneFileList",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessageObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/common/file/delete/{ids}": {
+      "delete": {
+        "tags": [
+          "文件管理接口"
+        ],
+        "summary": "文件删除",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FileDirectory": {
+        "type": "object",
+        "description": "文件目录",
+        "properties": {
+          "directoryType": {
+            "type": "string",
+            "description": "文件目录类型"
+          },
+          "directoryName": {
+            "type": "string",
+            "description": "拥有者名称"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "拥有者id"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "父分类ID"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32",
+            "description": "层级",
+            "maximum": 2,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "level"
+        ]
+      },
+      "ResultMessageFileDirectory": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "$ref": "#/components/schemas/FileDirectory",
+            "description": "真实业务数据载荷。"
+          }
+        }
+      },
+      "ResultMessageObject": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "description": "真实业务数据载荷。"
+          }
+        }
+      },
+      "ResultMessage": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。 统一响应包装。绝大多数接口都返回该结构。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。 业务是否成功。true 表示本次业务成功，false 表示业务失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。 业务提示文案。失败时优先结合 code 一起判断，不要只依赖文案。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。 服务端响应时间戳，毫秒。"
+          },
+          "result": {
+            "description": "真实业务数据载荷。 真实业务数据载荷。不同接口的 result 结构不同。"
+          }
+        }
+      },
+      "File": {
+        "type": "object",
+        "description": "文件",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "原文件名"
+          },
+          "fileKey": {
+            "type": "string",
+            "description": "存储文件名"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "description": "大小"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "文件类型"
+          },
+          "url": {
+            "type": "string",
+            "description": "路径"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "拥有者id"
+          },
+          "ownerName": {
+            "type": "string",
+            "description": "拥有者名称"
+          },
+          "userEnums": {
+            "type": "string",
+            "description": "用户类型"
+          },
+          "fileDirectoryId": {
+            "type": "string",
+            "description": "文件夹ID"
+          }
+        }
+      },
+      "ResultMessageFile": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "$ref": "#/components/schemas/File",
+            "description": "真实业务数据载荷。"
+          }
+        }
+      },
+      "AppLoginSmsDTO": {
+        "type": "object",
+        "properties": {
+          "mobile": {
+            "type": "string",
+            "description": "用于登录或自动注册的手机号。若该手机号尚未注册，认证成功后系统会自动创建会员账号。",
+            "example": 13800138000,
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "description": "登录短信验证码，需要与请求头中的 `uuid` 对应。",
+            "example": 123456,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code",
+          "mobile"
+        ]
+      },
+      "LoginIdentityOptionVO": {
+        "type": "object",
+        "properties": {
+          "identityCode": {
+            "type": "string",
+            "description": "身份编码。`CONSUMER` 消费者，`AGENT` 代理商，`SUPPLIER` 供货商。 请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "enum": [
+              "CONSUMER",
+              "AGENT",
+              "SUPPLIER"
+            ],
+            "example": "CONSUMER"
+          },
+          "authDomain": {
+            "type": "string",
+            "description": "认证域。`MEMBER` 表示买家/会员域，`STORE` 表示供货商域。 请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "enum": [
+              "MEMBER",
+              "STORE"
+            ],
+            "example": "MEMBER"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "是否允许当前会话直接进入该身份。`true` 可直接调用身份选择接口换取 token，`false` 需根据状态做引导。",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "身份状态。`AVAILABLE` 可进入，`NOT_OPENED` 未开通，`PENDING` 审核中，`REJECTED` 审核拒绝，`DISABLED` 已禁用或未初始化。 请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "enum": [
+              "AVAILABLE",
+              "NOT_OPENED",
+              "PENDING",
+              "REJECTED",
+              "DISABLED"
+            ],
+            "example": "AVAILABLE"
+          },
+          "message": {
+            "type": "string",
+            "description": "给前端展示的状态提示文案，可直接用于身份卡片上的辅助说明。",
+            "example": "可直接进入消费者身份"
+          },
+          "nextAction": {
+            "type": "string",
+            "description": "当 `available=false` 时前端建议执行的后续动作。`NONE` 无需额外动作，`APPLY_AGENT` 申请代理商，`APPLY_STORE` 申请供货商，`RESUBMIT` 重新提交资料，`CONTACT_ADMIN` 联系管理员。 请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "enum": [
+              "NONE",
+              "APPLY_AGENT",
+              "APPLY_STORE",
+              "RESUBMIT",
+              "CONTACT_ADMIN"
+            ],
+            "example": "NONE"
+          }
+        }
+      },
+      "LoginSessionSnapshotVO": {
+        "type": "object",
+        "properties": {
+          "loginSessionToken": {
+            "type": "string",
+            "description": "登录会话 token。前端需携带它继续调用身份查询或身份选择接口。默认有效期 10 分钟。",
+            "example": "LOGIN_SESSION196877654321"
+          },
+          "memberId": {
+            "type": "string",
+            "description": "当前手机号对应的会员ID",
+            "example": 191234567890123456
+          },
+          "mobile": {
+            "type": "string",
+            "description": "本次认证确认的手机号",
+            "example": 13800138000
+          },
+          "channel": {
+            "type": "string",
+            "description": "创建该登录会话的认证渠道。`SMS` 表示短信验证码认证，`ONE_CLICK` 表示本机号码一键登录认证。 请传字符串枚举值，不要传 Swagger 列表前面的数字序号。",
+            "enum": [
+              "SMS",
+              "ONE_CLICK"
+            ],
+            "example": "SMS"
+          },
+          "identityOptions": {
+            "type": "array",
+            "description": "当前账号可选择的身份列表。前端应根据 `available`、`status`、`nextAction` 决定是直接进入还是引导用户开通/重提/联系管理员。",
+            "items": {
+              "$ref": "#/components/schemas/LoginIdentityOptionVO"
+            }
+          }
+        }
+      },
+      "AppLoginOneClickDTO": {
+        "type": "object",
+        "properties": {
+          "loginToken": {
+            "type": "string",
+            "description": "运营商或服务商返回的一键登录临时凭证。后端会基于该凭证换取手机号。",
+            "example": "eyJhbGciOiJIUzI1NiJ9.app-login-token",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "loginToken"
+        ]
+      },
+      "FileDirectoryDTO": {
+        "type": "object",
+        "properties": {
+          "directoryType": {
+            "type": "string",
+            "description": "文件目录类型"
+          },
+          "directoryName": {
+            "type": "string",
+            "description": "拥有者名称"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "拥有者id"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "父分类ID"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32",
+            "description": "层级",
+            "maximum": 2,
+            "minimum": 0
+          },
+          "children": {
+            "type": "array",
+            "description": "文件目录列表",
+            "items": {
+              "$ref": "#/components/schemas/FileDirectory"
+            }
+          }
+        },
+        "required": [
+          "level"
+        ]
+      },
+      "ResultMessageListFileDirectoryDTO": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "type": "array",
+            "description": "真实业务数据载荷。",
+            "items": {
+              "$ref": "#/components/schemas/FileDirectoryDTO"
+            }
+          }
+        }
+      },
+      "ResultMessageString": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "type": "string",
+            "description": "真实业务数据载荷。"
+          }
+        }
+      },
+      "Region": {
+        "type": "object",
+        "description": "行政地区",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "description": "父id",
+            "minLength": 1
+          },
+          "adCode": {
+            "type": "string",
+            "description": "区域编码",
+            "minLength": 1
+          },
+          "cityCode": {
+            "type": "string",
+            "description": "城市代码"
+          },
+          "center": {
+            "type": "string",
+            "description": "区域中心点经纬度",
+            "minLength": 1
+          },
+          "level": {
+            "type": "string",
+            "description": "行政区划级别country:国家province:省份（直辖市会在province和city显示）city:市（直辖市会在province和city显示）district:区县street:街道",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "名称",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "description": "行政地区路径，类似：1，2，3 ",
+            "minLength": 1
+          },
+          "orderNum": {
+            "type": "integer",
+            "format": "int32",
+            "description": "排序"
+          }
+        },
+        "required": [
+          "adCode",
+          "center",
+          "level",
+          "name",
+          "orderNum",
+          "parentId",
+          "path"
+        ]
+      },
+      "ResultMessageListRegion": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "type": "array",
+            "description": "真实业务数据载荷。",
+            "items": {
+              "$ref": "#/components/schemas/Region"
+            }
+          }
+        }
+      },
+      "RegionVO": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "description": "父id",
+            "minLength": 1
+          },
+          "adCode": {
+            "type": "string",
+            "description": "区域编码",
+            "minLength": 1
+          },
+          "cityCode": {
+            "type": "string",
+            "description": "城市代码"
+          },
+          "center": {
+            "type": "string",
+            "description": "区域中心点经纬度",
+            "minLength": 1
+          },
+          "level": {
+            "type": "string",
+            "description": "行政区划级别country:国家province:省份（直辖市会在province和city显示）city:市（直辖市会在province和city显示）district:区县street:街道",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "名称",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "description": "行政地区路径，类似：1，2，3 ",
+            "minLength": 1
+          },
+          "orderNum": {
+            "type": "integer",
+            "format": "int32",
+            "description": "排序"
+          }
+        },
+        "required": [
+          "adCode",
+          "center",
+          "level",
+          "name",
+          "orderNum",
+          "parentId",
+          "path"
+        ]
+      },
+      "ResultMessageListRegionVO": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "type": "array",
+            "description": "真实业务数据载荷。",
+            "items": {
+              "$ref": "#/components/schemas/RegionVO"
+            }
+          }
+        }
+      },
+      "FileOwnerDTO": {
+        "type": "object",
+        "properties": {
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "description": "页码，从 1 开始。",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32",
+            "description": "每页条数。",
+            "example": 10
+          },
+          "sort": {
+            "type": "string",
+            "description": "排序字段。默认按驼峰字段自动转为下划线字段名。",
+            "example": "createTime"
+          },
+          "order": {
+            "type": "string",
+            "description": "排序方向，传 asc 或 desc。",
+            "example": "desc"
+          },
+          "notConvert": {
+            "type": "boolean",
+            "description": "是否关闭排序字段的驼峰转下划线。true 表示按原字段名直接排序。",
+            "example": false
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "拥有者id"
+          },
+          "ownerName": {
+            "type": "string",
+            "description": "拥有者名称"
+          },
+          "userEnums": {
+            "type": "string",
+            "description": "用户类型"
+          },
+          "name": {
+            "type": "string",
+            "description": "原文件名"
+          },
+          "fileKey": {
+            "type": "string",
+            "description": "存储文件名"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "文件类型"
+          },
+          "fileDirectoryId": {
+            "type": "string",
+            "description": "文件夹ID"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "起始日期"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "结束日期"
+          },
+          "convertEndDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "convertStartDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IPageFile": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "deprecated": true
+          }
+        }
+      },
+      "ResultMessageIPageFile": {
+        "type": "object",
+        "description": "统一响应包装。success/code/message 描述业务结果，result 承载实际业务数据。",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "业务是否成功。true 表示成功，false 表示失败。"
+          },
+          "message": {
+            "type": "string",
+            "description": "业务提示文案。失败时请优先结合 code 判断，不要只依赖 message。"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "统一业务状态码。200 表示成功，其他值表示具体业务失败原因。",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "服务端生成的响应时间戳，毫秒。"
+          },
+          "result": {
+            "$ref": "#/components/schemas/IPageFile",
+            "description": "真实业务数据载荷。"
+          }
+        }
+      }
+    }
+  }
+}

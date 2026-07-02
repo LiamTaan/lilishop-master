@@ -26,17 +26,21 @@
 
 ## 数据库初始化
 
-空库初始化时，只需要按顺序执行 `DB_INIT` 下这两个文件：
+空库初始化时，只需要按顺序执行 `DB_INIT` 下这几个文件：
 
 1. [DB_INIT/01_full_base_schema.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/01_full_base_schema.sql)
 2. [DB_INIT/02_startup_and_wholesale_patch.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/02_startup_and_wholesale_patch.sql)
+3. [DB_INIT/03_goods_domain_reset_and_fresh_category_seed.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/03_goods_domain_reset_and_fresh_category_seed.sql)
+4. [DB_INIT/04_supplier_store_123123_goods_seed.sql](D:/user_wuyou/lilishop-master/lilishop-master/DB_INIT/04_supplier_store_123123_goods_seed.sql)
 
 说明：
 
 - `01_full_base_schema.sql`：基础库建表 + 官方基础种子数据
 - `02_startup_and_wholesale_patch.sql`：官方启动补丁 + 批发商城补丁 + 采购域补表 + 管理端菜单权限收口 + 条码补丁
+- `03_goods_domain_reset_and_fresh_category_seed.sql`：清空商品域演示数据，重置首页装修默认页，并初始化精简生鲜/商超分类
+- `04_supplier_store_123123_goods_seed.sql`：为截图中的供货商店铺 `123123 / 15811473413` 初始化叶子分类商品、分类规格、SKU 与批发阶梯价
 - 管理端初始化后只保留默认唯一超级管理员 `admin`，不预置平台管理员或其他后台角色；业务管理员与角色由后台自行维护
-- `02_startup_and_wholesale_patch.sql` 已内联所有补丁，支持在 Navicat、DataGrip、mysql CLI 中直接执行
+- `02_startup_and_wholesale_patch.sql` 与 `03_goods_domain_reset_and_fresh_category_seed.sql` 支持在 Navicat、DataGrip、mysql CLI 中直接执行
 
 已初始化过的旧库如出现缺表，按缺失模块补执行：
 

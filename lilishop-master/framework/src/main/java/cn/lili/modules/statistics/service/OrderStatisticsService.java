@@ -37,6 +37,15 @@ public interface OrderStatisticsService extends IService<Order> {
      * @return 订单总数量
      */
     long orderNum(String orderStatus);
+
+    /**
+     * 按指定店铺获取订单总数量
+     *
+     * @param storeId      店铺ID
+     * @param orderStatus  订单状态
+     * @return 订单总数量
+     */
+    long orderNum(String storeId, String orderStatus);
     /**
      * 获取订单总数量
      *

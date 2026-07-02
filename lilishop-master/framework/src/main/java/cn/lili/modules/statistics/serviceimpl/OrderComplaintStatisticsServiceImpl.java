@@ -23,10 +23,17 @@ public class OrderComplaintStatisticsServiceImpl extends ServiceImpl<OrderCompla
 
     @Override
     public long waitComplainNum() {
+        String storeId = StringUtils.equals(UserContext.getCurrentUser().getRole().name(), UserEnums.STORE.name())
+                ? UserContext.getCurrentUser().getStoreId()
+                : null;
+        return waitComplainNum(storeId);
+    }
+
+    @Override
+    public long waitComplainNum(String storeId) {
         QueryWrapper queryWrapper = Wrappers.query();
         queryWrapper.ne("complain_status", ComplaintStatusEnum.COMPLETE.name());
-        queryWrapper.eq(StringUtils.equals(UserContext.getCurrentUser().getRole().name(), UserEnums.STORE.name()),
-                "store_id", UserContext.getCurrentUser().getStoreId());
+        queryWrapper.eq(StringUtils.isNotEmpty(storeId), "store_id", storeId);
         return this.count(queryWrapper);
     }
 

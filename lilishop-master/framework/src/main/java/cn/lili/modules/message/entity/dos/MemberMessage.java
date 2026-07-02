@@ -34,6 +34,9 @@ public class MemberMessage extends BaseEntity {
     @Schema(description = "消息内容")
     private String content;
 
+    @Schema(description = "消息业务分类")
+    private String bizType;
+
     @Schema(description = "关联消息id")
     private String messageId;
 

@@ -10,5 +10,6 @@ public enum LoginIdentityStatusEnum {
     NOT_OPENED,
     PENDING,
     REJECTED,
-    DISABLED
+    DISABLED,
+    CONFLICT
 }

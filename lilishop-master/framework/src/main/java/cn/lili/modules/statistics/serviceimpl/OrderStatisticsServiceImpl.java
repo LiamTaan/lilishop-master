@@ -109,10 +109,18 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
 
     @Override
     public long orderNum(String orderStatus) {
+        String storeId = null;
+        if (Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name().equals(UserEnums.STORE.name())) {
+            storeId = UserContext.getCurrentUser().getStoreId();
+        }
+        return orderNum(storeId, orderStatus);
+    }
+
+    @Override
+    public long orderNum(String storeId, String orderStatus) {
         LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(orderStatus), Order::getOrderStatus, orderStatus);
-        queryWrapper.eq(CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name()),
-                Order::getStoreId, UserContext.getCurrentUser().getStoreId());
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), Order::getStoreId, storeId);
         return this.count(queryWrapper);
     }
 

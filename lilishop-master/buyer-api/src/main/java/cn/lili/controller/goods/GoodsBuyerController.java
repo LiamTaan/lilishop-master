@@ -104,6 +104,7 @@ public class GoodsBuyerController {
     @GetMapping
     public ResultMessage<IPage<Goods>> getByPage(GoodsSearchParams goodsSearchParams) {
         buyerStoreScopeSupport.applyGoodsScope(goodsSearchParams);
+        applyNewGoodsDefaultSort(goodsSearchParams);
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
@@ -136,6 +137,16 @@ public class GoodsBuyerController {
     public ResultMessage<List<String>> getGoodsHotWords(Integer count) {
         List<String> hotWords = hotWordsService.getHotWords(count);
         return ResultUtil.data(hotWords);
+    }
+
+    private void applyNewGoodsDefaultSort(GoodsSearchParams goodsSearchParams) {
+        if (goodsSearchParams == null
+                || goodsSearchParams.getNewGoodsTab() == null
+                || goodsSearchParams.getSort() != null) {
+            return;
+        }
+        goodsSearchParams.setSort("createTime");
+        goodsSearchParams.setOrder("desc");
     }
 
 }

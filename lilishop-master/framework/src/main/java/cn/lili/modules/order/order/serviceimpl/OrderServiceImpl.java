@@ -40,6 +40,7 @@ import cn.lili.modules.verification.service.VerificationRecordService;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.service.PintuanService;
+import cn.lili.modules.procurement.service.ProcurementAutomationService;
 import cn.lili.modules.store.entity.dto.StoreDeliverGoodsAddressDTO;
 import cn.lili.modules.store.service.StoreDetailService;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
@@ -178,6 +179,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Autowired
     private VerificationRecordService verificationRecordService;
+    @Autowired
+    private ProcurementAutomationService procurementAutomationService;
 
 
     @Override
@@ -403,6 +406,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             storeFlowService.orderCancel(orderSn);
             //发送消息
             orderStatusMessage(order);
+            procurementAutomationService.closeProcurementByCancelledOrder(orderSn, reason);
             return order;
         } else {
             throw new ServiceException(ResultCode.ORDER_CAN_NOT_CANCEL);
@@ -425,6 +429,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             storeFlowService.orderCancel(orderSn);
             orderStatusMessage(order);
         }
+        procurementAutomationService.closeProcurementByCancelledOrder(orderSn, reason);
     }
 
     /**
@@ -468,6 +473,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         orderMessage.setPaymentMethod(paymentMethod);
         orderMessage.setNewStatus(OrderStatusEnum.PAID);
         this.sendUpdateStatusMessage(orderMessage);
+        procurementAutomationService.createProcurementByPaidOrder(orderSn);
 
         String message = "订单付款，付款方式[" + PaymentMethodEnum.valueOf(paymentMethod).paymentName() + "]";
         OrderLog orderLog = new OrderLog(orderSn, "-1", UserEnums.SYSTEM.getRole(), "系统操作", message);
@@ -710,6 +716,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             //发送订单变更mq消息
             rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(goodsCompleteMessageList), RocketmqSendCallbackBuilder.commonCallback());
         }
+        procurementAutomationService.inboundProcurementByCompletedOrder(orderSn);
     }
 
     @Override

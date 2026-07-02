@@ -4,8 +4,10 @@ import cn.lili.common.vo.PageVO;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.PathItem;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.ParameterCustomizer;
 import org.springdoc.core.customizers.PropertyCustomizer;
@@ -15,7 +17,12 @@ import org.springframework.context.annotation.Configuration;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 @Configuration
 public class OpenApiConfig {
@@ -76,6 +83,7 @@ public class OpenApiConfig {
             }
 
             openApi.setOpenapi("3.0.3");
+            beautifyOperationIds(openApi);
 
             if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
                 return;
@@ -102,6 +110,57 @@ public class OpenApiConfig {
                 }
             }
         };
+    }
+
+    private void beautifyOperationIds(OpenAPI openApi) {
+        if (openApi.getPaths() == null || openApi.getPaths().isEmpty()) {
+            return;
+        }
+
+        List<OperationAliasCandidate> candidates = new ArrayList<>();
+        Map<String, Integer> baseNameCounter = new LinkedHashMap<>();
+
+        for (Map.Entry<String, PathItem> pathEntry : openApi.getPaths().entrySet()) {
+            PathItem pathItem = pathEntry.getValue();
+            if (pathItem == null || pathItem.readOperationsMap() == null) {
+                continue;
+            }
+
+            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry : pathItem.readOperationsMap().entrySet()) {
+                Operation operation = operationEntry.getValue();
+                if (operation == null) {
+                    continue;
+                }
+
+                String summary = trimToNull(operation.getSummary());
+                String description = trimToNull(operation.getDescription());
+                if (summary == null && description != null) {
+                    operation.setSummary(description);
+                    summary = description;
+                }
+
+                String baseName = firstNonBlank(summary, description, trimToNull(operation.getOperationId()));
+                if (baseName == null) {
+                    baseName = buildFallbackName(pathEntry.getKey(), operationEntry.getKey());
+                }
+
+                baseName = compactWhitespace(baseName);
+                baseNameCounter.merge(baseName, 1, Integer::sum);
+                candidates.add(new OperationAliasCandidate(operation, operationEntry.getKey(), pathEntry.getKey(), baseName));
+            }
+        }
+
+        Map<String, Integer> finalNameCounter = new LinkedHashMap<>();
+        for (OperationAliasCandidate candidate : candidates) {
+            String finalName = candidate.baseName();
+            if (baseNameCounter.getOrDefault(candidate.baseName(), 0) > 1) {
+                finalName = candidate.baseName() + "-" + extractTagSuffix(candidate.operation());
+            }
+            if (finalNameCounter.merge(finalName, 1, Integer::sum) > 1) {
+                finalName = finalName + "-" + buildFallbackName(candidate.path(), candidate.httpMethod());
+            }
+            candidate.operation().setOperationId(finalName);
+        }
     }
 
     private void describeResultMessage(Schema<?> schema) {
@@ -235,5 +294,63 @@ public class OpenApiConfig {
             return annotatedType.getCtxAnnotations()[0].annotationType();
         }
         return null;
+    }
+
+    private String extractTagSuffix(Operation operation) {
+        if (operation == null || operation.getTags() == null || operation.getTags().isEmpty()) {
+            return "接口";
+        }
+        String tag = trimToNull(operation.getTags().get(0));
+        if (tag == null) {
+            return "接口";
+        }
+        int index = tag.lastIndexOf(',');
+        return index >= 0 ? tag.substring(index + 1).trim() : tag;
+    }
+
+    private String buildFallbackName(String path, PathItem.HttpMethod httpMethod) {
+        String method = httpMethod == null ? "API" : httpMethod.name().toUpperCase(Locale.ROOT);
+        String normalizedPath = Objects.toString(path, "")
+            .replaceAll("[{}]", "")
+            .replace('/', '-')
+            .replaceAll("-+", "-")
+            .replaceAll("^-|-$", "");
+        return compactWhitespace(method + "-" + normalizedPath);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String trimmed = trimToNull(value);
+            if (trimmed != null) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String compactWhitespace(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replaceAll("\\s+", " ").trim();
+    }
+
+    private record OperationAliasCandidate(
+        Operation operation,
+        PathItem.HttpMethod httpMethod,
+        String path,
+        String baseName
+    ) {
     }
 }

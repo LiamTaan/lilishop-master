@@ -7,8 +7,11 @@ import cn.lili.common.exception.ServiceException;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
+import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.dto.GoodsSkuSearchParams;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
+import cn.lili.modules.promotion.entity.dto.PintuanGoodsManagerDTO;
 import cn.lili.modules.promotion.entity.dto.search.PintuanSearchParams;
 import cn.lili.modules.promotion.entity.dto.search.PromotionGoodsSearchParams;
 import cn.lili.modules.promotion.entity.vos.PintuanMemberVO;
@@ -79,11 +82,37 @@ public class PintuanManagerController {
     }
 
     @GetMapping("/goods/{pintuanId}")
-    public ResultMessage<IPage<PromotionGoods>> getPintuanGoodsByPage(@PathVariable String pintuanId, PageVO pageVo) {
+    public ResultMessage<IPage<PromotionGoods>> getPintuanGoodsByPage(@PathVariable String pintuanId, String goodsName, PageVO pageVo) {
         PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
         searchParams.setPromotionId(pintuanId);
         searchParams.setPromotionType(PromotionTypeEnum.PINTUAN.name());
+        searchParams.setGoodsName(goodsName);
         return ResultUtil.data(promotionGoodsService.pageFindAll(searchParams, pageVo));
+    }
+
+    @GetMapping("/{pintuanId}/available-sku")
+    public ResultMessage<IPage<GoodsSku>> getAvailableSku(@PathVariable String pintuanId, GoodsSkuSearchParams param) {
+        return ResultUtil.data(pintuanService.getAvailableSkuPage(pintuanId, param));
+    }
+
+    @PostMapping(path = "/{pintuanId}/goods", consumes = "application/json", produces = "application/json")
+    public ResultMessage<String> addPintuanGoods(@PathVariable String pintuanId, @RequestBody List<@Valid PintuanGoodsManagerDTO> goodsList) {
+        pintuanService.addPintuanGoods(pintuanId, goodsList);
+        return ResultUtil.success();
+    }
+
+    @PutMapping(path = "/{pintuanId}/goods/{promotionGoodsId}", consumes = "application/json", produces = "application/json")
+    public ResultMessage<String> updatePintuanGoods(@PathVariable String pintuanId,
+                                                    @PathVariable String promotionGoodsId,
+                                                    @Valid @RequestBody PintuanGoodsManagerDTO goodsDTO) {
+        pintuanService.updatePintuanGoods(pintuanId, promotionGoodsId, goodsDTO);
+        return ResultUtil.success();
+    }
+
+    @DeleteMapping("/{pintuanId}/goods/{promotionGoodsId}")
+    public ResultMessage<String> deletePintuanGoods(@PathVariable String pintuanId, @PathVariable String promotionGoodsId) {
+        pintuanService.removePintuanGoods(pintuanId, promotionGoodsId);
+        return ResultUtil.success();
     }
 
     @GetMapping("/{pintuanId}/members")
@@ -93,11 +122,26 @@ public class PintuanManagerController {
     }
 
     @PutMapping("/status/{pintuanIds}")
-    public ResultMessage<String> openPintuan(@PathVariable String pintuanIds, Long startTime, Long endTime) {
-        if (pintuanService.updateStatus(Arrays.asList(pintuanIds.split(",")), startTime, endTime)) {
+    public ResultMessage<String> openPintuan(@PathVariable String pintuanIds, Boolean open, Long startTime, Long endTime) {
+        if (pintuanIds.contains(",")) {
+            if (Boolean.TRUE.equals(open)) {
+                throw new ServiceException("移动端展示拼团一次只能开启一个活动");
+            }
+            if (pintuanService.updateStatus(Arrays.asList(pintuanIds.split(",")), null, null)) {
+                return ResultUtil.success(ResultCode.PINTUAN_MANUAL_CLOSE_SUCCESS);
+            }
+            throw new ServiceException(ResultCode.PINTUAN_MANUAL_CLOSE_ERROR);
+        }
+        boolean result = pintuanService.manualUpdateDisplayStatus(pintuanIds, open, startTime, endTime);
+        if (result && Boolean.TRUE.equals(open)) {
             return ResultUtil.success(ResultCode.PINTUAN_MANUAL_OPEN_SUCCESS);
         }
-        throw new ServiceException(ResultCode.PINTUAN_MANUAL_OPEN_ERROR);
+        if (result) {
+            return ResultUtil.success(ResultCode.PINTUAN_MANUAL_CLOSE_SUCCESS);
+        }
+        throw new ServiceException(Boolean.TRUE.equals(open)
+                ? ResultCode.PINTUAN_MANUAL_OPEN_ERROR
+                : ResultCode.PINTUAN_MANUAL_CLOSE_ERROR);
 
     }
 

@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 店铺端,订单统计接口
+ * 供货商端,订单统计接口
  *
  * @author Bulbasaur
  * @since 2020/12/9 19:04
  */
 @Slf4j
-@Tag(name = "店铺端,订单统计接口")
+@Tag(name = "供货商端,订单统计接口")
 @RestController
 @RequestMapping("/store/statistics/order")
 public class OrderStatisticsStoreController {
@@ -47,7 +47,7 @@ public class OrderStatisticsStoreController {
     @Autowired
     private OrderStatisticsService orderStatisticsService;
 
-    @Operation(description = "订单概览统计")
+    @Operation(summary = "供货商查询订单概览统计", description = "订单概览统计")
     @Parameter(name = "statisticsQueryParam", description = "订单统计查询参数", required = true)
     @GetMapping("/overview")
     public ResultMessage<OrderOverviewVO> overview(StatisticsQueryParam statisticsQueryParam) {
@@ -61,7 +61,7 @@ public class OrderStatisticsStoreController {
         return null;
     }
 
-    @Operation(description = "订单图表统计")
+    @Operation(summary = "供货商查询订单图表统计", description = "订单图表统计")
     @Parameter(name = "statisticsQueryParam", description = "订单统计查询参数", required = true)
     @GetMapping
     public ResultMessage<List<OrderStatisticsDataVO>> statisticsChart(StatisticsQueryParam statisticsQueryParam) {
@@ -76,7 +76,7 @@ public class OrderStatisticsStoreController {
     }
 
 
-    @Operation(description = "订单统计")
+    @Operation(summary = "供货商分页查询订单统计", description = "订单统计")
     @Parameter(name = "statisticsQueryParam", description = "订单统计查询参数", required = true)
     @Parameter(name = "pageVO", description = "分页参数", required = true)
     @GetMapping("/order")
@@ -92,7 +92,7 @@ public class OrderStatisticsStoreController {
     }
 
 
-    @Operation(description = "退单统计")
+    @Operation(summary = "供货商分页查询退单统计", description = "退单统计")
     @Parameter(name = "statisticsQueryParam", description = "订单统计查询参数", required = true)
     @Parameter(name = "pageVO", description = "分页参数", required = true)
     @GetMapping("/refund")

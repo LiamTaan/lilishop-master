@@ -49,6 +49,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    public boolean saveOnly(Message message) {
+        return this.save(message);
+    }
+
+    @Override
     public Boolean deleteMessage(String id) {
         //只有查询到此记录才真实删除，未找到记录则直接返回true即可
         Message message = this.getById(id);

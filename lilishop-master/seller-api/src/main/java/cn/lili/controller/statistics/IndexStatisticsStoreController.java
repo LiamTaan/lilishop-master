@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 店铺端,首页统计接口
+ * 供货商端,首页统计接口
  *
  * @author Bulbasaur
  * @since 2020/12/9 19:04
  */
-@Tag(name = "店铺端,首页统计接口")
+@Tag(name = "供货商端,首页统计接口")
 @RestController
 @RequestMapping("/store/statistics/index")
 public class IndexStatisticsStoreController {
@@ -41,7 +41,7 @@ public class IndexStatisticsStoreController {
     @Autowired
     private IndexStatisticsService indexStatisticsService;
 
-    @Operation(description = "获取统计列表,排行前一百的数据")
+    @Operation(summary = "供货商查询首页热卖商品排行", description = "获取统计列表,排行前一百的数据")
     @Parameter(name = "statisticsQueryParam", description = "商品统计查询参数", required = true)
     @GetMapping("/top100")
     public ResultMessage<List<GoodsStatisticsDataVO>> getByPage(GoodsStatisticsQueryParam statisticsQueryParam) {
@@ -50,9 +50,10 @@ public class IndexStatisticsStoreController {
         return ResultUtil.data(storeFlowStatisticsService.getGoodsStatisticsData(statisticsQueryParam, 100));
     }
 
-    @Operation(description = "获取首页查询数据")
+    @Operation(summary = "供货商查询首页统计数据", description = "获取首页查询数据")
     @GetMapping
     public ResultMessage<StoreIndexStatisticsVO> index() {
-        return ResultUtil.data(indexStatisticsService.storeIndexStatistics());
+        String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
+        return ResultUtil.data(indexStatisticsService.storeIndexStatistics(storeId));
     }
 }

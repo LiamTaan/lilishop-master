@@ -12,20 +12,31 @@ import cn.lili.common.security.enums.UserEnums;
 import cn.lili.common.vo.PageVO;
 import cn.lili.modules.agent.entity.dto.AgentRoleCreateDTO;
 import cn.lili.modules.agent.entity.enums.AgentLevelEnum;
+import cn.lili.modules.goods.entity.dos.Category;
 import cn.lili.modules.agent.service.AgentRoleRelationService;
 import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.service.CategoryService;
 import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.goods.service.GoodsSkuService;
 import cn.lili.modules.member.entity.dos.Clerk;
 import cn.lili.modules.member.entity.dos.FootPrint;
 import cn.lili.modules.member.entity.dos.Member;
-import cn.lili.modules.member.entity.enums.LoginIdentityCodeEnum;
 import cn.lili.modules.member.entity.dto.ClerkAddDTO;
 import cn.lili.modules.member.entity.dto.CollectionDTO;
+import cn.lili.modules.member.entity.dto.LoginSessionDTO;
 import cn.lili.modules.member.service.ClerkService;
 import cn.lili.modules.member.service.FootprintService;
+import cn.lili.modules.member.service.AppLoginSessionService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.sms.SmsUtil;
+import cn.lili.modules.message.entity.dos.StoreMessage;
+import cn.lili.modules.message.entity.enums.MessageBizTypeEnum;
+import cn.lili.modules.message.entity.enums.MessageSendClient;
+import cn.lili.modules.message.entity.enums.MessageStatusEnum;
+import cn.lili.modules.message.entity.enums.RangeEnum;
+import cn.lili.modules.message.entity.dos.Message;
+import cn.lili.modules.message.service.MessageService;
+import cn.lili.modules.message.service.StoreMessageService;
 import cn.lili.modules.store.entity.dos.Store;
 import cn.lili.modules.store.entity.dos.StoreAuditLog;
 import cn.lili.modules.store.entity.dos.StoreDetail;
@@ -76,6 +87,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 店铺业务层实现
@@ -129,8 +141,20 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     private SmsUtil smsUtil;
 
     @Autowired
+    private AppLoginSessionService appLoginSessionService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
     @Lazy
     private RegionService regionService;
+
+    @Autowired
+    private StoreMessageService storeMessageService;
+
+    @Autowired
+    private MessageService messageService;
 
     @Override
     public IPage<StoreVO> findByConditionPage(StoreSearchParams storeSearchParams, PageVO page) {
@@ -253,6 +277,21 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         boolean updated = this.updateById(store);
         if (updated) {
             saveAuditLog(store.getId(), originalAuditStatus, store.getAuditStatus(), store.getAuditRemark());
+            if (StoreAuditStatusEnum.REJECTED.name().equals(store.getAuditStatus())) {
+                sendGovernanceMessage(
+                        store,
+                        "店铺审核未通过，请尽快处理",
+                        buildGovernanceContent("店铺审核未通过", store.getAuditRemark()),
+                        false
+                );
+            } else if (StoreAuditStatusEnum.APPROVED.name().equals(store.getAuditStatus())) {
+                sendGovernanceMessage(
+                        store,
+                        "店铺审核已通过",
+                        "您的店铺审核已通过，当前已恢复正常经营。",
+                        true
+                );
+            }
         }
         return updated;
     }
@@ -285,6 +324,28 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         boolean updated = this.updateById(store);
         if (updated) {
             saveAuditLog(store.getId(), originalAuditStatus, auditStatus, auditDTO.getAuditRemark());
+            if (StoreAuditStatusEnum.REJECTED.name().equals(auditStatus)) {
+                sendGovernanceMessage(
+                        store,
+                        "店铺审核未通过，请尽快处理",
+                        buildGovernanceContent("店铺审核未通过", auditDTO.getAuditRemark()),
+                        false
+                );
+            } else if (StoreAuditStatusEnum.FROZEN.name().equals(auditStatus)) {
+                sendGovernanceMessage(
+                        store,
+                        "店铺已被冻结，请尽快处理",
+                        buildGovernanceContent("店铺已被冻结", auditDTO.getAuditRemark()),
+                        false
+                );
+            } else if (StoreAuditStatusEnum.APPROVED.name().equals(auditStatus)) {
+                sendGovernanceMessage(
+                        store,
+                        "店铺审核已通过",
+                        "您的店铺审核已通过，当前已恢复正常经营。",
+                        true
+                );
+            }
         }
         return updated;
     }
@@ -300,6 +361,12 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             if (update) {
                 goodsService.underStoreGoods(id);
                 removeStoreCache(id);
+                sendGovernanceMessage(
+                        store,
+                        "店铺已被关闭，请尽快处理",
+                        "您的店铺已被平台关闭，相关商品已同步下架，请尽快联系平台处理。",
+                        false
+                );
             }
             clerkService.list(new LambdaQueryWrapper<Clerk>().eq(Clerk::getStoreId, id)).forEach(clerk -> {
                 cache.vagueDel(CachePrefix.ACCESS_TOKEN.getPrefix(UserEnums.STORE, clerk.getMemberId()));
@@ -318,6 +385,12 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             boolean updated = this.updateById(store);
             if (updated) {
                 removeStoreCache(id);
+                sendGovernanceMessage(
+                        store,
+                        "店铺已恢复正常经营",
+                        "您的店铺已恢复正常经营，可继续在平台开展业务。",
+                        true
+                );
             }
             return updated;
         }
@@ -326,13 +399,73 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO) {
+    public boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO, String loginSessionToken) {
+        return selectApplyType(applyTypeSelectDTO, StoreBizTypeEnum.AGENT.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean selectSupplierApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO, String loginSessionToken) {
+        return selectApplyType(applyTypeSelectDTO, StoreBizTypeEnum.SUPPLIER.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid, String loginSessionToken) {
+        return applyPersonal(personalApplyDTO, uuid, StoreBizTypeEnum.AGENT.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applySupplierPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid, String loginSessionToken) {
+        return applyPersonal(personalApplyDTO, uuid, StoreBizTypeEnum.SUPPLIER.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid, String loginSessionToken) {
+        return applyIndividual(individualApplyDTO, uuid, StoreBizTypeEnum.AGENT.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applySupplierIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid, String loginSessionToken) {
+        return applyIndividual(individualApplyDTO, uuid, StoreBizTypeEnum.SUPPLIER.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid, String loginSessionToken) {
+        return applyCompanyLegal(companyLegalApplyDTO, uuid, StoreBizTypeEnum.AGENT.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applySupplierCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid, String loginSessionToken) {
+        return applyCompanyLegal(companyLegalApplyDTO, uuid, StoreBizTypeEnum.SUPPLIER.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid, String loginSessionToken) {
+        return applyCompanyAuthorized(companyAuthorizedApplyDTO, uuid, StoreBizTypeEnum.AGENT.name(), loginSessionToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean applySupplierCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid, String loginSessionToken) {
+        return applyCompanyAuthorized(companyAuthorizedApplyDTO, uuid, StoreBizTypeEnum.SUPPLIER.name(), loginSessionToken);
+    }
+
+    private boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO, String bizType, String loginSessionToken) {
         String subjectType = normalizeSubjectType(applyTypeSelectDTO.getSubjectType());
-        ensureBuyerApplyAgentContext();
-        Store store = prepareMutableStore();
+        String normalizedBizType = normalizeBizType(bizType);
+        String memberId = resolveBuyerStoreApplyMemberId(loginSessionToken);
+        Store store = prepareMutableStore(memberId);
         StoreDetail storeDetail = getOrCreateStoreDetail(store.getId());
 
-        applyIdentity(store, storeDetail, subjectType, null, StoreBizTypeEnum.AGENT.name(), null, null, null);
+        applyIdentity(store, storeDetail, subjectType, null, normalizedBizType,
+                applyTypeSelectDTO.getAgentLevel(), applyTypeSelectDTO.getAgentRegionId(), applyTypeSelectDTO.getAgentRegionName());
         store.setStoreDisable(StoreStatusEnum.APPLY.value());
         store.setAuditStatus(StoreAuditStatusEnum.DRAFT.name());
         store.setAuditRemark(null);
@@ -342,65 +475,73 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         return true;
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid) {
+    private boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid, String bizType, String loginSessionToken) {
         verifyStoreApplySms(personalApplyDTO.getMobile(), uuid, personalApplyDTO.getSmsCode());
-        ensureBuyerApplyAgentContext();
+        String memberId = resolveBuyerStoreApplyMemberId(loginSessionToken);
         validateApplicationPayload(StoreSubjectTypeEnum.PERSONAL.name(), null, personalApplyDTO);
-        Store store = prepareMutableStore();
+        Store store = prepareMutableStore(memberId);
         StoreDetail storeDetail = getOrCreateStoreDetail(store.getId());
+        String normalizedBizType = normalizeBizType(bizType);
         applyStoreCommonFields(store, personalApplyDTO);
         applyStoreDetailCommonFields(storeDetail, personalApplyDTO);
         applySubjectSpecificFields(storeDetail, StoreSubjectTypeEnum.PERSONAL.name(), null, personalApplyDTO);
-        applyIdentity(store, storeDetail, StoreSubjectTypeEnum.PERSONAL.name(), null, StoreBizTypeEnum.AGENT.name(), null, null, null);
+        applyIdentity(store, storeDetail, StoreSubjectTypeEnum.PERSONAL.name(), null, normalizedBizType,
+                resolveApplyAgentLevel(personalApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionId(personalApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionName(personalApplyDTO, store, normalizedBizType));
         return submitApplication(store, storeDetail);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid) {
+    private boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid, String bizType, String loginSessionToken) {
         verifyStoreApplySms(individualApplyDTO.getMobile(), uuid, individualApplyDTO.getSmsCode());
-        ensureBuyerApplyAgentContext();
+        String memberId = resolveBuyerStoreApplyMemberId(loginSessionToken);
         validateApplicationPayload(StoreSubjectTypeEnum.INDIVIDUAL.name(), null, individualApplyDTO);
-        Store store = prepareMutableStore();
+        Store store = prepareMutableStore(memberId);
         StoreDetail storeDetail = getOrCreateStoreDetail(store.getId());
+        String normalizedBizType = normalizeBizType(bizType);
         applyStoreCommonFields(store, individualApplyDTO);
         applyStoreDetailCommonFields(storeDetail, individualApplyDTO);
         applySubjectSpecificFields(storeDetail, StoreSubjectTypeEnum.INDIVIDUAL.name(), null, individualApplyDTO);
-        applyIdentity(store, storeDetail, StoreSubjectTypeEnum.INDIVIDUAL.name(), null, StoreBizTypeEnum.AGENT.name(), null, null, null);
+        applyIdentity(store, storeDetail, StoreSubjectTypeEnum.INDIVIDUAL.name(), null, normalizedBizType,
+                resolveApplyAgentLevel(individualApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionId(individualApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionName(individualApplyDTO, store, normalizedBizType));
         return submitApplication(store, storeDetail);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid) {
+    private boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid, String bizType, String loginSessionToken) {
         verifyStoreApplySms(companyLegalApplyDTO.getMobile(), uuid, companyLegalApplyDTO.getSmsCode());
-        ensureBuyerApplyAgentContext();
+        String memberId = resolveBuyerStoreApplyMemberId(loginSessionToken);
         validateApplicationPayload(StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.LEGAL.name(), companyLegalApplyDTO);
-        Store store = prepareMutableStore();
+        Store store = prepareMutableStore(memberId);
         StoreDetail storeDetail = getOrCreateStoreDetail(store.getId());
+        String normalizedBizType = normalizeBizType(bizType);
         applyStoreCommonFields(store, companyLegalApplyDTO);
         applyStoreDetailCommonFields(storeDetail, companyLegalApplyDTO);
         applySubjectSpecificFields(storeDetail, StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.LEGAL.name(), companyLegalApplyDTO);
         applyIdentity(store, storeDetail, StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.LEGAL.name(),
-                StoreBizTypeEnum.AGENT.name(), null, null, null);
+                normalizedBizType,
+                resolveApplyAgentLevel(companyLegalApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionId(companyLegalApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionName(companyLegalApplyDTO, store, normalizedBizType));
         return submitApplication(store, storeDetail);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid) {
+    private boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid, String bizType, String loginSessionToken) {
         verifyStoreApplySms(companyAuthorizedApplyDTO.getMobile(), uuid, companyAuthorizedApplyDTO.getSmsCode());
-        ensureBuyerApplyAgentContext();
+        String memberId = resolveBuyerStoreApplyMemberId(loginSessionToken);
         validateApplicationPayload(StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.AUTHORIZED.name(), companyAuthorizedApplyDTO);
-        Store store = prepareMutableStore();
+        Store store = prepareMutableStore(memberId);
         StoreDetail storeDetail = getOrCreateStoreDetail(store.getId());
+        String normalizedBizType = normalizeBizType(bizType);
         applyStoreCommonFields(store, companyAuthorizedApplyDTO);
         applyStoreDetailCommonFields(storeDetail, companyAuthorizedApplyDTO);
         applySubjectSpecificFields(storeDetail, StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.AUTHORIZED.name(), companyAuthorizedApplyDTO);
         applyIdentity(store, storeDetail, StoreSubjectTypeEnum.COMPANY.name(), CompanyIdentityTypeEnum.AUTHORIZED.name(),
-                StoreBizTypeEnum.AGENT.name(), null, null, null);
+                normalizedBizType,
+                resolveApplyAgentLevel(companyAuthorizedApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionId(companyAuthorizedApplyDTO, store, normalizedBizType),
+                resolveApplyAgentRegionName(companyAuthorizedApplyDTO, store, normalizedBizType));
         return submitApplication(store, storeDetail);
     }
 
@@ -484,11 +625,10 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         return detailUpdated && storeUpdated;
     }
 
-    private Store prepareMutableStore() {
-        Store store = getStoreByMember();
+    private Store prepareMutableStore(String memberId) {
+        Store store = getStoreByMemberId(memberId);
         if (store == null) {
-            AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
-            Member member = memberService.getById(authUser.getId());
+            Member member = memberService.getById(memberId);
             if (member == null) {
                 throw new ServiceException(ResultCode.USER_NOT_EXIST);
             }
@@ -515,12 +655,22 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         }
     }
 
-    private void ensureBuyerApplyAgentContext() {
-        AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
-        if (currentUser.getRole() != UserEnums.MEMBER
-                || currentUser.getIdentityCode() != LoginIdentityCodeEnum.CONSUMER) {
-            throw new ServiceException(ResultCode.IDENTITY_NOT_SUPPORTED);
+    private String resolveBuyerStoreApplyMemberId(String loginSessionToken) {
+        AuthUser currentUser = UserContext.getCurrentUser();
+        if (currentUser != null) {
+            if (currentUser.getRole() != UserEnums.MEMBER) {
+                throw new ServiceException(ResultCode.IDENTITY_NOT_SUPPORTED);
+            }
+            return currentUser.getId();
         }
+        if (CharSequenceUtil.isBlank(loginSessionToken)) {
+            throw new ServiceException(ResultCode.USER_NOT_LOGIN);
+        }
+        LoginSessionDTO loginSession = appLoginSessionService.getSession(loginSessionToken);
+        if (CharSequenceUtil.isBlank(loginSession.getMemberId())) {
+            throw new ServiceException(ResultCode.LOGIN_SESSION_INVALID);
+        }
+        return loginSession.getMemberId();
     }
 
     private void applyStoreCommonFields(Store store, StoreApplyCommonDTO dto) {
@@ -548,7 +698,21 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         storeDetail.setBusinessLicenseExpireDate(dto.getBusinessLicenseExpireDate());
         storeDetail.setFacadeImageUrl(dto.getFacadeImageUrl());
         storeDetail.setIndoorImageUrls(dto.getIndoorImageUrls());
-        storeDetail.setGoodsManagementCategory(dto.getGoodsManagementCategory());
+        storeDetail.setGoodsManagementCategory(resolveGoodsManagementCategory(dto.getGoodsManagementCategory()));
+    }
+
+    private String resolveGoodsManagementCategory(String goodsManagementCategory) {
+        if (CharSequenceUtil.isNotBlank(goodsManagementCategory)) {
+            return goodsManagementCategory;
+        }
+        List<Category> firstCategories = categoryService.firstCategory();
+        if (firstCategories == null || firstCategories.isEmpty()) {
+            return goodsManagementCategory;
+        }
+        return firstCategories.stream()
+                .map(Category::getId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .collect(Collectors.joining(","));
     }
 
     private void applySubjectSpecificFields(StoreDetail storeDetail, String subjectType, String companyIdentityType, Object payload) {
@@ -731,16 +895,34 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (StoreStatusEnum.OPEN.name().equals(store.getStoreDisable())
                 || StoreStatusEnum.CLOSED.name().equals(store.getStoreDisable())
                 || StoreStatusEnum.APPLYING.name().equals(store.getStoreDisable())) {
-            throw new ServiceException(ResultCode.STORE_STATUS_ERROR);
+            throw new ServiceException(ResultCode.STORE_STATUS_ERROR, buildStoreStatusConflictMessage(store));
         }
     }
 
-    private Store getStoreByMember() {
-        LambdaQueryWrapper<Store> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        if (UserContext.getCurrentUser() != null) {
-            lambdaQueryWrapper.eq(Store::getMemberId, UserContext.getCurrentUser().getId());
+    private String buildStoreStatusConflictMessage(Store store) {
+        String bizTypeLabel = resolveStoreBizTypeLabel(store.getStoreType());
+        if (StoreStatusEnum.APPLYING.name().equals(store.getStoreDisable())
+                || StoreAuditStatusEnum.SUBMITTED.name().equals(store.getAuditStatus())) {
+            return String.format("当前账号已有%s申请正在审核中，系统暂不支持同一账号同时申请供货商和代理商，请先完成当前申请流程", bizTypeLabel);
         }
-        return this.getOne(lambdaQueryWrapper, false);
+        if (StoreStatusEnum.OPEN.name().equals(store.getStoreDisable())
+                || StoreAuditStatusEnum.APPROVED.name().equals(store.getAuditStatus())) {
+            return String.format("当前账号已拥有%s身份，系统暂不支持同一账号同时申请供货商和代理商", bizTypeLabel);
+        }
+        if (StoreStatusEnum.CLOSED.name().equals(store.getStoreDisable())) {
+            return String.format("当前账号已存在%s店铺记录（已关闭），系统暂不支持同一账号同时申请供货商和代理商，如需切换身份请先处理现有店铺记录", bizTypeLabel);
+        }
+        return String.format("当前账号已存在%s店铺记录，系统暂不支持同一账号同时申请供货商和代理商", bizTypeLabel);
+    }
+
+    private String resolveStoreBizTypeLabel(String storeType) {
+        if (StoreBizTypeEnum.AGENT.name().equalsIgnoreCase(storeType)) {
+            return "代理商";
+        }
+        if (StoreBizTypeEnum.SUPPLIER.name().equalsIgnoreCase(storeType)) {
+            return "供货商";
+        }
+        return "店铺";
     }
 
     private void approveStore(Store store) {
@@ -793,6 +975,37 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             }
             validateAgentRegionLevel(normalizedAgentLevel, agentRegionId);
         }
+    }
+
+    @Override
+    public void sendGovernanceMessage(Store store, String title, String content, boolean platformMsg) {
+        if (store == null || CharSequenceUtil.isBlank(store.getId())) {
+            return;
+        }
+        String bizType = platformMsg ? MessageBizTypeEnum.PLATFORM.name() : MessageBizTypeEnum.STORE_GOVERNANCE.name();
+
+        Message systemMessage = new Message();
+        systemMessage.setTitle(title);
+        systemMessage.setContent(content);
+        systemMessage.setBizType(bizType);
+        systemMessage.setMessageClient(MessageSendClient.STORE.name());
+        systemMessage.setMessageRange(RangeEnum.APPOINT.name());
+        messageService.saveOnly(systemMessage);
+
+        StoreMessage storeMessage = new StoreMessage();
+        storeMessage.setMessageId(systemMessage.getId());
+        storeMessage.setStoreId(store.getId());
+        storeMessage.setStoreName(store.getStoreName());
+        storeMessage.setStatus(MessageStatusEnum.UN_READY.name());
+        storeMessage.setBizType(bizType);
+        storeMessageService.save(storeMessage);
+    }
+
+    private String buildGovernanceContent(String prefix, String remark) {
+        if (CharSequenceUtil.isBlank(remark)) {
+            return prefix + "，请尽快联系平台处理。";
+        }
+        return prefix + "，原因：" + remark;
     }
 
     private void applyManagerAuditAssignment(Store store, StoreAuditDTO auditDTO) {
@@ -878,6 +1091,36 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             return null;
         }
         return value.trim();
+    }
+
+    private String resolveApplyAgentLevel(StoreApplyCommonDTO dto, Store currentStore, String bizType) {
+        if (!StoreBizTypeEnum.AGENT.name().equals(bizType)) {
+            return null;
+        }
+        if (dto != null && CharSequenceUtil.isNotBlank(dto.getAgentLevel())) {
+            return dto.getAgentLevel();
+        }
+        return currentStore == null ? null : currentStore.getAgentLevel();
+    }
+
+    private String resolveApplyAgentRegionId(StoreApplyCommonDTO dto, Store currentStore, String bizType) {
+        if (!StoreBizTypeEnum.AGENT.name().equals(bizType)) {
+            return null;
+        }
+        if (dto != null && CharSequenceUtil.isNotBlank(dto.getAgentRegionId())) {
+            return dto.getAgentRegionId();
+        }
+        return currentStore == null ? null : currentStore.getAgentRegionId();
+    }
+
+    private String resolveApplyAgentRegionName(StoreApplyCommonDTO dto, Store currentStore, String bizType) {
+        if (!StoreBizTypeEnum.AGENT.name().equals(bizType)) {
+            return null;
+        }
+        if (dto != null && CharSequenceUtil.isNotBlank(dto.getAgentRegionName())) {
+            return dto.getAgentRegionName();
+        }
+        return currentStore == null ? null : currentStore.getAgentRegionName();
     }
 
     private void validateAgentRegionLevel(String agentLevel, String agentRegionId) {

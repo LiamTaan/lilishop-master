@@ -6,6 +6,11 @@ import cn.lili.common.enums.PromotionTypeEnum;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.exception.ServiceException;
 import cn.lili.common.properties.RocketmqCustomProperties;
+import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.dto.GoodsSkuSearchParams;
+import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
+import cn.lili.modules.goods.entity.enums.GoodsSalesModeEnum;
+import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
 import cn.lili.modules.goods.service.GoodsSkuService;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.service.MemberService;
@@ -16,6 +21,7 @@ import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
 import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
+import cn.lili.modules.promotion.entity.dto.PintuanGoodsManagerDTO;
 import cn.lili.modules.promotion.entity.dto.search.PromotionGoodsSearchParams;
 import cn.lili.modules.promotion.entity.enums.PromotionsScopeTypeEnum;
 import cn.lili.modules.promotion.entity.enums.PromotionsStatusEnum;
@@ -26,17 +32,30 @@ import cn.lili.modules.promotion.mapper.PintuanMapper;
 import cn.lili.modules.promotion.service.PintuanService;
 import cn.lili.modules.promotion.service.PromotionGoodsService;
 import cn.lili.modules.promotion.tools.PromotionTools;
+import cn.lili.modules.store.entity.dos.Store;
+import cn.lili.modules.store.entity.enums.StoreBizTypeEnum;
+import cn.lili.modules.store.service.StoreService;
 import cn.lili.trigger.enums.DelayTypeEnums;
 import cn.lili.trigger.interfaces.TimeTrigger;
 import cn.lili.trigger.model.TimeExecuteConstant;
 import cn.lili.trigger.model.TimeTriggerMsg;
 import cn.lili.trigger.util.DelayQueueTools;
+import cn.lili.mybatis.util.PageUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 拼团业务层实现
@@ -57,6 +76,8 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
      */
     @Autowired
     private GoodsSkuService goodsSkuService;
+    @Autowired
+    private StoreService storeService;
     /**
      * 客户
      */
@@ -131,8 +152,273 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
         PintuanVO pintuanVO = new PintuanVO(pintuan);
         PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
         searchParams.setPromotionId(pintuan.getId());
+        searchParams.setPromotionType(PromotionTypeEnum.PINTUAN.name());
         pintuanVO.setPromotionGoodsList(promotionGoodsService.listFindAll(searchParams));
         return pintuanVO;
+    }
+
+    @Override
+    public PintuanVO getDisplayPintuanVO() {
+        List<Pintuan> pintuanList = this.list(new LambdaQueryWrapper<Pintuan>()
+                .eq(Pintuan::getStoreId, PromotionTools.PLATFORM_ID)
+                .eq(Pintuan::getDeleteFlag, false)
+                .isNotNull(Pintuan::getStartTime)
+                .orderByDesc(Pintuan::getStartTime)
+                .orderByDesc(Pintuan::getCreateTime));
+        for (Pintuan pintuan : pintuanList) {
+            if (!PromotionsStatusEnum.START.name().equals(pintuan.getPromotionStatus())) {
+                continue;
+            }
+            List<PromotionGoods> goodsList = getPintuanGoodsList(pintuan.getId());
+            if (goodsList == null || goodsList.isEmpty()) {
+                continue;
+            }
+            PintuanVO pintuanVO = new PintuanVO(pintuan);
+            pintuanVO.setPromotionGoodsList(goodsList);
+            return pintuanVO;
+        }
+        return null;
+    }
+
+    @Override
+    public IPage<GoodsSku> getAvailableSkuPage(String pintuanId, GoodsSkuSearchParams searchParams) {
+        Pintuan pintuan = this.getById(pintuanId);
+        if (pintuan == null) {
+            throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+        }
+        List<String> registeredSkuIds = promotionGoodsService.list(new LambdaQueryWrapper<PromotionGoods>()
+                        .eq(PromotionGoods::getPromotionId, pintuanId)
+                        .eq(PromotionGoods::getPromotionType, PromotionTypeEnum.PINTUAN.name()))
+                .stream()
+                .map(PromotionGoods::getSkuId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .collect(Collectors.toList());
+        List<String> overlapSkuIds = promotionGoodsService.findOverlapSkuIds(
+                Arrays.asList(PromotionTypeEnum.SECKILL, PromotionTypeEnum.PINTUAN),
+                pintuan.getStartTime(),
+                pintuan.getEndTime(),
+                pintuan.getId()
+        );
+
+        LambdaQueryWrapper<GoodsSku> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(GoodsSku::getSalesModel, GoodsSalesModeEnum.RETAIL.name());
+        queryWrapper.in(GoodsSku::getStoreId, listPromotionSelectableStoreIds());
+        queryWrapper.eq(GoodsSku::getAuthFlag, GoodsAuthEnum.PASS.name());
+        queryWrapper.eq(GoodsSku::getMarketEnable, GoodsStatusEnum.UPPER.name());
+        queryWrapper.eq(GoodsSku::getDeleteFlag, false);
+        queryWrapper.notIn(!registeredSkuIds.isEmpty(), GoodsSku::getId, registeredSkuIds);
+        queryWrapper.notIn(overlapSkuIds != null && !overlapSkuIds.isEmpty(), GoodsSku::getId, overlapSkuIds);
+        queryWrapper.eq(CharSequenceUtil.isNotBlank(searchParams.getGoodsId()), GoodsSku::getGoodsId, searchParams.getGoodsId());
+        queryWrapper.eq(CharSequenceUtil.isNotBlank(searchParams.getStoreId()), GoodsSku::getStoreId, searchParams.getStoreId());
+        queryWrapper.like(CharSequenceUtil.isNotBlank(searchParams.getGoodsName()), GoodsSku::getGoodsName, searchParams.getGoodsName());
+        queryWrapper.and(CharSequenceUtil.isNotBlank(searchParams.getSkuKeyword()), wrapper -> wrapper
+                .like(GoodsSku::getGoodsName, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getSimpleSpecs, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getSn, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getBarcode, searchParams.getSkuKeyword()));
+        queryWrapper.orderByDesc(GoodsSku::getCreateTime);
+        return goodsSkuService.page(PageUtil.initPage(searchParams), queryWrapper);
+    }
+
+    private List<String> listPromotionSelectableStoreIds() {
+        List<String> storeIds = storeService.list(new LambdaQueryWrapper<Store>()
+                        .in(Store::getStoreType, Arrays.asList(
+                                StoreBizTypeEnum.AGENT.name(),
+                                StoreBizTypeEnum.SUPPLIER.name()
+                        )))
+                .stream()
+                .map(Store::getId)
+                .collect(Collectors.toList());
+        return storeIds.isEmpty() ? Collections.singletonList("__NO_PROMOTION_SELECTABLE_STORE__") : storeIds;
+    }
+
+    private Map<String, Store> loadStoreMapBySkuIds(Set<String> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> storeIds = goodsSkuService.listByIds(skuIds).stream()
+                .map(GoodsSku::getStoreId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+        if (storeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return storeService.listByIds(storeIds).stream()
+                .collect(Collectors.toMap(Store::getId, Function.identity(), (left, right) -> left));
+    }
+
+    private void checkPromotionSelectableSku(GoodsSku goodsSku, Map<String, Store> storeMap) {
+        if (goodsSku == null) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
+        }
+        if (!GoodsSalesModeEnum.RETAIL.name().equals(goodsSku.getSalesModel())) {
+            throw new ServiceException(ResultCode.PROMOTION_GOODS_DO_NOT_JOIN_WHOLESALE);
+        }
+        if (!GoodsAuthEnum.PASS.name().equals(goodsSku.getAuthFlag())
+                || !GoodsStatusEnum.UPPER.name().equals(goodsSku.getMarketEnable())
+                || Boolean.TRUE.equals(goodsSku.getDeleteFlag())) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
+        }
+        Store store = storeMap == null ? null : storeMap.get(goodsSku.getStoreId());
+        if (store == null || !Arrays.asList(
+                StoreBizTypeEnum.AGENT.name(),
+                StoreBizTypeEnum.SUPPLIER.name()
+        ).contains(store.getStoreType())) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST_STORE);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean manualUpdateDisplayStatus(String pintuanId, Boolean open, Long startTime, Long endTime) {
+        Pintuan pintuan = this.getById(pintuanId);
+        if (pintuan == null) {
+            throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+        }
+        if (!Boolean.TRUE.equals(open)) {
+            return super.updateStatus(Collections.singletonList(pintuanId), null, null);
+        }
+        if (startTime == null || endTime == null) {
+            throw new ServiceException(ResultCode.PROMOTION_TIME_NOT_EXIST);
+        }
+        if (getPintuanGoodsList(pintuanId).isEmpty()) {
+            throw new ServiceException(ResultCode.PROMOTION_GOODS_ERROR);
+        }
+        List<String> closeIds = this.list(new LambdaQueryWrapper<Pintuan>()
+                        .eq(Pintuan::getStoreId, PromotionTools.PLATFORM_ID)
+                        .eq(Pintuan::getDeleteFlag, false)
+                        .ne(Pintuan::getId, pintuanId)
+                        .isNotNull(Pintuan::getStartTime))
+                .stream()
+                .filter(item -> PromotionsStatusEnum.START.name().equals(item.getPromotionStatus())
+                        || PromotionsStatusEnum.NEW.name().equals(item.getPromotionStatus()))
+                .map(Pintuan::getId)
+                .collect(Collectors.toList());
+        if (!closeIds.isEmpty()) {
+            this.update(new LambdaUpdateWrapper<Pintuan>()
+                    .in(Pintuan::getId, closeIds)
+                    .set(Pintuan::getStartTime, null)
+                    .set(Pintuan::getEndTime, null));
+            for (String closeId : closeIds) {
+                Pintuan closed = this.getById(closeId);
+                if (closed != null) {
+                    this.updateEsGoodsIndex(closed);
+                }
+            }
+        }
+        return super.updateStatus(Collections.singletonList(pintuanId), startTime, endTime);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addPintuanGoods(String pintuanId, List<PintuanGoodsManagerDTO> goodsList) {
+        Pintuan pintuan = this.getById(pintuanId);
+        if (pintuan == null) {
+            throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+        }
+        if (goodsList == null || goodsList.isEmpty()) {
+            return;
+        }
+        List<String> requestSkuIds = goodsList.stream()
+                .map(PintuanGoodsManagerDTO::getSkuId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .collect(Collectors.toList());
+        Set<String> skuIds = requestSkuIds.stream()
+                .collect(Collectors.toSet());
+        if (requestSkuIds.size() != skuIds.size()) {
+            throw new ServiceException("已添加商品不能重复添加");
+        }
+        if (!skuIds.isEmpty()) {
+            long exists = promotionGoodsService.count(new LambdaQueryWrapper<PromotionGoods>()
+                    .eq(PromotionGoods::getPromotionId, pintuanId)
+                    .eq(PromotionGoods::getPromotionType, PromotionTypeEnum.PINTUAN.name())
+                    .in(PromotionGoods::getSkuId, skuIds));
+            if (exists > 0) {
+                throw new ServiceException("已添加商品不能重复添加");
+            }
+        }
+
+        List<PromotionGoods> promotionGoodsList = new ArrayList<>();
+        Map<String, Store> storeMap = loadStoreMapBySkuIds(skuIds);
+        for (PintuanGoodsManagerDTO goodsDTO : goodsList) {
+            GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(goodsDTO.getSkuId());
+            checkPromotionSelectableSku(goodsSku, storeMap);
+            if (goodsDTO.getQuantity() != null && goodsSku.getQuantity() < goodsDTO.getQuantity()) {
+                throw new ServiceException("商品[" + goodsSku.getGoodsName() + "]库存不足");
+            }
+            PromotionGoods promotionGoods = new PromotionGoods(goodsSku);
+            promotionGoods.setPrice(goodsDTO.getPrice());
+            promotionGoods.setQuantity(goodsDTO.getQuantity());
+            promotionGoods.setLimitNum(goodsDTO.getLimitNum() == null ? pintuan.getLimitNum() : goodsDTO.getLimitNum());
+            promotionGoods.setScopeId(goodsSku.getId());
+            promotionGoods.setScopeType(PromotionsScopeTypeEnum.PORTION_GOODS.name());
+            promotionGoodsList.add(promotionGoods);
+        }
+        List<PromotionGoods> initializedGoods = PromotionTools.promotionGoodsInit(promotionGoodsList, pintuan, PromotionTypeEnum.PINTUAN);
+        checkPintuanPromotionGoods(pintuan, initializedGoods);
+        promotionGoodsService.saveBatch(initializedGoods);
+        PintuanVO pintuanVO = new PintuanVO(pintuan);
+        pintuanVO.setPromotionGoodsList(getPintuanGoodsList(pintuanId));
+        this.updateEsGoodsIndex(pintuanVO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePintuanGoods(String pintuanId, String promotionGoodsId, PintuanGoodsManagerDTO goodsDTO) {
+        Pintuan pintuan = this.getById(pintuanId);
+        if (pintuan == null) {
+            throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+        }
+        PromotionGoods promotionGoods = promotionGoodsService.getOne(new LambdaQueryWrapper<PromotionGoods>()
+                .eq(PromotionGoods::getId, promotionGoodsId)
+                .eq(PromotionGoods::getPromotionId, pintuanId)
+                .eq(PromotionGoods::getPromotionType, PromotionTypeEnum.PINTUAN.name()), false);
+        if (promotionGoods == null) {
+            throw new ServiceException(ResultCode.PINTUAN_GOODS_NOT_EXIST_ERROR);
+        }
+        if (CharSequenceUtil.isNotBlank(goodsDTO.getSkuId()) && !promotionGoods.getSkuId().equals(goodsDTO.getSkuId())) {
+            throw new ServiceException("拼团商品SKU不能修改");
+        }
+        GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(promotionGoods.getSkuId());
+        checkPromotionSelectableSku(goodsSku, loadStoreMapBySkuIds(Collections.singleton(promotionGoods.getSkuId())));
+        if (goodsDTO.getQuantity() != null && goodsSku.getQuantity() < goodsDTO.getQuantity()) {
+            throw new ServiceException("商品[" + goodsSku.getGoodsName() + "]库存不足");
+        }
+        promotionGoods.setPrice(goodsDTO.getPrice());
+        promotionGoods.setQuantity(goodsDTO.getQuantity());
+        promotionGoods.setLimitNum(goodsDTO.getLimitNum() == null ? pintuan.getLimitNum() : goodsDTO.getLimitNum());
+        checkPintuanPromotionGoods(pintuan, Collections.singletonList(promotionGoods));
+        promotionGoodsService.updateById(promotionGoods);
+        PintuanVO pintuanVO = new PintuanVO(pintuan);
+        pintuanVO.setPromotionGoodsList(getPintuanGoodsList(pintuanId));
+        this.updateEsGoodsIndex(pintuanVO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removePintuanGoods(String pintuanId, String promotionGoodsId) {
+        Pintuan pintuan = this.getById(pintuanId);
+        if (pintuan == null) {
+            throw new ServiceException(ResultCode.PINTUAN_NOT_EXIST_ERROR);
+        }
+        PromotionGoods promotionGoods = promotionGoodsService.getOne(new LambdaQueryWrapper<PromotionGoods>()
+                .eq(PromotionGoods::getId, promotionGoodsId)
+                .eq(PromotionGoods::getPromotionId, pintuanId)
+                .eq(PromotionGoods::getPromotionType, PromotionTypeEnum.PINTUAN.name()), false);
+        if (promotionGoods == null) {
+            throw new ServiceException(ResultCode.PINTUAN_GOODS_NOT_EXIST_ERROR);
+        }
+        promotionGoodsService.remove(new LambdaQueryWrapper<PromotionGoods>()
+                .eq(PromotionGoods::getPromotionId, pintuanId)
+                .eq(PromotionGoods::getPromotionType, PromotionTypeEnum.PINTUAN.name())
+                .eq(PromotionGoods::getSkuId, promotionGoods.getSkuId()));
+        PintuanVO pintuanVO = new PintuanVO(pintuan);
+        pintuanVO.setPromotionGoodsList(getPintuanGoodsList(pintuanId));
+        this.updateEsGoodsIndex(pintuanVO);
     }
 
     /**
@@ -290,26 +576,35 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
 
         if (pintuan.getPromotionGoodsList() != null && !pintuan.getPromotionGoodsList().isEmpty()) {
             List<PromotionGoods> promotionGoods = PromotionTools.promotionGoodsInit(pintuan.getPromotionGoodsList(), pintuan, PromotionTypeEnum.PINTUAN);
-            for (PromotionGoods promotionGood : promotionGoods) {
-                if (goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(promotionGood.getSkuId()) == null) {
-                    log.error("商品[" + promotionGood.getGoodsName() + "]不存在或处于不可售卖状态！");
-                    throw new ServiceException("商品[" + promotionGood.getGoodsName() + "]不存在或处于不可售卖状态！");
-                }
-                //查询是否在同一时间段参与了拼团活动
-                Integer count = promotionGoodsService.findInnerOverlapPromotionGoods(PromotionTypeEnum.SECKILL.name(), promotionGood.getSkuId(), pintuan.getStartTime(), pintuan.getEndTime(), pintuan.getId());
-                //查询是否在同一时间段参与了限时抢购活动
-                count += promotionGoodsService.findInnerOverlapPromotionGoods(PromotionTypeEnum.PINTUAN.name(), promotionGood.getSkuId(), pintuan.getStartTime(), pintuan.getEndTime(), pintuan.getId());
-                if (count > 0) {
-                    log.error("商品[" + promotionGood.getGoodsName() + "]已经在重叠的时间段参加了秒杀活动或拼团活动，不能参加拼团活动");
-                    throw new ServiceException("商品[" + promotionGood.getGoodsName() + "]已经在重叠的时间段参加了秒杀活动或拼团活动，不能参加拼团活动");
-                }
-            }
+            checkPintuanPromotionGoods(pintuan, promotionGoods);
             PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
             searchParams.setPromotionId(pintuan.getId());
             searchParams.setPromotionType(PromotionTypeEnum.PINTUAN.name());
             promotionGoodsService.deletePromotionGoods(searchParams);
             promotionGoodsService.saveOrUpdateBatch(promotionGoods);
         }
+    }
+
+    private void checkPintuanPromotionGoods(Pintuan pintuan, List<PromotionGoods> promotionGoodsList) {
+        for (PromotionGoods promotionGood : promotionGoodsList) {
+            if (goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(promotionGood.getSkuId()) == null) {
+                log.error("商品[" + promotionGood.getGoodsName() + "]不存在或处于不可售卖状态！");
+                throw new ServiceException("商品[" + promotionGood.getGoodsName() + "]不存在或处于不可售卖状态！");
+            }
+            Integer count = promotionGoodsService.findInnerOverlapPromotionGoods(PromotionTypeEnum.SECKILL.name(), promotionGood.getSkuId(), pintuan.getStartTime(), pintuan.getEndTime(), pintuan.getId());
+            count += promotionGoodsService.findInnerOverlapPromotionGoods(PromotionTypeEnum.PINTUAN.name(), promotionGood.getSkuId(), pintuan.getStartTime(), pintuan.getEndTime(), pintuan.getId());
+            if (count > 0) {
+                log.error("商品[" + promotionGood.getGoodsName() + "]已经在重叠的时间段参加了秒杀活动或拼团活动，不能参加拼团活动");
+                throw new ServiceException("商品[" + promotionGood.getGoodsName() + "]已经在重叠的时间段参加了秒杀活动或拼团活动，不能参加拼团活动");
+            }
+        }
+    }
+
+    private List<PromotionGoods> getPintuanGoodsList(String pintuanId) {
+        PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
+        searchParams.setPromotionId(pintuanId);
+        searchParams.setPromotionType(PromotionTypeEnum.PINTUAN.name());
+        return promotionGoodsService.listFindAll(searchParams);
     }
 
 }

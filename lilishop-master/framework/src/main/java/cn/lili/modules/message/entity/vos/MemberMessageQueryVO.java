@@ -32,4 +32,7 @@ public class MemberMessageQueryVO {
     @Schema(description = "客户id")
     private String memberId;
 
+    @Schema(description = "消息业务分类")
+    private String bizType;
+
 }

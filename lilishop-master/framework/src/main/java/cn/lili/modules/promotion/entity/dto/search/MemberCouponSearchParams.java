@@ -91,7 +91,19 @@ public class MemberCouponSearchParams extends BasePromotionsSearchParams impleme
             queryWrapper.eq("get_type", CouponGetEnum.valueOf(getType).name());
         }
         if (CharSequenceUtil.isNotEmpty(memberCouponStatus)) {
-            queryWrapper.eq("member_coupon_status", MemberCouponStatusEnum.valueOf(memberCouponStatus).name());
+            String[] statuses = memberCouponStatus.split(",");
+            if (statuses.length > 1) {
+                queryWrapper.in(
+                        "member_coupon_status",
+                        java.util.Arrays.stream(statuses)
+                                .map(String::trim)
+                                .filter(CharSequenceUtil::isNotEmpty)
+                                .map(status -> MemberCouponStatusEnum.valueOf(status).name())
+                                .toList()
+                );
+            } else {
+                queryWrapper.eq("member_coupon_status", MemberCouponStatusEnum.valueOf(memberCouponStatus).name());
+            }
         }
         if (CharSequenceUtil.isNotEmpty(price)) {
             String[] s = price.split("_");

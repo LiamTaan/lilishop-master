@@ -16,7 +16,7 @@ public class GoodsSetting implements Serializable {
 
     private static final long serialVersionUID = -4132785717179910025L;
     @Schema(description = "是否开启商品审核")
-    private Boolean goodsCheck;
+    private Boolean goodsCheck = Boolean.FALSE;
 
     @Schema(description = "小图宽")
     private Integer smallPictureWidth;

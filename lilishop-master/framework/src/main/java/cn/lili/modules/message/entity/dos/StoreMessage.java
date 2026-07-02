@@ -64,4 +64,7 @@ public class StoreMessage extends BaseIdEntity {
     @TableField(exist = false)
     @Schema(description = "消息内容")
     private String content;
+
+    @Schema(description = "消息业务分类")
+    private String bizType;
 }

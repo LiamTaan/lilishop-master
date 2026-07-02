@@ -110,6 +110,15 @@ public class Goods extends BaseEntity {
     @Schema(description = "卖家名字")
     private String storeName;
 
+    @Schema(description = "来源供货商店铺ID")
+    private String sourceStoreId;
+
+    @Schema(description = "来源供货商店铺名称")
+    private String sourceStoreName;
+
+    @Schema(description = "来源商品ID")
+    private String sourceGoodsId;
+
     @Schema(description = "运费模板id")
     private String templateId;
 

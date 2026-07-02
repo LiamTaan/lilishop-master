@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.util.Date;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -119,6 +120,9 @@ public class GoodsSearchParams extends PageVO {
     @Schema(description = "预警库存")
     private Boolean alertQuantity;
 
+    @Schema(description = "时令上新Tab：NEW_RECOMMEND/SEASONAL/LAST_15_DAYS")
+    private String newGoodsTab;
+
     public <T> QueryWrapper<T> queryWrapper() {
         QueryWrapper<T> queryWrapper = new QueryWrapper<>();
 
@@ -216,6 +220,9 @@ public class GoodsSearchParams extends PageVO {
                     groupId
             );
         }
+        if (CharSequenceUtil.isNotEmpty(newGoodsTab)) {
+            applyNewGoodsTab(queryWrapper, newGoodsTab);
+        }
 
         if (Objects.nonNull(alertQuantity) && alertQuantity) {
             queryWrapper.apply("quantity <= alert_quantity");
@@ -226,6 +233,16 @@ public class GoodsSearchParams extends PageVO {
         queryWrapper.eq("delete_flag", false);
         this.betweenWrapper(queryWrapper);
         return queryWrapper;
+    }
+
+    private <T> void applyNewGoodsTab(QueryWrapper<T> queryWrapper, String tab) {
+        if ("NEW_RECOMMEND".equalsIgnoreCase(tab)) {
+            queryWrapper.eq("recommend", true);
+        } else if ("LAST_15_DAYS".equalsIgnoreCase(tab)) {
+            queryWrapper.ge("create_time", new Date(System.currentTimeMillis() - 15L * 24 * 60 * 60 * 1000));
+        } else if ("SEASONAL".equalsIgnoreCase(tab)) {
+            queryWrapper.orderByDesc("buy_count");
+        }
     }
 
     private <T> void betweenWrapper(QueryWrapper<T> queryWrapper) {

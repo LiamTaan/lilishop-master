@@ -12,6 +12,7 @@ import cn.lili.modules.promotion.entity.vos.PintuanShareVO;
 import cn.lili.modules.promotion.entity.vos.PintuanVO;
 import cn.lili.modules.promotion.service.PintuanService;
 import cn.lili.modules.promotion.service.PromotionGoodsService;
+import cn.lili.modules.store.support.BuyerStoreScopeSupport;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -21,7 +22,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 /**
  * 买家端,拼团接口
@@ -37,6 +41,8 @@ public class PintuanBuyerController {
     private PromotionGoodsService promotionGoodsService;
     @Autowired
     private PintuanService pintuanService;
+    @Autowired
+    private BuyerStoreScopeSupport buyerStoreScopeSupport;
 
     @Operation(summary = "获取拼团商品")
     @GetMapping
@@ -46,7 +52,32 @@ public class PintuanBuyerController {
         searchParams.setPromotionType(PromotionTypeEnum.PINTUAN.name());
         searchParams.setPromotionStatus(PromotionsStatusEnum.START.name());
         searchParams.setCategoryPath(categoryPath);
+        List<String> visibleStoreIds = buyerStoreScopeSupport.listVisibleStoreIds();
+        if (!visibleStoreIds.isEmpty()) {
+            StringJoiner joiner = new StringJoiner(",");
+            visibleStoreIds.forEach(joiner::add);
+            searchParams.setStoreId(joiner.toString());
+        }
         return ResultUtil.data(promotionGoodsService.pageFindAll(searchParams, pageVo));
+    }
+
+    @Operation(summary = "获取移动端当前展示拼团活动")
+    @GetMapping("/display")
+    public ResultMessage<PintuanVO> getDisplayPintuan() {
+        PintuanVO pintuanVO = pintuanService.getDisplayPintuanVO();
+        if (pintuanVO == null || pintuanVO.getPromotionGoodsList() == null) {
+            return ResultUtil.data(pintuanVO);
+        }
+        List<String> visibleStoreIds = buyerStoreScopeSupport.listVisibleStoreIds();
+        if (!visibleStoreIds.isEmpty()) {
+            pintuanVO.setPromotionGoodsList(pintuanVO.getPromotionGoodsList().stream()
+                    .filter(item -> item != null && visibleStoreIds.contains(item.getStoreId()))
+                    .collect(Collectors.toList()));
+            if (pintuanVO.getPromotionGoodsList().isEmpty()) {
+                pintuanVO.setPromotionGoodsList(Collections.emptyList());
+            }
+        }
+        return ResultUtil.data(pintuanVO);
     }
 
     @Operation(summary = "获取拼团活动详情")

@@ -49,6 +49,11 @@ const goodsUnitSaving = ref(false);
 const goodsUnitFormVisible = ref(false);
 const goodsUnitRows = ref<Record<string, any>[]>([]);
 const goodsUnitEditingId = ref("");
+const pageState = reactive({
+  pageNumber: 1,
+  pageSize: 10,
+  total: 0
+});
 const query = reactive({
   keyword: "",
   status: ""
@@ -56,13 +61,18 @@ const query = reactive({
 const extraFilters = reactive({
   goodsCode: "",
   goodsType: "",
-  salesModel: "",
-  specText: "",
+  salesModel: "WHOLESALE",
   dateRange: [] as string[]
 });
 const goodsUnitForm = reactive({
   name: ""
 });
+
+const goodsTypeOptions = [
+  { label: "实物商品", value: "PHYSICAL_GOODS" },
+  { label: "虚拟商品", value: "VIRTUAL_GOODS" },
+  { label: "电子卡券", value: "E_COUPON" }
+] as const;
 
 const structuredGoodsParamFields = [
   { key: "productionDate", label: "生产日期" },
@@ -256,6 +266,22 @@ function getSalesModelLabel(value: unknown) {
   return upperValue || "-";
 }
 
+function toMoneyCents(value: unknown) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+  return Math.round(amount * 100);
+}
+
+function centsToMoney(cents: number) {
+  return Number((cents / 100).toFixed(2));
+}
+
+function normalizeMoney(value: unknown) {
+  return centsToMoney(toMoneyCents(value));
+}
+
 const summaryCards = computed<
   Array<{
     label: string;
@@ -264,7 +290,7 @@ const summaryCards = computed<
     hint: string;
   }>
 >(() => {
-  const total = filteredData.value.length;
+  const total = pageState.total;
   const approved = filteredData.value.filter(
     item => String(item.authFlag).toUpperCase() === "PASS"
   ).length;
@@ -348,15 +374,15 @@ function normalizeGoodsRecord(item: Record<string, any>) {
     .filter(cost => cost > 0);
   const salePrice =
     isWholesaleGoods && validWholesalePrices.length
-      ? Math.min(...validWholesalePrices)
-      : item.salePrice || item.price || item.originalPrice || 0;
+      ? normalizeMoney(Math.min(...validWholesalePrices))
+      : normalizeMoney(item.salePrice || item.price || item.originalPrice || 0);
   const costPrice =
     skuCostPrices.length > 0
-      ? Math.min(...skuCostPrices)
-      : item.costPrice || item.cost || item.buyingPrice || 0;
+      ? normalizeMoney(Math.min(...skuCostPrices))
+      : normalizeMoney(item.costPrice || item.cost || item.buyingPrice || 0);
   const profitAmount =
     Number(salePrice || 0) > 0 && Number(costPrice || 0) > 0
-      ? Number(salePrice) - Number(costPrice)
+      ? centsToMoney(toMoneyCents(salePrice) - toMoneyCents(costPrice))
       : null;
   const goodsParamsDTOList = mergeGoodsParams(
     normalizeGoodsParams(item.goodsParamsDTOList),
@@ -423,22 +449,7 @@ function normalizeGoodsUnitRecord(item: Record<string, any>) {
 }
 
 const filteredData = computed(() => {
-  return data.value.filter(item => {
-    const codeMatched = extraFilters.goodsCode
-      ? String(item.goodsCode).includes(extraFilters.goodsCode)
-      : true;
-    const typeMatched = extraFilters.goodsType
-      ? String(item.goodsType).includes(extraFilters.goodsType)
-      : true;
-    const salesModelMatched = extraFilters.salesModel
-      ? String(item.salesModel || "").toUpperCase() ===
-        String(extraFilters.salesModel).toUpperCase()
-      : true;
-    const specMatched = extraFilters.specText
-      ? String(item.specText).includes(extraFilters.specText)
-      : true;
-    return codeMatched && typeMatched && salesModelMatched && specMatched;
-  });
+  return data.value;
 });
 
 const detailGoodsParams = computed(() => {
@@ -453,16 +464,26 @@ const detailGoodsParams = computed(() => {
   );
 });
 
+function extractPageTotal(payload: any) {
+  const total = Number(
+    payload?.total ?? payload?.result?.total ?? payload?.data?.total ?? 0
+  );
+  return Number.isFinite(total) ? total : 0;
+}
+
 async function loadData() {
   const params: Record<string, any> = {
-    pageNumber: 1,
-    pageSize: 10
+    pageNumber: pageState.pageNumber,
+    pageSize: pageState.pageSize
   };
   if (query.keyword) params.goodsName = query.keyword;
   if (query.status) params.goodsStatus = query.status;
+  if (extraFilters.goodsCode) params.sn = extraFilters.goodsCode;
+  if (extraFilters.goodsType) params.goodsType = extraFilters.goodsType;
   if (extraFilters.salesModel) params.salesModel = extraFilters.salesModel;
   const res = await getGoodsPage(params);
   const page = extractApiPayload(res);
+  pageState.total = extractPageTotal(page);
   const records = extractApiRecords(page).map(normalizeGoodsRecord);
   data.value = records;
   const hydratedRecords = await Promise.all(
@@ -504,6 +525,7 @@ async function loadGoodsUnits() {
 function handleSearch(payload: { keyword: string; status: string }) {
   query.keyword = payload.keyword;
   query.status = payload.status;
+  pageState.pageNumber = 1;
   loadData();
 }
 
@@ -512,9 +534,18 @@ function handleReset() {
   query.status = "";
   extraFilters.goodsCode = "";
   extraFilters.goodsType = "";
-  extraFilters.salesModel = "";
-  extraFilters.specText = "";
+  extraFilters.salesModel = "WHOLESALE";
   extraFilters.dateRange = [];
+  pageState.pageNumber = 1;
+  loadData();
+}
+
+function handlePaginationChange(payload: {
+  pageNumber: number;
+  pageSize: number;
+}) {
+  pageState.pageNumber = payload.pageNumber;
+  pageState.pageSize = payload.pageSize;
   loadData();
 }
 
@@ -746,6 +777,10 @@ onMounted(() => {
     api-path="/manager/goods/goods/list"
     :columns="columns"
     :data="filteredData"
+    :page-size="pageState.pageSize"
+    :current-page="pageState.pageNumber"
+    :total="pageState.total"
+    remote-pagination
     selectable
     :summary-cards="summaryCards"
     :status-options="[
@@ -760,6 +795,7 @@ onMounted(() => {
     keyword-placeholder="请输入商品名称"
     @search="handleSearch"
     @reset="handleReset"
+    @pagination-change="handlePaginationChange"
     @selection-change="handleSelectionChange"
   >
     <template #table-extra>
@@ -771,7 +807,7 @@ onMounted(() => {
         class="goods-manage__toolbar-button"
         @click="openParameterManage"
       >
-        参数绑定
+        规格管理
       </el-button>
       <el-button
         class="goods-manage__toolbar-button"
@@ -796,28 +832,27 @@ onMounted(() => {
         />
       </el-form-item>
       <el-form-item label="商品类型">
-        <el-input
+        <el-select
           v-model="extraFilters.goodsType"
-          placeholder="请输入商品类型"
+          placeholder="请选择商品类型"
           clearable
-        />
+        >
+          <el-option
+            v-for="item in goodsTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="销售模式">
         <el-select
           v-model="extraFilters.salesModel"
-          placeholder="全部模式"
-          clearable
+          placeholder="请选择销售模式"
         >
           <el-option label="零售" value="RETAIL" />
           <el-option label="批发" value="WHOLESALE" />
         </el-select>
-      </el-form-item>
-      <el-form-item label="规格">
-        <el-input
-          v-model="extraFilters.specText"
-          placeholder="请选择规格"
-          clearable
-        />
       </el-form-item>
     </template>
     <template #operation="{ row }">
@@ -989,7 +1024,7 @@ onMounted(() => {
         </el-descriptions>
         <el-empty
           v-else
-          description="当前商品还没有维护详细规格。可先在参数管理里维护参数模板，再由供货端商品发布页填写参数值。"
+          description="当前商品还没有维护详细规格。可先在规格管理里维护规格模板，再由供货端商品发布页填写规格值。"
         />
       </section>
 

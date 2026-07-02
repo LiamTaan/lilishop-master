@@ -52,20 +52,6 @@ const form = reactive({
   supportChannel: false
 });
 
-function flattenTree(
-  list: Record<string, any>[],
-  bucket: Record<string, any>[] = []
-) {
-  list.forEach(item => {
-    bucket.push(item);
-    const children = item.children || item.child || [];
-    if (Array.isArray(children) && children.length) {
-      flattenTree(children, bucket);
-    }
-  });
-  return bucket;
-}
-
 function normalizeCategoryRecord(item: Record<string, any>) {
   const level =
     item.level ?? item.grade ?? item.categoryLevel ?? item.catLevel ?? "-";
@@ -87,8 +73,58 @@ function normalizeCategoryRecord(item: Record<string, any>) {
     status: deleteFlag ? "DISABLE" : "ENABLE",
     statusLabel: deleteFlag ? "停用" : "启用",
     createTime: item.createTime || item.createDate || "-",
-    updateTime: item.updateTime || item.createTime || item.createDate || "-"
+    updateTime: item.updateTime || item.createTime || item.createDate || "-",
+    children: []
   };
+}
+
+function normalizeCategoryTree(list: Record<string, any>[]) {
+  return list.map(item => {
+    const normalized = normalizeCategoryRecord(item);
+    const childrenSource = Array.isArray(item.children)
+      ? item.children
+      : Array.isArray(item.child)
+        ? item.child
+        : [];
+    normalized.children = normalizeCategoryTree(childrenSource);
+    return normalized;
+  });
+}
+
+function flattenTree(
+  list: Record<string, any>[],
+  bucket: Record<string, any>[] = []
+) {
+  list.forEach(item => {
+    bucket.push(item);
+    if (Array.isArray(item.children) && item.children.length) {
+      flattenTree(item.children, bucket);
+    }
+  });
+  return bucket;
+}
+
+function filterTree(list: Record<string, any>[]) {
+  return list
+    .map(item => {
+      const children = Array.isArray(item.children) ? filterTree(item.children) : [];
+      const levelMatched = extraFilters.levelKeyword
+        ? String(item.level).includes(extraFilters.levelKeyword)
+        : true;
+      const statusMatched = query.status ? item.status === query.status : true;
+      const keywordMatched = query.keyword
+        ? String(item.categoryName).includes(query.keyword)
+        : true;
+      const selfMatched = levelMatched && statusMatched && keywordMatched;
+      if (selfMatched || children.length) {
+        return {
+          ...item,
+          children
+        };
+      }
+      return null;
+    })
+    .filter(Boolean) as Record<string, any>[];
 }
 
 function normalizeBrandOption(item: Record<string, any>) {
@@ -100,18 +136,8 @@ function normalizeBrandOption(item: Record<string, any>) {
   };
 }
 
-const filteredData = computed(() =>
-  data.value.filter(item => {
-    const levelMatched = extraFilters.levelKeyword
-      ? String(item.level).includes(extraFilters.levelKeyword)
-      : true;
-    const statusMatched = query.status ? item.status === query.status : true;
-    const keywordMatched = query.keyword
-      ? String(item.categoryName).includes(query.keyword)
-      : true;
-    return levelMatched && statusMatched && keywordMatched;
-  })
-);
+const filteredData = computed(() => filterTree(data.value));
+const filteredFlatData = computed(() => flattenTree(filteredData.value));
 
 const selectedIds = computed(() =>
   selectedRows.value
@@ -122,19 +148,19 @@ const selectedIds = computed(() =>
 const summaryCards = computed(() => [
   {
     label: "分类总数",
-    value: filteredData.value.length,
+    value: filteredFlatData.value.length,
     accent: "orange" as const,
     hint: "当前筛选结果"
   },
   {
     label: "一级分类",
-    value: filteredData.value.filter(item => item.levelValue === 0).length,
+    value: filteredFlatData.value.filter(item => item.levelValue === 0).length,
     accent: "blue" as const,
     hint: "顶级导航分类"
   },
   {
     label: "启用分类",
-    value: filteredData.value.filter(item => item.status === "ENABLE").length,
+    value: filteredFlatData.value.filter(item => item.status === "ENABLE").length,
     accent: "green" as const,
     hint: "当前前台可见分类"
   },
@@ -164,12 +190,10 @@ const selectedBrandCount = computed(() => selectedBrandIds.value.length);
 
 async function loadData() {
   try {
-    const params: Record<string, any> = {};
-    if (query.keyword) params.name = query.keyword;
-    const res = await getCategoryPage(params);
+    const res = await getCategoryPage();
     const payload = extractApiRecords(res);
     const source = Array.isArray(payload) ? payload : [];
-    data.value = flattenTree(source).map(normalizeCategoryRecord);
+    data.value = normalizeCategoryTree(source);
   } catch (_error) {
     data.value = [];
     message("分类列表加载失败，请稍后重试", { type: "error" });
@@ -344,11 +368,11 @@ async function handleBatchDelete() {
 }
 
 function exportCategory() {
-  if (!filteredData.value.length) {
+  if (!filteredFlatData.value.length) {
     message("暂无可导出的分类数据", { type: "warning" });
     return;
   }
-  const table = filteredData.value.map(item => ({
+  const table = filteredFlatData.value.map(item => ({
     分类名称: item.categoryName,
     上级分类ID: item.parentId || "0",
     分类层级: item.level,
@@ -417,7 +441,7 @@ onMounted(() => {
 <template>
   <WholesaleAdminPage
     title="分类管理"
-    description="承接平台商品分类列表、分类维护和导出动作，作为平台商品分类真实维护页。"
+    description="分类管理改为树结构展示，和平台菜单一样支持层级展开；分类量不大，因此这里不再分页。"
     api-path="/manager/goods/category"
     :columns="columns"
     :data="filteredData"
@@ -431,11 +455,17 @@ onMounted(() => {
       { label: '分类新增', value: '已接入', type: 'primary' },
       { label: '分类编辑', value: '已接入', type: 'success' },
       { label: '分类删除', value: '已接入', type: 'warning' },
-      { label: '分类导出', value: '已接入', type: 'primary' }
+      { label: '树形展示', value: '已接入', type: 'primary' }
     ]"
     status-label="分类状态"
     keyword-label="分类名称"
     keyword-placeholder="请输入分类名称"
+    :pagination-enabled="false"
+    :table-props="{
+      defaultExpandAll: true,
+      treeProps: { children: 'children' },
+      indent: 28
+    }"
     @search="handleSearch"
     @reset="handleReset"
     @selection-change="handleSelectionChange"

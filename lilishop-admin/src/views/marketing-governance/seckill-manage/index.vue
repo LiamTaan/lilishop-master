@@ -3,13 +3,16 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { utils, writeFile } from "xlsx";
 import {
+  addSeckillApply,
   deleteSeckill,
   deleteSeckillApply,
+  getSeckillAvailableSkuPage,
   getSeckillApplyPage,
   getSeckillDetail,
   getSeckillInit,
   getSeckillPage,
   updateSeckill,
+  updateSeckillApply,
   updateSeckillStatus
 } from "@/api/marketing-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
@@ -22,8 +25,9 @@ import {
 import { message } from "@/utils/message";
 import {
   formatDateTimeForField,
+  formatMoney,
   normalizePromotionDetail,
-  toTimeValue
+  toNumber
 } from "../shared/promotion-helpers";
 
 defineOptions({
@@ -33,14 +37,36 @@ defineOptions({
 const rows = ref<Record<string, any>[]>([]);
 const selectedRows = ref<Record<string, any>[]>([]);
 const applyRows = ref<Record<string, any>[]>([]);
+const skuRows = ref<Record<string, any>[]>([]);
+const selectedApplyRows = ref<Record<string, any>[]>([]);
+const skuTableKey = ref(0);
 const detailVisible = ref(false);
 const dialogVisible = ref(false);
 const applyVisible = ref(false);
+const addGoodsVisible = ref(false);
 const currentRow = ref<Record<string, any> | null>(null);
 const saving = ref(false);
+const applySaving = ref(false);
+const applyRowSavingId = ref("");
+const skuLoading = ref(false);
 const query = reactive({
   keyword: "",
   status: ""
+});
+const skuQuery = reactive({
+  keyword: "",
+  pageNumber: 1,
+  pageSize: 10,
+  total: 0
+});
+const applyQuery = reactive({
+  keyword: "",
+  pageNumber: 1,
+  pageSize: 10,
+  total: 0
+});
+const addGoodsForm = reactive({
+  timeLine: undefined as number | undefined
 });
 const seckillForm = reactive(createSeckillForm());
 
@@ -50,17 +76,41 @@ const columns: TableColumnList = [
   { label: "场次", prop: "hours", minWidth: 140 },
   { label: "商品数", prop: "goodsNum", minWidth: 100 },
   { label: "状态", prop: "promotionStatusLabel", minWidth: 120 },
-  { label: "操作", prop: "operation", fixed: "right", width: 320, slot: "operation" }
+  { label: "操作", prop: "operation", fixed: "right", width: 380, slot: "operation" }
 ];
 
 const applyColumns: TableColumnList = [
   { label: "报名ID", prop: "id", minWidth: 160 },
   { label: "商品名称", prop: "goodsName", minWidth: 220 },
   { label: "店铺名称", prop: "storeName", minWidth: 180 },
+  { label: "场次", prop: "timeLineText", minWidth: 90 },
+  { label: "秒杀价", prop: "price", minWidth: 150, slot: "price" },
+  { label: "活动库存", prop: "quantity", minWidth: 150, slot: "quantity" },
   { label: "报名状态", prop: "applyStatus", minWidth: 120 },
   { label: "创建时间", prop: "createTime", minWidth: 180 },
-  { label: "操作", prop: "operation", fixed: "right", width: 120, slot: "operation" }
+  { label: "操作", prop: "operation", fixed: "right", width: 150, slot: "operation" }
 ];
+
+const skuColumns: TableColumnList = [
+  { label: "商品名称", prop: "goodsName", minWidth: 220, showOverflowTooltip: true },
+  { label: "规格", prop: "simpleSpecs", minWidth: 160, showOverflowTooltip: true },
+  { label: "店铺", prop: "storeName", minWidth: 160, showOverflowTooltip: true },
+  { label: "货号", prop: "sn", minWidth: 130, showOverflowTooltip: true },
+  { label: "原价", prop: "priceText", minWidth: 100 },
+  { label: "商品库存", prop: "stock", minWidth: 100 },
+  { label: "秒杀价", prop: "seckillPrice", minWidth: 150, slot: "seckillPrice" },
+  { label: "活动库存", prop: "applyQuantity", minWidth: 150, slot: "applyQuantity" }
+];
+
+const selectableSkuColumns = computed(() => [
+  {
+    type: "selection",
+    width: 54,
+    reserveSelection: true,
+    align: "center"
+  },
+  ...skuColumns
+] as TableColumnList);
 
 const filteredRows = computed(() =>
   rows.value.filter(item => {
@@ -135,6 +185,144 @@ function createSeckillForm() {
     hours: "",
     seckillRule: ""
   };
+}
+
+const currentTimeLineOptions = computed(() => {
+  const hours = String(currentRow.value?.hours || "")
+    .split(",")
+    .map(item => Number(item.trim()))
+    .filter(item => Number.isFinite(item));
+  return Array.from(new Set(hours)).sort((a, b) => a - b);
+});
+
+function normalizeSkuRow(item: Record<string, any>) {
+  const skuId = String(item.id || item.skuId || "").trim();
+  return {
+    ...item,
+    id: skuId,
+    skuId,
+    goodsName: item.goodsName || item.name || "-",
+    simpleSpecs: item.simpleSpecs || "-",
+    storeName: item.storeName || "-",
+    sn: item.sn || "-",
+    price: toNumber(item.price || item.originalPrice),
+    priceText: formatMoney(item.price || item.originalPrice),
+    stock: Number(item.quantity ?? item.stock ?? 0),
+    seckillPrice: toNumber(item.seckillPrice || item.price || item.originalPrice),
+    applyQuantity: Number(item.quantity ?? item.stock ?? 0) > 0 ? 1 : 0
+  };
+}
+
+async function loadSkuData() {
+  if (!currentRow.value) return;
+  skuLoading.value = true;
+  try {
+    const response = await getSeckillAvailableSkuPage(String(currentRow.value.id), {
+      pageNumber: skuQuery.pageNumber,
+      pageSize: skuQuery.pageSize,
+      skuKeyword: skuQuery.keyword.trim() || undefined,
+      timeLine: addGoodsForm.timeLine
+    });
+    skuRows.value = extractApiRecords(response).map(normalizeSkuRow);
+    const payload = extractApiPayload<Record<string, any>>(response) || {};
+    skuQuery.total = Number(payload.total || payload.totalElements || skuRows.value.length);
+  } catch (_error) {
+    skuRows.value = [];
+    skuQuery.total = 0;
+    message("商品搜索失败", { type: "error" });
+  } finally {
+    skuLoading.value = false;
+  }
+}
+
+function searchSkuData() {
+  resetSkuSelection();
+  skuQuery.pageNumber = 1;
+  loadSkuData();
+}
+
+function handleSkuPageChange(page: number) {
+  skuQuery.pageNumber = page;
+  loadSkuData();
+}
+
+function handleSkuSelectionChange(rows: Record<string, any>[]) {
+  const rowMap = new Map<string, Record<string, any>>();
+  rows.forEach(item => {
+    const skuId = String(item.skuId || item.id || "").trim();
+    if (skuId) {
+      rowMap.set(skuId, item);
+    }
+  });
+  selectedApplyRows.value = Array.from(rowMap.values());
+}
+
+function resetSkuSelection() {
+  selectedApplyRows.value = [];
+  skuTableKey.value += 1;
+}
+
+function handleTimeLineChange() {
+  searchSkuData();
+}
+
+function normalizeApplyRow(item: Record<string, any>) {
+  return {
+    ...item,
+    id: item.id || item.applyId,
+    skuId: String(item.skuId || "").trim(),
+    goodsName: item.goodsName || item.skuName || "-",
+    storeName: item.storeName || "-",
+    timeLineText: item.timeLine === undefined || item.timeLine === null ? "-" : `${item.timeLine}:00`,
+    price: toNumber(item.price),
+    priceText: formatMoney(item.price),
+    quantity: Number(item.quantity ?? 0),
+    originalPrice: toNumber(item.originalPrice),
+    stock: Number(item.stock ?? item.skuQuantity ?? item.goodsQuantity ?? 0),
+    applyStatus: item.applyStatus || item.status || "-",
+    createTime: formatAdminDateTime(item.createTime)
+  };
+}
+
+async function loadRegisteredApplies(seckillId: string, options: Record<string, any> = {}) {
+  const response = await getSeckillApplyPage({
+    seckillId,
+    pageNumber: options.pageNumber || 1,
+    pageSize: options.pageSize || 10,
+    goodsName: options.keyword || undefined
+  });
+  const payload = extractApiPayload<Record<string, any>>(response) || {};
+  return {
+    records: extractApiRecords(response).map(normalizeApplyRow),
+    total: Number(payload.total || payload.totalElements || 0)
+  };
+}
+
+async function loadApplyData() {
+  if (!currentRow.value) return;
+  try {
+    const response = await loadRegisteredApplies(String(currentRow.value.id), {
+      pageNumber: applyQuery.pageNumber,
+      pageSize: applyQuery.pageSize,
+      keyword: applyQuery.keyword.trim()
+    });
+    applyRows.value = response.records;
+    applyQuery.total = response.total || response.records.length;
+  } catch (_error) {
+    applyRows.value = [];
+    applyQuery.total = 0;
+    message("秒杀报名商品加载失败", { type: "error" });
+  }
+}
+
+function searchApplyData() {
+  applyQuery.pageNumber = 1;
+  loadApplyData();
+}
+
+function handleApplyPageChange(page: number) {
+  applyQuery.pageNumber = page;
+  loadApplyData();
 }
 
 function fillSeckillForm(source: Record<string, any>) {
@@ -291,24 +479,93 @@ async function handleStatus(row: Record<string, any>) {
 
 async function openApply(row: Record<string, any>) {
   currentRow.value = row;
+  applyQuery.keyword = "";
+  applyQuery.pageNumber = 1;
+  applyQuery.total = 0;
+  applyVisible.value = true;
+  await loadApplyData();
+}
+
+async function openAddGoods(row: Record<string, any>) {
+  currentRow.value = row;
+  resetSkuSelection();
+  addGoodsForm.timeLine = currentTimeLineOptions.value[0];
+  skuRows.value = [];
+  skuQuery.keyword = "";
+  skuQuery.pageNumber = 1;
+  skuQuery.total = 0;
+  addGoodsVisible.value = true;
   try {
-    const response = await getSeckillApplyPage({
-      seckillId: row.id,
-      pageNumber: 1,
-      pageSize: 200
-    });
-    applyRows.value = extractApiRecords(response).map(item => ({
-      ...item,
-      id: item.id || item.applyId,
-      goodsName: item.goodsName || item.skuName || "-",
-      storeName: item.storeName || "-",
-      applyStatus: item.applyStatus || item.status || "-",
-      createTime: formatAdminDateTime(item.createTime)
-    }));
-    applyVisible.value = true;
+    await loadSkuData();
   } catch (_error) {
-    applyRows.value = [];
-    message("秒杀报名商品加载失败", { type: "error" });
+    message("可添加商品加载失败", { type: "error" });
+  }
+}
+
+async function submitApply() {
+  if (!currentRow.value) return;
+  if (!selectedApplyRows.value.length) {
+    message("请选择需要添加的秒杀商品", { type: "warning" });
+    return;
+  }
+  if (addGoodsForm.timeLine === undefined || addGoodsForm.timeLine === null) {
+    message("请选择秒杀场次", { type: "warning" });
+    return;
+  }
+  applySaving.value = true;
+  try {
+    const invalidRow = selectedApplyRows.value.find(item => {
+      const quantity = toNumber(item.applyQuantity);
+      const stock = Number(item.stock || 0);
+      return quantity <= 0 || quantity > stock;
+    });
+    if (invalidRow) {
+      message(`「${invalidRow.goodsName}」活动库存需大于 0，且不能超过商品库存`, {
+        type: "warning"
+      });
+      return;
+    }
+    await addSeckillApply(
+      String(currentRow.value.id),
+      selectedApplyRows.value.map(item => ({
+        skuId: item.skuId,
+        timeLine: addGoodsForm.timeLine,
+        price: toNumber(item.seckillPrice),
+        quantity: toNumber(item.applyQuantity)
+      }))
+    );
+    message("秒杀商品添加成功", { type: "success" });
+    resetSkuSelection();
+    addGoodsVisible.value = false;
+    await loadData();
+  } catch (_error) {
+    message("秒杀商品添加失败，请检查场次、价格、库存或活动冲突", { type: "error" });
+  } finally {
+    applySaving.value = false;
+  }
+}
+
+async function handleSaveApply(row: Record<string, any>) {
+  if (!currentRow.value) return;
+  if (toNumber(row.quantity) <= 0) {
+    message("活动库存必须大于 0", { type: "warning" });
+    return;
+  }
+  applyRowSavingId.value = String(row.id);
+  try {
+    await updateSeckillApply(String(currentRow.value.id), String(row.id), {
+      skuId: row.skuId,
+      timeLine: row.timeLine,
+      price: toNumber(row.price),
+      quantity: toNumber(row.quantity)
+    });
+    message("报名商品已更新", { type: "success" });
+    await loadApplyData();
+    await loadData();
+  } catch (_error) {
+    message("报名商品更新失败，请检查秒杀价、活动库存或商品状态", { type: "error" });
+  } finally {
+    applyRowSavingId.value = "";
   }
 }
 
@@ -317,7 +574,7 @@ async function handleDeleteApply(row: Record<string, any>) {
   try {
     await deleteSeckillApply(String(currentRow.value.id), String(row.id));
     message("报名商品移除成功", { type: "success" });
-    await openApply(currentRow.value);
+    await loadApplyData();
   } catch (_error) {
     message("报名商品移除失败", { type: "error" });
   }
@@ -378,6 +635,7 @@ onMounted(() => {
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="success" @click="openEdit(row)">编辑</el-button>
       <el-button link type="warning" @click="handleStatus(row)">状态</el-button>
+      <el-button link type="primary" @click="openAddGoods(row)">添加商品</el-button>
       <el-button link type="primary" @click="openApply(row)">报名商品</el-button>
       <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
     </template>
@@ -442,12 +700,143 @@ onMounted(() => {
     </el-descriptions>
   </el-drawer>
 
-  <el-dialog v-model="applyVisible" title="秒杀报名商品" width="980px">
+  <el-dialog v-model="addGoodsVisible" title="添加秒杀商品" width="1120px">
+    <div class="section-header apply-toolbar">
+      <span>{{ currentRow?.promotionName || "当前活动" }}</span>
+      <div class="sku-search">
+        <el-input
+          v-model="skuQuery.keyword"
+          clearable
+          placeholder="搜索商品名 / 规格 / 货号 / 条码"
+          @keyup.enter="searchSkuData"
+        />
+        <el-button type="primary" @click="searchSkuData">查询</el-button>
+      </div>
+    </div>
+    <pure-table
+      :key="skuTableKey"
+      row-key="id"
+      :data="skuRows"
+      :columns="selectableSkuColumns"
+      :loading="skuLoading"
+      @selection-change="handleSkuSelectionChange"
+    >
+      <template #seckillPrice="{ row }">
+        <el-input-number
+          v-model="row.seckillPrice"
+          :min="0"
+          :max="row.price"
+          :precision="2"
+          :step="1"
+          controls-position="right"
+          class="table-number-input"
+        />
+      </template>
+      <template #applyQuantity="{ row }">
+        <el-input-number
+          v-model="row.applyQuantity"
+          :min="1"
+          :max="row.stock"
+          :precision="0"
+          :step="1"
+          controls-position="right"
+          class="table-number-input"
+        />
+      </template>
+    </pure-table>
+    <div class="pagination-row">
+      <el-pagination
+        v-model:current-page="skuQuery.pageNumber"
+        :page-size="skuQuery.pageSize"
+        :total="skuQuery.total"
+        layout="prev, pager, next, total"
+        background
+        @current-change="handleSkuPageChange"
+      />
+    </div>
+    <section class="goods-card apply-form">
+      <div class="section-header selected-header">
+        <strong>批量设置</strong>
+        <span>共 {{ selectedApplyRows.length }} 个</span>
+      </div>
+      <el-form label-width="90px">
+        <el-form-item label="秒杀场次">
+          <el-select v-model="addGoodsForm.timeLine" style="width: 220px" @change="handleTimeLineChange">
+            <el-option
+              v-for="hour in currentTimeLineOptions"
+              :key="hour"
+              :label="`${hour}:00`"
+              :value="hour"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div class="form-actions">
+        <el-button @click="addGoodsVisible = false">取消</el-button>
+        <el-button type="primary" :loading="applySaving" @click="submitApply">
+          保存商品
+        </el-button>
+      </div>
+    </section>
+  </el-dialog>
+
+  <el-dialog v-model="applyVisible" title="秒杀报名商品" width="1100px">
+    <div class="section-header apply-toolbar">
+      <span>{{ currentRow?.promotionName || "当前活动" }}</span>
+      <div class="sku-search">
+        <el-input
+          v-model="applyQuery.keyword"
+          clearable
+          placeholder="搜索报名商品名称"
+          @keyup.enter="searchApplyData"
+        />
+        <el-button type="primary" @click="searchApplyData">查询</el-button>
+      </div>
+    </div>
     <pure-table row-key="id" :data="applyRows" :columns="applyColumns">
+      <template #price="{ row }">
+        <el-input-number
+          v-model="row.price"
+          :min="0"
+          :max="row.originalPrice || undefined"
+          :precision="2"
+          :step="1"
+          controls-position="right"
+          class="table-number-input"
+        />
+      </template>
+      <template #quantity="{ row }">
+        <el-input-number
+          v-model="row.quantity"
+          :min="1"
+          :precision="0"
+          :step="1"
+          controls-position="right"
+          class="table-number-input"
+        />
+      </template>
       <template #operation="{ row }">
+        <el-button
+          link
+          type="primary"
+          :loading="applyRowSavingId === String(row.id)"
+          @click="handleSaveApply(row)"
+        >
+          保存
+        </el-button>
         <el-button link type="danger" @click="handleDeleteApply(row)">移除</el-button>
       </template>
     </pure-table>
+    <div class="pagination-row">
+      <el-pagination
+        v-model:current-page="applyQuery.pageNumber"
+        :page-size="applyQuery.pageSize"
+        :total="applyQuery.total"
+        layout="prev, pager, next, total"
+        background
+        @current-change="handleApplyPageChange"
+      />
+    </div>
   </el-dialog>
 </template>
 
@@ -463,9 +852,66 @@ onMounted(() => {
   word-break: break-word;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.apply-toolbar {
+  margin-bottom: 12px;
+}
+
+.goods-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+}
+
+.apply-form {
+  background: var(--el-fill-color-lighter);
+}
+
+.selected-header {
+  margin-bottom: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sku-search {
+  display: flex;
+  width: min(520px, 100%);
+  gap: 8px;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0 16px;
+}
+
+.table-number-input {
+  width: 118px;
+}
+
 @media (width <= 900px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sku-search {
+    width: 100%;
   }
 }
 </style>

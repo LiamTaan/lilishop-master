@@ -54,6 +54,15 @@ public class CouponVO extends Coupon {
     @Schema(description = "促销状态文案")
     private String promotionStatusLabel;
 
+    @Schema(description = "当前会员已领取数量")
+    private Long receivedNumByCurrentMember;
+
+    @Schema(description = "当前会员是否已领取")
+    private Boolean receivedByCurrentMember;
+
+    @Schema(description = "当前会员是否还可以领取")
+    private Boolean canReceive;
+
     public CouponVO(Coupon coupon) {
         if (coupon == null) {
             return;

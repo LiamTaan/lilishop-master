@@ -151,11 +151,18 @@ public class AppLoginIdentityServiceImpl implements AppLoginIdentityService {
         option.setIdentityCode(LoginIdentityCodeEnum.AGENT);
         option.setAuthDomain(LoginAuthDomainEnum.MEMBER);
         Store store = storeService.getStoreByMemberId(member.getId());
-        if (store == null || !StoreBizTypeEnum.AGENT.name().equalsIgnoreCase(store.getStoreType())) {
+        if (store == null) {
             option.setAvailable(false);
             option.setStatus(LoginIdentityStatusEnum.NOT_OPENED);
             option.setMessage("当前账号尚未开通代理商身份");
             option.setNextAction(LoginIdentityNextActionEnum.APPLY_AGENT);
+            return option;
+        }
+        if (!StoreBizTypeEnum.AGENT.name().equalsIgnoreCase(store.getStoreType())) {
+            option.setAvailable(false);
+            option.setStatus(LoginIdentityStatusEnum.CONFLICT);
+            option.setMessage("当前账号已占用供货商身份申请流程，不能同时申请或开通代理商身份");
+            option.setNextAction(LoginIdentityNextActionEnum.NONE);
             return option;
         }
         if (StoreAuditStatusEnum.REJECTED.name().equalsIgnoreCase(store.getAuditStatus())
@@ -204,11 +211,18 @@ public class AppLoginIdentityServiceImpl implements AppLoginIdentityService {
         option.setIdentityCode(LoginIdentityCodeEnum.SUPPLIER);
         option.setAuthDomain(LoginAuthDomainEnum.STORE);
         Store store = storeService.getStoreByMemberId(member.getId());
-        if (store == null || !StoreBizTypeEnum.SUPPLIER.name().equalsIgnoreCase(store.getStoreType())) {
+        if (store == null) {
             option.setAvailable(false);
             option.setStatus(LoginIdentityStatusEnum.NOT_OPENED);
             option.setMessage("当前账号尚未开通供货商身份");
             option.setNextAction(LoginIdentityNextActionEnum.APPLY_STORE);
+            return option;
+        }
+        if (!StoreBizTypeEnum.SUPPLIER.name().equalsIgnoreCase(store.getStoreType())) {
+            option.setAvailable(false);
+            option.setStatus(LoginIdentityStatusEnum.CONFLICT);
+            option.setMessage("当前账号已占用代理商身份申请流程，不能同时申请或开通供货商身份");
+            option.setNextAction(LoginIdentityNextActionEnum.NONE);
             return option;
         }
         if (StoreAuditStatusEnum.REJECTED.name().equalsIgnoreCase(store.getAuditStatus())

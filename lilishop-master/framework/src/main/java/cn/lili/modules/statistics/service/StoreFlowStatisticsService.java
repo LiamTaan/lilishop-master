@@ -59,6 +59,14 @@ public interface StoreFlowStatisticsService extends IService<StoreFlow> {
     Map<String, Object> getOrderStatisticsPrice();
 
     /**
+     * 按指定店铺查询今日付款统计
+     *
+     * @param storeId 店铺ID
+     * @return 订单统计金额
+     */
+    Map<String, Object> getOrderStatisticsPrice(String storeId);
+
+    /**
      * 订单统计，数据概览
      *
      * @param dates

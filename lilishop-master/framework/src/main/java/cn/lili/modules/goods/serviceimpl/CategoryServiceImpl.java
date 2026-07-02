@@ -136,9 +136,14 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     public List<CategoryVO> getStoreCategory(String[] categories) {
-        List<String> arr = Arrays.asList(categories.clone());
+        Set<String> selectedIds = normalizeCategoryIds(categories);
+        if (selectedIds.isEmpty()) {
+            return new ArrayList<>();
+        }
         return categoryTree().stream()
-                .filter(item -> arr.contains(item.getId())).collect(Collectors.toList());
+                .map(item -> filterStoreCategoryTree(item, selectedIds))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -369,6 +374,59 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             }
         }
         return categoryVOList;
+    }
+
+    private CategoryVO filterStoreCategoryTree(CategoryVO node, Set<String> selectedIds) {
+        if (node == null) {
+            return null;
+        }
+        List<CategoryVO> matchedChildren = new ArrayList<>();
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            for (CategoryVO child : node.getChildren()) {
+                CategoryVO matchedChild = filterStoreCategoryTree(child, selectedIds);
+                if (matchedChild != null) {
+                    matchedChildren.add(matchedChild);
+                }
+            }
+        }
+        if (!selectedIds.contains(node.getId()) && matchedChildren.isEmpty()) {
+            return null;
+        }
+        CategoryVO matchedNode = new CategoryVO(node);
+        matchedNode.setParentTitle(node.getParentTitle());
+        matchedNode.setBrandList(node.getBrandList());
+        matchedNode.setChildren(matchedChildren);
+        return matchedNode;
+    }
+
+    private Set<String> normalizeCategoryIds(String[] categories) {
+        if (categories == null || categories.length == 0) {
+            return Collections.emptySet();
+        }
+        Set<String> selectedIds = new LinkedHashSet<>();
+        for (String rawCategory : categories) {
+            if (rawCategory == null) {
+                continue;
+            }
+            String normalized = rawCategory
+                    .replace("，", ",")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace("'", "")
+                    .trim();
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            String[] splitValues = normalized.split(",");
+            for (String value : splitValues) {
+                String id = value == null ? "" : value.trim();
+                if (!id.isEmpty()) {
+                    selectedIds.add(id);
+                }
+            }
+        }
+        return selectedIds;
     }
 
     /**

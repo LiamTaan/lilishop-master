@@ -26,10 +26,17 @@ public class BillStatisticsServiceImpl extends ServiceImpl<BillStatisticsMapper,
 
     @Override
     public long billNum(BillStatusEnum billStatusEnum) {
+        String storeId = CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name())
+                ? UserContext.getCurrentUser().getStoreId()
+                : null;
+        return billNum(storeId, billStatusEnum);
+    }
+
+    @Override
+    public long billNum(String storeId, BillStatusEnum billStatusEnum) {
         LambdaUpdateWrapper<Bill> lambdaUpdateWrapper = Wrappers.lambdaUpdate();
         lambdaUpdateWrapper.eq(Bill::getBillStatus, billStatusEnum.name());
-        lambdaUpdateWrapper.eq(CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name()),
-                Bill::getStoreId, UserContext.getCurrentUser().getStoreId());
+        lambdaUpdateWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), Bill::getStoreId, storeId);
         return this.count(lambdaUpdateWrapper);
     }
 

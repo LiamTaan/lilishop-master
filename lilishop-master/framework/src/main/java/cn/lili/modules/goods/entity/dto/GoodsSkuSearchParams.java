@@ -1,5 +1,6 @@
 package cn.lili.modules.goods.entity.dto;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import cn.lili.common.utils.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,10 +22,23 @@ public class GoodsSkuSearchParams extends GoodsSearchParams {
     @Schema(description = "商品id")
     private String goodsId;
 
+    @Schema(description = "SKU搜索关键字，匹配商品名称、规格、货号、条码")
+    private String skuKeyword;
+
     @Override
     public <T> QueryWrapper<T> queryWrapper() {
         QueryWrapper<T> queryWrapper = super.queryWrapper();
         queryWrapper.eq(StringUtils.isNotEmpty(goodsId), "goods_id", goodsId);
+        if (CharSequenceUtil.isNotEmpty(skuKeyword)) {
+            queryWrapper.and(wrapper -> wrapper
+                    .like("goods_name", skuKeyword)
+                    .or()
+                    .like("simple_specs", skuKeyword)
+                    .or()
+                    .like("sn", skuKeyword)
+                    .or()
+                    .like("barcode", skuKeyword));
+        }
         return queryWrapper;
     }
 

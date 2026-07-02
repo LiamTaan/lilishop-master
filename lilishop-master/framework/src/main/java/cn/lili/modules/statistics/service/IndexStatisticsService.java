@@ -29,6 +29,14 @@ public interface IndexStatisticsService {
     StoreIndexStatisticsVO storeIndexStatistics();
 
     /**
+     * 按指定店铺查询商家首页统计数据
+     *
+     * @param storeId 店铺ID
+     * @return 商家后台首页统计数据
+     */
+    StoreIndexStatisticsVO storeIndexStatistics(String storeId);
+
+    /**
      * 消息通知
      *
      * @return 通知内容

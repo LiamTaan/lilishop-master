@@ -95,7 +95,15 @@ public interface StoreService extends IService<Store> {
      * @param storeCompanyDTO 店铺公司信息
      * @return 店铺
      */
-    boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO);
+    boolean selectApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO, String loginSessionToken);
+
+    /**
+     * 选择供货商/批发商入驻主体类型
+     *
+     * @param applyTypeSelectDTO 入驻主体类型
+     * @return 操作结果
+     */
+    boolean selectSupplierApplyType(StoreApplyTypeSelectDTO applyTypeSelectDTO, String loginSessionToken);
 
     /**
      * 申请店铺第二步
@@ -103,7 +111,16 @@ public interface StoreService extends IService<Store> {
      * @param storeBankDTO 店铺银行信息
      * @return 店铺
      */
-    boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid);
+    boolean applyPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid, String loginSessionToken);
+
+    /**
+     * 个人主体提交供货商/批发商入驻资料
+     *
+     * @param personalApplyDTO 个人入驻资料
+     * @param uuid             验证码会话标识
+     * @return 操作结果
+     */
+    boolean applySupplierPersonal(StorePersonalApplyDTO personalApplyDTO, String uuid, String loginSessionToken);
 
     /**
      * 申请店铺第三步
@@ -112,7 +129,16 @@ public interface StoreService extends IService<Store> {
      * @param storeOtherInfoDTO 店铺其他信息
      * @return 店铺
      */
-    boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid);
+    boolean applyIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid, String loginSessionToken);
+
+    /**
+     * 个体户提交供货商/批发商入驻资料
+     *
+     * @param individualApplyDTO 个体户入驻资料
+     * @param uuid               验证码会话标识
+     * @return 操作结果
+     */
+    boolean applySupplierIndividual(StoreIndividualApplyDTO individualApplyDTO, String uuid, String loginSessionToken);
 
     /**
      * 企业法人提交入驻资料
@@ -121,7 +147,16 @@ public interface StoreService extends IService<Store> {
      * @param uuid                 验证码会话标识
      * @return 操作结果
      */
-    boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid);
+    boolean applyCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid, String loginSessionToken);
+
+    /**
+     * 企业法人提交供货商/批发商入驻资料
+     *
+     * @param companyLegalApplyDTO 企业法人入驻资料
+     * @param uuid                 验证码会话标识
+     * @return 操作结果
+     */
+    boolean applySupplierCompanyLegal(StoreCompanyLegalApplyDTO companyLegalApplyDTO, String uuid, String loginSessionToken);
 
     /**
      * 企业被授权人提交入驻资料
@@ -130,7 +165,16 @@ public interface StoreService extends IService<Store> {
      * @param uuid                      验证码会话标识
      * @return 操作结果
      */
-    boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid);
+    boolean applyCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid, String loginSessionToken);
+
+    /**
+     * 企业被授权人提交供货商/批发商入驻资料
+     *
+     * @param companyAuthorizedApplyDTO 企业被授权人入驻资料
+     * @param uuid                      验证码会话标识
+     * @return 操作结果
+     */
+    boolean applySupplierCompanyAuthorized(StoreCompanyAuthorizedApplyDTO companyAuthorizedApplyDTO, String uuid, String loginSessionToken);
 
 
     /**
@@ -181,4 +225,14 @@ public interface StoreService extends IService<Store> {
      * @return 汇总结果
      */
     StoreAuditSummaryVO managementSummary();
+
+    /**
+     * 发送店铺治理通知
+     *
+     * @param store       店铺
+     * @param title       标题
+     * @param content     内容
+     * @param platformMsg 是否平台公告
+     */
+    void sendGovernanceMessage(Store store, String title, String content, boolean platformMsg);
 }

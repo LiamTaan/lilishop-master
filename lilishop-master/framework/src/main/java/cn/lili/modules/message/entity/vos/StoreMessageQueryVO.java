@@ -29,4 +29,7 @@ public class StoreMessageQueryVO {
     @Schema(description = "商家id")
     private String storeId;
 
+    @Schema(description = "消息业务分类")
+    private String bizType;
+
 }

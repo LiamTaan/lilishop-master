@@ -19,4 +19,13 @@ public interface BillStatisticsService extends IService<Bill> {
      * @return 待结算商家数量
      */
     long billNum(BillStatusEnum billStatusEnum);
+
+    /**
+     * 按指定店铺获取结算单数量
+     *
+     * @param storeId 店铺ID
+     * @param billStatusEnum 结算单类型
+     * @return 结算单数量
+     */
+    long billNum(String storeId, BillStatusEnum billStatusEnum);
 }

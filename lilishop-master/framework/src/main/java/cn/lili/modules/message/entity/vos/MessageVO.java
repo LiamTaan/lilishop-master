@@ -24,6 +24,9 @@ public class MessageVO {
     @Schema(description = "内容")
     private String content;
 
+    @Schema(description = "消息业务分类")
+    private String bizType;
+
     public LambdaQueryWrapper<Message> lambdaQueryWrapper() {
         LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotEmpty(title)) {
@@ -31,6 +34,9 @@ public class MessageVO {
         }
         if (StrUtil.isNotEmpty(content)) {
             queryWrapper.like(Message::getContent, content);
+        }
+        if (StrUtil.isNotEmpty(bizType)) {
+            queryWrapper.eq(Message::getBizType, bizType);
         }
         queryWrapper.orderByDesc(Message::getCreateTime);
         return queryWrapper;

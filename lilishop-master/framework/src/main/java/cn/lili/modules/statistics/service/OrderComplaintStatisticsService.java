@@ -17,4 +17,12 @@ public interface OrderComplaintStatisticsService extends IService<OrderComplaint
      * @return 待处理投诉数量
      */
     long waitComplainNum();
+
+    /**
+     * 按指定店铺获取待处理投诉数量
+     *
+     * @param storeId 店铺ID
+     * @return 待处理投诉数量
+     */
+    long waitComplainNum(String storeId);
 }

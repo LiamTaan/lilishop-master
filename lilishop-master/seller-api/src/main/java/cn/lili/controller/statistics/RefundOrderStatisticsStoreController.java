@@ -19,12 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Objects;
 
 /**
- * 店铺端,退款统计接口
+ * 供货商端,退款统计接口
  *
  * @author Bulbasaur
  * @since 2020/12/9 19:04
  */
-@Tag(name = "店铺端,退款统计接口")
+@Tag(name = "供货商端,退款统计接口")
 @RestController
 @RequestMapping("/store/statistics/refundOrder")
 public class RefundOrderStatisticsStoreController {
@@ -32,7 +32,7 @@ public class RefundOrderStatisticsStoreController {
     @Autowired
     private RefundOrderStatisticsService refundOrderStatisticsService;
 
-    @Operation(description = "获取退款统计列表")
+    @Operation(summary = "供货商分页查询退款统计列表", description = "获取退款统计列表")
     @Parameter(name = "pageVO", description = "分页参数", required = true)
     @Parameter(name = "statisticsQueryParam", description = "退款统计查询参数", required = true)
     @GetMapping("/getByPage")
@@ -43,7 +43,7 @@ public class RefundOrderStatisticsStoreController {
         return ResultUtil.data(refundOrderStatisticsService.getRefundOrderStatisticsData(pageVO, effectiveQueryParam));
     }
 
-    @Operation(description = "获取退款统计金额")
+    @Operation(summary = "供货商查询退款统计金额", description = "获取退款统计金额")
     @Parameter(name = "statisticsQueryParam", description = "退款统计查询参数", required = true)
     @GetMapping("/getPrice")
     public ResultMessage<Object> getPrice(StatisticsQueryParam statisticsQueryParam) {

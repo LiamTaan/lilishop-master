@@ -14,9 +14,11 @@ import cn.lili.modules.promotion.entity.enums.CouponActivityTypeEnum;
 import cn.lili.modules.promotion.entity.enums.CouponGetEnum;
 import cn.lili.modules.promotion.entity.enums.PromotionsStatusEnum;
 import cn.lili.modules.promotion.entity.vos.CouponVO;
+import cn.lili.modules.promotion.entity.vos.MemberCouponVO;
 import cn.lili.modules.promotion.service.CouponActivityService;
 import cn.lili.modules.promotion.service.CouponService;
 import cn.lili.modules.promotion.service.MemberCouponService;
+import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -88,15 +91,33 @@ public class CouponBuyerController {
         queryParam.setPromotionStatus(PromotionsStatusEnum.START.name());
         queryParam.setGetType(CouponGetEnum.FREE.name());
         IPage<CouponVO> canUseCoupons = couponService.pageVOFindAll(queryParam, page);
+        AuthUser currentUser = UserContext.getCurrentUser();
+        if (currentUser != null && canUseCoupons.getRecords() != null) {
+            List<CouponVO> receivableCoupons = new ArrayList<>();
+            canUseCoupons.getRecords().forEach(coupon -> {
+                long receivedNum = memberCouponService.getMemberCouponNum(currentUser.getId(), coupon.getId());
+                coupon.setReceivedNumByCurrentMember(receivedNum);
+                coupon.setReceivedByCurrentMember(receivedNum > 0);
+                Integer limitNum = coupon.getCouponLimitNum();
+                boolean limitAvailable = limitNum == null || limitNum == 0 || receivedNum < limitNum;
+                boolean stockAvailable = Boolean.TRUE.equals(coupon.getUnlimitedStock()) || coupon.getStockNum() > 0;
+                coupon.setCanReceive(limitAvailable && stockAvailable);
+                if (Boolean.TRUE.equals(coupon.getCanReceive())) {
+                    receivableCoupons.add(coupon);
+                }
+            });
+            canUseCoupons.setRecords(receivableCoupons);
+            canUseCoupons.setTotal(receivableCoupons.size());
+        }
         return ResultUtil.data(canUseCoupons);
     }
 
     @Operation(summary = "获取当前客户的优惠券列表")
     @GetMapping("/getCoupons")
-    public ResultMessage<IPage<MemberCoupon>> getCoupons(MemberCouponSearchParams param, PageVO pageVo) {
+    public ResultMessage<IPage<MemberCouponVO>> getCoupons(MemberCouponSearchParams param, PageVO pageVo) {
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
         param.setMemberId(currentUser.getId());
-        return ResultUtil.data(memberCouponService.getMemberCoupons(param, pageVo));
+        return ResultUtil.data(memberCouponService.getMemberCouponsPage(PageUtil.initPage(pageVo), param));
     }
 
     @Operation(summary = "获取当前客户的对于当前商品可使用的优惠券列表")

@@ -90,7 +90,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
     @Transactional(rollbackFor = Exception.class)
     public void receiveBuyerCoupon(String couponId, String memberId, String memberName) {
         Coupon coupon = couponService.getById(couponId);
-        if (coupon != null && !CouponGetEnum.FREE.name().equals(coupon.getGetType())) {
+        if (coupon != null && !isFreeGetCoupon(coupon.getGetType())) {
             throw new ServiceException(ResultCode.COUPON_DO_NOT_RECEIVER);
         } else if (coupon != null) {
             this.receiverCoupon(couponId, memberId, memberName, coupon);
@@ -112,6 +112,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
 
     @Override
     public IPage<MemberCoupon> getMemberCoupons(MemberCouponSearchParams param, PageVO pageVo) {
+        this.expireInvalidMemberCoupon(param.getMemberId());
         QueryWrapper<MemberCoupon> queryWrapper = param.queryWrapper();
         Page<MemberCoupon> page = this.page(PageUtil.initPage(pageVo), queryWrapper);
         if (page.getRecords() != null && page.getRecords().size() > 0) {
@@ -131,6 +132,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
      */
     @Override
     public List<MemberCoupon> getMemberCoupons(MemberCouponSearchParams param) {
+        this.expireInvalidMemberCoupon(param.getMemberId());
         List<MemberCoupon> list = this.list(param.queryWrapper());
         if (list.stream().anyMatch(i -> i.getEndTime().before(new Date()))) {
             this.expireInvalidMemberCoupon(param.getMemberId());
@@ -319,6 +321,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
 
     @Override
     public Page<MemberCouponVO> getMemberCouponsPage(Page<MemberCoupon> page, MemberCouponSearchParams param) {
+        this.expireInvalidMemberCoupon(param.getMemberId());
         QueryWrapper<MemberCouponVO> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getMemberId()), "mc.member_id", param.getMemberId());
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getStoreId()), "c.store_id", param.getStoreId());
@@ -326,9 +329,22 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getCouponId()), "mc.coupon_id", param.getCouponId());
         queryWrapper.like(CharSequenceUtil.isNotEmpty(param.getCouponName()), "c.coupon_name", param.getCouponName());
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getGetType()), "mc.get_type", param.getGetType());
-        queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getScopeType()), "mc.scope_type", param.getPromotionStatus());
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getScopeType()), "mc.scope_type", param.getScopeType());
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getCouponType()), "mc.coupon_type", param.getCouponType());
-        queryWrapper.eq(CharSequenceUtil.isNotEmpty(param.getMemberCouponStatus()), "mc.member_coupon_status", param.getMemberCouponStatus());
+        if (CharSequenceUtil.isNotEmpty(param.getMemberCouponStatus())) {
+            String[] statuses = param.getMemberCouponStatus().split(",");
+            if (statuses.length > 1) {
+                queryWrapper.in(
+                        "mc.member_coupon_status",
+                        Arrays.stream(statuses)
+                                .map(String::trim)
+                                .filter(CharSequenceUtil::isNotEmpty)
+                                .toList()
+                );
+            } else {
+                queryWrapper.eq("mc.member_coupon_status", param.getMemberCouponStatus());
+            }
+        }
         if (param.getStartTime() != null) {
             queryWrapper.ge("mc.start_time", new Date(param.getStartTime()));
         }
@@ -379,5 +395,9 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
         memberCoupon.setPlatformFlag((PromotionTools.PLATFORM_ID).equals(coupon.getStoreId()));
         this.save(memberCoupon);
         couponService.receiveCoupon(couponId, 1);
+    }
+
+    private boolean isFreeGetCoupon(String getType) {
+        return CouponGetEnum.FREE.name().equals(getType) || "FREE_GET".equals(getType);
     }
 }

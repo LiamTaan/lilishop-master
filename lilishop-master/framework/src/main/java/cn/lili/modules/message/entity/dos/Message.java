@@ -30,6 +30,9 @@ public class Message extends BaseEntity {
     @Schema(description = "内容")
     private String content;
 
+    @Schema(description = "消息业务分类")
+    private String bizType;
+
     /**
      * @see RangeEnum
      */
@@ -49,4 +52,8 @@ public class Message extends BaseEntity {
     @TableField(exist = false)
     @Schema(description = "发送指定用户名称")
     private String[] userNames;
+
+    @TableField(exist = false)
+    @Schema(description = "发送指定对象类型，MEMBER/STORE")
+    private String[] userTypes;
 }

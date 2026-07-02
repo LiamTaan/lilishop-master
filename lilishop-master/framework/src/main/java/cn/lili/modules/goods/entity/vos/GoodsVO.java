@@ -22,18 +22,18 @@ public class GoodsVO extends Goods {
 
     private static final long serialVersionUID = 6377623919990713567L;
 
-    @Schema(description = "分类名称")
+    @Schema(description = "平台分类名称路径，按 categoryPath 顺序返回。")
     private List<String> categoryName;
 
-    @Schema(description = "商品参数")
+    @Schema(description = "商品参数列表，供编辑回显和详情展示。")
     private List<GoodsParamsItemDTO> goodsParamsDTOList;
 
-    @Schema(description = "商品图片")
+    @Schema(description = "商品公共相册图片列表。")
     private List<String> goodsGalleryList;
 
-    @Schema(description = "sku列表")
+    @Schema(description = "商品下全部 SKU 列表，供商品编辑页回显。")
     private List<GoodsSkuVO> skuList;
 
-    @Schema(description = "批发商品消费规则列表")
+    @Schema(description = "批发阶梯价规则列表。")
     private List<Wholesale> wholesaleList;
 }

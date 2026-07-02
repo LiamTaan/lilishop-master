@@ -44,13 +44,23 @@ public class StoreMessageServiceImpl extends ServiceImpl<StoreMessageMapper, Sto
 
     @Override
     public IPage<StoreMessage> getPage(StoreMessageQueryVO storeMessageQueryVO, PageVO pageVO) {
-        return this.baseMapper.queryByParams(PageUtil.initPage(pageVO), storeMessageQueryVO.getStoreId(), storeMessageQueryVO.getStatus());
+        return this.baseMapper.queryByParams(
+                PageUtil.initPage(pageVO),
+                storeMessageQueryVO.getStoreId(),
+                storeMessageQueryVO.getStatus(),
+                storeMessageQueryVO.getBizType()
+        );
 
     }
 
     @Override
     public boolean save(List<StoreMessage> messages) {
         return saveBatch(messages);
+    }
+
+    @Override
+    public boolean save(StoreMessage message) {
+        return super.save(message);
     }
 
     @Override

@@ -5,7 +5,7 @@ import SettingCenter from "./setting-center.vue";
 <template>
   <SettingCenter
     title="短信配置"
-    description="承接短信通道、短信签名和发送参数治理。"
+    description="承接短信通道、签名参数与模板编码等运行时发送配置。"
     api-path="/manager/setting/setting"
     setting-key="SMS_SETTING"
     :fields="[

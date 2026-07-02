@@ -3,17 +3,23 @@ package cn.lili.controller.promotion;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
+import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.dto.GoodsSkuSearchParams;
 import cn.lili.modules.promotion.entity.dos.Seckill;
 import cn.lili.modules.promotion.entity.dos.SeckillApply;
+import cn.lili.modules.promotion.entity.dto.SeckillApplyManagerDTO;
 import cn.lili.modules.promotion.entity.dto.search.SeckillSearchParams;
 import cn.lili.modules.promotion.entity.vos.SeckillVO;
 import cn.lili.modules.promotion.service.SeckillApplyService;
 import cn.lili.modules.promotion.service.SeckillService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.List;
 
 /**
  * 管理端,秒杀活动接口
@@ -22,6 +28,7 @@ import java.util.Collections;
  * @since 2020/8/20
  **/
 @RestController
+@Validated
 @RequestMapping("/manager/promotion/seckill")
 public class SeckillManagerController {
     @Autowired
@@ -69,6 +76,23 @@ public class SeckillManagerController {
     public ResultMessage<IPage<SeckillApply>> getSeckillApply(SeckillSearchParams param, PageVO pageVo) {
         IPage<SeckillApply> seckillApply = seckillApplyService.getSeckillApplyPage(param, pageVo);
         return ResultUtil.data(seckillApply);
+    }
+
+    @GetMapping("/apply/{seckillId}/available-sku")
+    public ResultMessage<IPage<GoodsSku>> getAvailableSku(@PathVariable String seckillId, Integer timeLine, GoodsSkuSearchParams param) {
+        return ResultUtil.data(seckillApplyService.getAvailableSkuPage(seckillId, param, timeLine));
+    }
+
+    @PostMapping(path = "/apply/{seckillId}", consumes = "application/json", produces = "application/json")
+    public ResultMessage<String> addSeckillApply(@PathVariable String seckillId, @RequestBody List<@Valid SeckillApplyManagerDTO> applyList) {
+        seckillApplyService.addSeckillApplyByManager(seckillId, applyList);
+        return ResultUtil.success();
+    }
+
+    @PutMapping(path = "/apply/{seckillId}/{id}", consumes = "application/json", produces = "application/json")
+    public ResultMessage<String> updateSeckillApply(@PathVariable String seckillId, @PathVariable String id, @RequestBody @Valid SeckillApplyManagerDTO apply) {
+        seckillApplyService.updateSeckillApplyByManager(seckillId, id, apply);
+        return ResultUtil.success();
     }
 
     @DeleteMapping("/apply/{seckillId}/{id}")

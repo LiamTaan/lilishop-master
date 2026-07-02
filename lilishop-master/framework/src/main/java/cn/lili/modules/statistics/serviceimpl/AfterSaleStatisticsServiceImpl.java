@@ -34,11 +34,18 @@ public class AfterSaleStatisticsServiceImpl extends ServiceImpl<AfterSaleStatist
     @Override
     public long applyNum(String serviceType) {
         AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
+        String storeId = CharSequenceUtil.equals(authUser.getRole().name(), UserEnums.STORE.name())
+                ? authUser.getStoreId()
+                : null;
+        return applyNum(storeId, serviceType);
+    }
+
+    @Override
+    public long applyNum(String storeId, String serviceType) {
         LambdaQueryWrapper<AfterSale> queryWrapper = Wrappers.lambdaQuery();
         queryWrapper.eq(AfterSale::getServiceStatus, AfterSaleStatusEnum.APPLY.name());
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(serviceType), AfterSale::getServiceType, serviceType);
-        queryWrapper.eq(CharSequenceUtil.equals(authUser.getRole().name(), UserEnums.STORE.name()),
-                AfterSale::getStoreId, authUser.getStoreId());
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), AfterSale::getStoreId, storeId);
         return this.count(queryWrapper);
     }
 

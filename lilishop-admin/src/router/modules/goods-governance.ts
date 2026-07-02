@@ -29,7 +29,7 @@ export default {
       name: "ParameterManage",
       component: () =>
         import("@/views/goods-governance/parameter-manage/index.vue"),
-      meta: { title: "参数管理" }
+      meta: { title: "规格管理" }
     },
     {
       path: "/goods-governance/category-manage",

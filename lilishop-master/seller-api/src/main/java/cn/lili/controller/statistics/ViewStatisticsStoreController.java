@@ -18,19 +18,19 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 店铺端,流量统计接口
+ * 供货商端,流量统计接口
  *
  * @author Chopper
  * @since 2021/2/9 11:19
  */
-@Tag(name = "店铺端,流量统计接口")
+@Tag(name = "供货商端,流量统计接口")
 @RestController
 @RequestMapping("/store/statistics/view")
 public class ViewStatisticsStoreController {
     @Autowired
     private PlatformViewService platformViewService;
 
-    @Operation(description = "流量数据 表单获取")
+    @Operation(summary = "供货商查询流量统计列表", description = "流量数据 表单获取")
     @Parameter(name = "queryParam", description = "流量统计查询参数", required = true)
     @GetMapping("/list")
     public ResultMessage<List<PlatformViewVO>> getByPage(StatisticsQueryParam queryParam) {

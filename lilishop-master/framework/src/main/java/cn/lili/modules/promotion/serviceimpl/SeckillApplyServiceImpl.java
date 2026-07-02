@@ -11,11 +11,16 @@ import cn.lili.common.enums.ResultCode;
 import cn.lili.common.exception.ServiceException;
 import cn.lili.common.vo.PageVO;
 import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.dto.GoodsSkuSearchParams;
+import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
+import cn.lili.modules.goods.entity.enums.GoodsSalesModeEnum;
+import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
 import cn.lili.modules.goods.service.GoodsSkuService;
 import cn.lili.modules.promotion.entity.dos.BasePromotions;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
 import cn.lili.modules.promotion.entity.dos.Seckill;
 import cn.lili.modules.promotion.entity.dos.SeckillApply;
+import cn.lili.modules.promotion.entity.dto.SeckillApplyManagerDTO;
 import cn.lili.modules.promotion.entity.dto.search.PromotionGoodsSearchParams;
 import cn.lili.modules.promotion.entity.dto.search.SeckillSearchParams;
 import cn.lili.modules.promotion.entity.enums.PromotionsApplyStatusEnum;
@@ -27,11 +32,16 @@ import cn.lili.modules.promotion.service.PromotionGoodsService;
 import cn.lili.modules.promotion.service.SeckillApplyService;
 import cn.lili.modules.promotion.service.SeckillService;
 import cn.lili.modules.promotion.tools.PromotionTools;
+import cn.lili.modules.store.entity.dos.Store;
+import cn.lili.modules.store.entity.enums.StoreBizTypeEnum;
+import cn.lili.modules.store.service.StoreService;
 import cn.lili.mybatis.util.PageUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -74,6 +84,8 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
     @Lazy
     @Autowired
     private SeckillService seckillService;
+    @Autowired
+    private StoreService storeService;
 
     @Override
     public List<SeckillTimelineVO> getSeckillTimeline() {
@@ -83,6 +95,16 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
         } catch (Exception e) {
             log.error("获取秒杀时间轴失败", e);
             return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public SeckillTimelineVO getHomeSeckillTimeline(int goodsLimit) {
+        try {
+            return getHomeSeckillTimelineInfo(goodsLimit);
+        } catch (Exception e) {
+            log.error("获取首页秒杀信息失败", e);
+            return null;
         }
     }
 
@@ -101,6 +123,46 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
             log.error("获取秒杀商品失败", e);
             return new ArrayList<>();
         }
+    }
+
+    @Override
+    public IPage<SeckillGoodsVO> getSeckillGoodsPage(Integer timeline, String goodsName, String categoryPath, List<String> visibleStoreIds, PageVO pageVo) {
+        Page<SeckillGoodsVO> resultPage = new Page<>(pageVo.getPageNumber(), pageVo.getPageSize());
+        List<String> seckillIds = buildTodayTimelineCandidates().stream()
+                .filter(item -> item.getTimeLine().equals(timeline))
+                .map(SeckillTimelineCandidate::getSeckillId)
+                .distinct()
+                .collect(Collectors.toList());
+        if (seckillIds.isEmpty()) {
+            resultPage.setRecords(Collections.emptyList());
+            resultPage.setTotal(0);
+            return resultPage;
+        }
+
+        LambdaQueryWrapper<SeckillApply> queryWrapper = new LambdaQueryWrapper<SeckillApply>()
+                .in(SeckillApply::getSeckillId, seckillIds)
+                .eq(SeckillApply::getTimeLine, timeline)
+                .eq(SeckillApply::getPromotionApplyStatus, PromotionsApplyStatusEnum.PASS.name())
+                .eq(SeckillApply::getDeleteFlag, false)
+                .like(StringUtils.isNotBlank(goodsName), SeckillApply::getGoodsName, goodsName)
+                .in(visibleStoreIds != null && !visibleStoreIds.isEmpty(), SeckillApply::getStoreId, visibleStoreIds)
+                .orderByDesc(SeckillApply::getCreateTime);
+
+        List<String> filteredSkuIds = querySkuIdsByCategory(categoryPath, visibleStoreIds);
+        if (StringUtils.isNotBlank(categoryPath) && filteredSkuIds.isEmpty()) {
+            resultPage.setRecords(Collections.emptyList());
+            resultPage.setTotal(0);
+            return resultPage;
+        }
+        queryWrapper.in(!filteredSkuIds.isEmpty(), SeckillApply::getSkuId, filteredSkuIds);
+
+        IPage<SeckillApply> applyPage = this.page(new Page<>(pageVo.getPageNumber(), pageVo.getPageSize()), queryWrapper);
+        resultPage.setTotal(applyPage.getTotal());
+        resultPage.setSize(applyPage.getSize());
+        resultPage.setCurrent(applyPage.getCurrent());
+        resultPage.setPages(applyPage.getPages());
+        resultPage.setRecords(buildSeckillGoodsVOList(applyPage.getRecords()));
+        return resultPage;
     }
 
     @Override
@@ -154,6 +216,101 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
     @Override
     public SeckillApply getSeckillApply(SeckillSearchParams queryParam) {
         return this.getOne(queryParam.queryWrapper(), false);
+    }
+
+    @Override
+    public IPage<GoodsSku> getAvailableSkuPage(String seckillId, GoodsSkuSearchParams searchParams, Integer timeLine) {
+        Seckill seckill = this.seckillService.getById(seckillId);
+        if (seckill == null) {
+            throw new ServiceException(ResultCode.SECKILL_NOT_EXIST_ERROR);
+        }
+        List<String> registeredSkuIds = this.list(new LambdaQueryWrapper<SeckillApply>()
+                        .eq(SeckillApply::getSeckillId, seckillId))
+                .stream()
+                .map(SeckillApply::getSkuId)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toList());
+
+        LambdaQueryWrapper<GoodsSku> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(GoodsSku::getSalesModel, GoodsSalesModeEnum.RETAIL.name());
+        queryWrapper.in(GoodsSku::getStoreId, listPromotionSelectableStoreIds());
+        queryWrapper.eq(GoodsSku::getAuthFlag, GoodsAuthEnum.PASS.name());
+        queryWrapper.eq(GoodsSku::getMarketEnable, GoodsStatusEnum.UPPER.name());
+        queryWrapper.eq(GoodsSku::getDeleteFlag, false);
+        queryWrapper.notIn(!registeredSkuIds.isEmpty(), GoodsSku::getId, registeredSkuIds);
+        Date overlapStartTime = seckill.getStartTime();
+        if (timeLine != null) {
+            overlapStartTime = DateUtil.offsetHour(DateUtil.beginOfDay(seckill.getStartTime()), timeLine);
+        }
+        List<String> overlapSkuIds = promotionGoodsService.findOverlapSkuIds(
+                Arrays.asList(PromotionTypeEnum.SECKILL, PromotionTypeEnum.PINTUAN),
+                overlapStartTime,
+                seckill.getEndTime(),
+                seckill.getId()
+        );
+        queryWrapper.notIn(overlapSkuIds != null && !overlapSkuIds.isEmpty(), GoodsSku::getId, overlapSkuIds);
+        queryWrapper.eq(StringUtils.isNotBlank(searchParams.getGoodsId()), GoodsSku::getGoodsId, searchParams.getGoodsId());
+        queryWrapper.eq(StringUtils.isNotBlank(searchParams.getStoreId()), GoodsSku::getStoreId, searchParams.getStoreId());
+        queryWrapper.like(StringUtils.isNotBlank(searchParams.getGoodsName()), GoodsSku::getGoodsName, searchParams.getGoodsName());
+        queryWrapper.and(StringUtils.isNotBlank(searchParams.getSkuKeyword()), wrapper -> wrapper
+                .like(GoodsSku::getGoodsName, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getSimpleSpecs, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getSn, searchParams.getSkuKeyword())
+                .or()
+                .like(GoodsSku::getBarcode, searchParams.getSkuKeyword()));
+        queryWrapper.orderByDesc(GoodsSku::getCreateTime);
+        return goodsSkuService.page(PageUtil.initPage(searchParams), queryWrapper);
+    }
+
+    private List<String> listPromotionSelectableStoreIds() {
+        List<String> storeIds = storeService.list(new LambdaQueryWrapper<Store>()
+                        .in(Store::getStoreType, Arrays.asList(
+                                StoreBizTypeEnum.AGENT.name(),
+                                StoreBizTypeEnum.SUPPLIER.name()
+                        )))
+                .stream()
+                .map(Store::getId)
+                .collect(Collectors.toList());
+        return storeIds.isEmpty() ? Collections.singletonList("__NO_PROMOTION_SELECTABLE_STORE__") : storeIds;
+    }
+
+    private Map<String, Store> loadStoreMapBySkuIds(Set<String> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> storeIds = goodsSkuService.listByIds(skuIds).stream()
+                .map(GoodsSku::getStoreId)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+        if (storeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return storeService.listByIds(storeIds).stream()
+                .collect(Collectors.toMap(Store::getId, item -> item, (left, right) -> left));
+    }
+
+    private void checkPromotionSelectableSku(GoodsSku goodsSku, Map<String, Store> storeMap) {
+        if (goodsSku == null) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
+        }
+        if (!GoodsSalesModeEnum.RETAIL.name().equals(goodsSku.getSalesModel())) {
+            throw new ServiceException(ResultCode.PROMOTION_GOODS_DO_NOT_JOIN_WHOLESALE);
+        }
+        if (!GoodsAuthEnum.PASS.name().equals(goodsSku.getAuthFlag())
+                || !GoodsStatusEnum.UPPER.name().equals(goodsSku.getMarketEnable())
+                || Boolean.TRUE.equals(goodsSku.getDeleteFlag())) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
+        }
+        Store store = storeMap == null ? null : storeMap.get(goodsSku.getStoreId());
+        if (store == null || !Arrays.asList(
+                StoreBizTypeEnum.AGENT.name(),
+                StoreBizTypeEnum.SUPPLIER.name()
+        ).contains(store.getStoreType())) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST_STORE);
+        }
     }
 
     @Override
@@ -212,6 +369,91 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
         if (result) {
             this.seckillService.updateEsGoodsSeckill(seckill, originList);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addSeckillApplyByManager(String seckillId, List<SeckillApplyManagerDTO> applyList) {
+        if (applyList == null || applyList.isEmpty()) {
+            return;
+        }
+        Set<String> applyingSkuIds = applyList.stream()
+                .map(SeckillApplyManagerDTO::getSkuId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<String> registeredSkuIds = new HashSet<>();
+        if (!applyingSkuIds.isEmpty()) {
+            registeredSkuIds = this.list(new LambdaQueryWrapper<SeckillApply>()
+                            .eq(SeckillApply::getSeckillId, seckillId)
+                            .in(SeckillApply::getSkuId, applyingSkuIds))
+                    .stream()
+                    .map(SeckillApply::getSkuId)
+                    .filter(StringUtils::isNotBlank)
+                    .collect(Collectors.toSet());
+        }
+        Map<String, List<SeckillApplyVO>> storeApplyMap = new LinkedHashMap<>();
+        Map<String, Store> storeMap = loadStoreMapBySkuIds(applyingSkuIds);
+        for (SeckillApplyManagerDTO applyDTO : applyList) {
+            if (registeredSkuIds.contains(applyDTO.getSkuId())) {
+                continue;
+            }
+            GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(applyDTO.getSkuId());
+            checkPromotionSelectableSku(goodsSku, storeMap);
+            SeckillApplyVO applyVO = new SeckillApplyVO();
+            applyVO.setSeckillId(seckillId);
+            applyVO.setSkuId(goodsSku.getId());
+            applyVO.setGoodsName(goodsSku.getGoodsName());
+            applyVO.setStoreId(goodsSku.getStoreId());
+            applyVO.setStoreName(goodsSku.getStoreName());
+            applyVO.setOriginalPrice(goodsSku.getPrice());
+            applyVO.setPrice(applyDTO.getPrice());
+            applyVO.setQuantity(applyDTO.getQuantity());
+            applyVO.setTimeLine(applyDTO.getTimeLine());
+            storeApplyMap.computeIfAbsent(goodsSku.getStoreId(), key -> new ArrayList<>()).add(applyVO);
+        }
+        for (Map.Entry<String, List<SeckillApplyVO>> entry : storeApplyMap.entrySet()) {
+            addSeckillApply(seckillId, entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSeckillApplyByManager(String seckillId, String id, SeckillApplyManagerDTO apply) {
+        Seckill seckill = this.seckillService.getById(seckillId);
+        if (seckill == null) {
+            throw new ServiceException(ResultCode.SECKILL_NOT_EXIST_ERROR);
+        }
+        SeckillApply origin = this.getById(id);
+        if (origin == null || !seckillId.equals(origin.getSeckillId())) {
+            throw new ServiceException(ResultCode.SECKILL_APPLY_NOT_EXIST_ERROR);
+        }
+        GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(origin.getSkuId());
+        checkPromotionSelectableSku(goodsSku, loadStoreMapBySkuIds(Collections.singleton(origin.getSkuId())));
+
+        SeckillApplyVO applyVO = new SeckillApplyVO();
+        BeanUtil.copyProperties(origin, applyVO);
+        applyVO.setPrice(apply.getPrice());
+        applyVO.setQuantity(apply.getQuantity());
+        applyVO.setTimeLine(apply.getTimeLine());
+        applyVO.setOriginalPrice(goodsSku.getPrice());
+        checkSeckillApplyList(seckill.getHours(), Collections.singletonList(applyVO));
+
+        DateTime startTime = DateUtil.offsetHour(DateUtil.beginOfDay(seckill.getStartTime()), applyVO.getTimeLine());
+        checkSeckillGoodsSku(seckill, applyVO, goodsSku, startTime);
+
+        origin.setPrice(applyVO.getPrice());
+        origin.setQuantity(applyVO.getQuantity());
+        origin.setTimeLine(applyVO.getTimeLine());
+        origin.setOriginalPrice(goodsSku.getPrice());
+        this.updateById(origin);
+
+        promotionGoodsService.deletePromotionGoods(seckillId, Collections.singletonList(origin.getSkuId()));
+        PromotionGoods promotionGoods = this.setSeckillGoods(goodsSku, origin, seckill);
+        PromotionTools.promotionGoodsInit(Collections.singletonList(promotionGoods), seckill, PromotionTypeEnum.SECKILL);
+        promotionGoodsService.save(promotionGoods);
+
+        cache.vagueDel(CachePrefix.STORE_ID_SECKILL);
+        this.seckillService.updateEsGoodsSeckill(seckill, Collections.singletonList(origin));
     }
 
 
@@ -339,41 +581,92 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
      */
     private List<SeckillTimelineVO> getSeckillTimelineInfo() {
         List<SeckillTimelineVO> timelineList = new ArrayList<>();
+        for (SeckillTimelineCandidate candidate : buildTodayTimelineCandidates()) {
+            timelineList.add(buildTimelineVO(candidate, wrapperSeckillGoods(candidate.getTimeLine(), candidate.getSeckillId())));
+        }
+        return timelineList;
+    }
+
+    /**
+     * 获取首页展示的秒杀场次，商品查询限制在首页展示数量内。
+     *
+     * @param goodsLimit 商品数量上限
+     * @return 首页秒杀场次
+     */
+    private SeckillTimelineVO getHomeSeckillTimelineInfo(int goodsLimit) {
+        List<SeckillTimelineCandidate> candidates = sortTimelineCandidatesByDistance(buildTodayTimelineCandidates());
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        int limit = goodsLimit <= 0 ? 1 : Math.min(goodsLimit, 50);
+        for (SeckillTimelineCandidate candidate : candidates) {
+            List<SeckillGoodsVO> goodsList = wrapperSeckillGoods(candidate.getTimeLine(), candidate.getSeckillId(), limit);
+            if (!goodsList.isEmpty()) {
+                return buildTimelineVO(candidate, goodsList);
+            }
+        }
+        return buildTimelineVO(candidates.get(0), Collections.emptyList());
+    }
+
+    /**
+     * 生成当天有效秒杀活动的场次候选。
+     *
+     * @return 场次候选
+     */
+    private List<SeckillTimelineCandidate> buildTodayTimelineCandidates() {
+        List<SeckillTimelineCandidate> candidates = new ArrayList<>();
         LambdaQueryWrapper<Seckill> queryWrapper = new LambdaQueryWrapper<>();
-        //查询当天时间段内的秒杀活动活动
+        // 查询当天有效的秒杀活动，支持活动跨天覆盖当天。
         Date now = new Date();
-        queryWrapper.between(BasePromotions::getStartTime, DateUtil.beginOfDay(now), DateUtil.endOfDay(now));
-        queryWrapper.ge(BasePromotions::getEndTime, DateUtil.endOfDay(now));
+        queryWrapper.le(BasePromotions::getStartTime, DateUtil.endOfDay(now));
+        queryWrapper.ge(BasePromotions::getEndTime, DateUtil.beginOfDay(now));
+        queryWrapper.eq(Seckill::getDeleteFlag, false);
         List<Seckill> seckillList = this.seckillService.list(queryWrapper);
+        SimpleDateFormat format = new SimpleDateFormat(DatePattern.NORM_DATE_PATTERN);
+        String date = format.format(now);
+        long currentTime = DateUtil.currentSeconds();
         for (Seckill seckill : seckillList) {
-            //读取系统时间的时刻
-            Calendar c = Calendar.getInstance();
-            int hour = c.get(Calendar.HOUR_OF_DAY);
             String[] split = seckill.getHours().split(",");
             int[] hoursSored = Arrays.stream(split).mapToInt(Integer::parseInt).toArray();
             Arrays.sort(hoursSored);
             for (int i = 0; i < hoursSored.length; i++) {
-                SeckillTimelineVO tempTimeline = new SeckillTimelineVO();
-                boolean hoursSoredHour = (hoursSored[i] >= hour || ((i + 1) < hoursSored.length && hoursSored[i + 1] > hour));
-                boolean lastHour = i == hoursSored.length - 1 && hoursSored[i] < hour;
-                if (hoursSoredHour || lastHour) {
-                    SimpleDateFormat format = new SimpleDateFormat(DatePattern.NORM_DATE_PATTERN);
-                    String date = format.format(new Date());
-                    //当前时间的秒数
-                    long currentTime = DateUtil.currentSeconds();
-                    //秒杀活动的时刻
-                    long timeLine = cn.lili.common.utils.DateUtil.getDateline(date + " " + hoursSored[i], "yyyy-MM-dd HH");
-
-                    Long distanceTime = timeLine - currentTime < 0 ? 0 : timeLine - currentTime;
-                    tempTimeline.setDistanceStartTime(distanceTime);
-                    tempTimeline.setStartTime(timeLine);
-                    tempTimeline.setTimeLine(hoursSored[i]);
-                    tempTimeline.setSeckillGoodsList(wrapperSeckillGoods(hoursSored[i], seckill.getId()));
-                    timelineList.add(tempTimeline);
-                }
+                long timeLine = cn.lili.common.utils.DateUtil.getDateline(date + " " + hoursSored[i], "yyyy-MM-dd HH");
+                Long distanceTime = timeLine - currentTime < 0 ? 0 : timeLine - currentTime;
+                candidates.add(new SeckillTimelineCandidate(seckill.getId(), hoursSored[i], timeLine, distanceTime));
             }
         }
-        return timelineList;
+        candidates.sort(Comparator
+                .comparing(SeckillTimelineCandidate::getTimeLine, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(SeckillTimelineCandidate::getStartTime, Comparator.nullsLast(Long::compareTo))
+                .thenComparing(SeckillTimelineCandidate::getSeckillId, Comparator.nullsLast(String::compareTo)));
+        return candidates;
+    }
+
+    private List<SeckillTimelineCandidate> sortTimelineCandidatesByDistance(List<SeckillTimelineCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return candidates.stream()
+                .sorted(Comparator
+                        .comparing(SeckillTimelineCandidate::getDistanceStartTime, Comparator.nullsLast(Long::compareTo))
+                        .thenComparing(SeckillTimelineCandidate::getStartTime, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 组装秒杀场次视图。
+     *
+     * @param candidate 场次候选
+     * @param goodsList 商品列表
+     * @return 秒杀场次视图
+     */
+    private SeckillTimelineVO buildTimelineVO(SeckillTimelineCandidate candidate, List<SeckillGoodsVO> goodsList) {
+        SeckillTimelineVO tempTimeline = new SeckillTimelineVO();
+        tempTimeline.setDistanceStartTime(candidate.getDistanceStartTime());
+        tempTimeline.setStartTime(candidate.getStartTime());
+        tempTimeline.setTimeLine(candidate.getTimeLine());
+        tempTimeline.setSeckillGoodsList(goodsList == null ? Collections.emptyList() : goodsList);
+        return tempTimeline;
     }
 
     /**
@@ -384,23 +677,85 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
      * @return 当时间秒杀活动的商品数据
      */
     private List<SeckillGoodsVO> wrapperSeckillGoods(Integer startTimeline, String seckillId) {
+        return wrapperSeckillGoods(startTimeline, seckillId, 0);
+    }
+
+    /**
+     * 组装指定场次秒杀商品数据。
+     *
+     * @param startTimeline 秒杀场次
+     * @param seckillId 秒杀活动编号
+     * @param goodsLimit 商品数量上限，0表示不限制
+     * @return 秒杀商品列表
+     */
+    private List<SeckillGoodsVO> wrapperSeckillGoods(Integer startTimeline, String seckillId, int goodsLimit) {
         List<SeckillGoodsVO> seckillGoodsVoS = new ArrayList<>();
-        List<SeckillApply> seckillApplyList = this.list(new LambdaQueryWrapper<SeckillApply>().eq(SeckillApply::getSeckillId, seckillId));
-        if (!seckillApplyList.isEmpty()) {
-            List<SeckillApply> collect = seckillApplyList.stream().filter(i -> i.getTimeLine().equals(startTimeline) && i.getPromotionApplyStatus().equals(PromotionsApplyStatusEnum.PASS.name())).collect(Collectors.toList());
-            for (SeckillApply seckillApply : collect) {
-                GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(seckillApply.getSkuId());
-                if (goodsSku != null) {
-                    SeckillGoodsVO goodsVO = new SeckillGoodsVO();
-                    BeanUtil.copyProperties(seckillApply, goodsVO);
-                    goodsVO.setGoodsImage(goodsSku.getThumbnail());
-                    goodsVO.setGoodsId(goodsSku.getGoodsId());
-                    goodsVO.setGoodsName(goodsSku.getGoodsName());
-                    seckillGoodsVoS.add(goodsVO);
-                }
+        LambdaQueryWrapper<SeckillApply> queryWrapper = new LambdaQueryWrapper<SeckillApply>()
+                .eq(SeckillApply::getSeckillId, seckillId)
+                .eq(SeckillApply::getTimeLine, startTimeline)
+                .eq(SeckillApply::getPromotionApplyStatus, PromotionsApplyStatusEnum.PASS.name())
+                .eq(SeckillApply::getDeleteFlag, false)
+                .orderByDesc(SeckillApply::getCreateTime);
+        if (goodsLimit > 0) {
+            queryWrapper.last("limit " + goodsLimit);
+        }
+        List<SeckillApply> seckillApplyList = this.list(queryWrapper);
+        for (SeckillApply seckillApply : seckillApplyList) {
+            GoodsSku goodsSku = goodsSkuService.getCanPromotionGoodsSkuByIdFromCache(seckillApply.getSkuId());
+            if (goodsSku != null) {
+                SeckillGoodsVO goodsVO = new SeckillGoodsVO();
+                BeanUtil.copyProperties(seckillApply, goodsVO);
+                goodsVO.setGoodsImage(goodsSku.getThumbnail());
+                goodsVO.setGoodsId(goodsSku.getGoodsId());
+                goodsVO.setGoodsName(goodsSku.getGoodsName());
+                seckillGoodsVoS.add(goodsVO);
             }
         }
         return seckillGoodsVoS;
+    }
+
+    private List<String> querySkuIdsByCategory(String categoryPath, List<String> visibleStoreIds) {
+        if (StringUtils.isBlank(categoryPath)) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<GoodsSku> queryWrapper = new LambdaQueryWrapper<GoodsSku>()
+                .eq(GoodsSku::getDeleteFlag, false)
+                .apply("CONCAT(',', category_path, ',') LIKE {0}", "%," + categoryPath + ",%");
+        if (visibleStoreIds != null && !visibleStoreIds.isEmpty()) {
+            queryWrapper.in(GoodsSku::getStoreId, visibleStoreIds);
+        }
+        return goodsSkuService.list(queryWrapper).stream()
+                .map(GoodsSku::getId)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<SeckillGoodsVO> buildSeckillGoodsVOList(List<SeckillApply> seckillApplyList) {
+        if (seckillApplyList == null || seckillApplyList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, GoodsSku> skuMap = goodsSkuService.listByIds(seckillApplyList.stream()
+                        .map(SeckillApply::getSkuId)
+                        .filter(StringUtils::isNotBlank)
+                        .distinct()
+                        .collect(Collectors.toList()))
+                .stream()
+                .collect(Collectors.toMap(GoodsSku::getId, item -> item, (left, right) -> left));
+        List<SeckillGoodsVO> result = new ArrayList<>();
+        for (SeckillApply seckillApply : seckillApplyList) {
+            GoodsSku goodsSku = skuMap.get(seckillApply.getSkuId());
+            if (goodsSku == null) {
+                continue;
+            }
+            SeckillGoodsVO goodsVO = new SeckillGoodsVO();
+            BeanUtil.copyProperties(seckillApply, goodsVO);
+            goodsVO.setGoodsImage(goodsSku.getThumbnail());
+            goodsVO.setGoodsId(goodsSku.getGoodsId());
+            goodsVO.setGoodsName(goodsSku.getGoodsName());
+            result.add(goodsVO);
+        }
+        return result;
     }
 
     /**
@@ -448,6 +803,43 @@ public class SeckillApplyServiceImpl extends ServiceImpl<SeckillApplyMapper, Sec
             promotionGoods.setEndTime(seckill.getEndTime());
         }
         return promotionGoods;
+    }
+
+    /**
+     * 首页秒杀场次候选。
+     */
+    private static class SeckillTimelineCandidate {
+
+        private final String seckillId;
+
+        private final Integer timeLine;
+
+        private final Long startTime;
+
+        private final Long distanceStartTime;
+
+        private SeckillTimelineCandidate(String seckillId, Integer timeLine, Long startTime, Long distanceStartTime) {
+            this.seckillId = seckillId;
+            this.timeLine = timeLine;
+            this.startTime = startTime;
+            this.distanceStartTime = distanceStartTime;
+        }
+
+        public String getSeckillId() {
+            return seckillId;
+        }
+
+        public Integer getTimeLine() {
+            return timeLine;
+        }
+
+        public Long getStartTime() {
+            return startTime;
+        }
+
+        public Long getDistanceStartTime() {
+            return distanceStartTime;
+        }
     }
 
 }

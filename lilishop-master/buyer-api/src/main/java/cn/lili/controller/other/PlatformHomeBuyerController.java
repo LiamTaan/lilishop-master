@@ -6,6 +6,9 @@ import cn.lili.modules.page.entity.vos.PlatformHomeVO;
 import cn.lili.modules.page.service.PlatformHomeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +32,17 @@ public class PlatformHomeBuyerController {
 
     @Operation(summary = "获取结构化平台首页")
     @Parameter(name = "clientType", description = "客户端类型", required = true)
+    @ApiResponse(responseCode = "200", description = "OK",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PlatformHomeResultMessage.class)))
     @GetMapping("/platform")
     public ResultMessage<PlatformHomeVO> platform(@RequestParam String clientType) {
         return ResultUtil.data(platformHomeService.getPlatformHome(clientType));
+    }
+
+    @Schema(description = "结构化平台首页响应")
+    public static class PlatformHomeResultMessage extends ResultMessage<PlatformHomeVO> {
+
+        private static final long serialVersionUID = 1L;
     }
 }

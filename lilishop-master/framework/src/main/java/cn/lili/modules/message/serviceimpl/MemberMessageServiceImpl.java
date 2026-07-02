@@ -40,6 +40,8 @@ public class MemberMessageServiceImpl extends ServiceImpl<MemberMessageMapper, M
         queryWrapper.like(StringUtils.isNotEmpty(memberMessageQueryVO.getTitle()), "title", memberMessageQueryVO.getTitle());
         //客户id
         queryWrapper.eq(StringUtils.isNotEmpty(memberMessageQueryVO.getMemberId()), "member_id", memberMessageQueryVO.getMemberId());
+        //消息业务分类
+        queryWrapper.eq(StringUtils.isNotEmpty(memberMessageQueryVO.getBizType()), "biz_type", memberMessageQueryVO.getBizType());
         //消息状态
         if (StringUtils.isNotEmpty(memberMessageQueryVO.getStatus())) {
             queryWrapper.eq("status", memberMessageQueryVO.getStatus());

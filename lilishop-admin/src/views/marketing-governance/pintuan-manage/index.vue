@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { utils, writeFile } from "xlsx";
-import { getWholesaleSkuPage } from "@/api/goods-governance";
 import {
+  addPintuanGoods,
   createPintuan,
+  deletePintuanGoods,
   deletePintuan,
+  getPintuanAvailableSkuPage,
   getPintuanDetail,
   getPintuanGoodsPage,
   getPintuanMembers,
   getPintuanPage,
   updatePintuan,
+  updatePintuanGoods,
   updatePintuanStatus
 } from "@/api/marketing-governance";
 import WholesaleAdminPage from "@/components/WholesaleAdminPage";
@@ -40,25 +43,24 @@ const selectedRows = ref<AnyRecord[]>([]);
 const detailVisible = ref(false);
 const dialogVisible = ref(false);
 const statusVisible = ref(false);
+const skuPickerVisible = ref(false);
+const goodsVisible = ref(false);
 const saving = ref(false);
+const goodsSaving = ref(false);
 const skuLoading = ref(false);
+const goodsRowSavingId = ref("");
 const editingId = ref("");
 const detail = ref<AnyRecord>({});
+const currentRow = ref<AnyRecord | null>(null);
 const goodsRows = ref<AnyRecord[]>([]);
 const memberRows = ref<AnyRecord[]>([]);
 const statusTargetIds = ref<string[]>([]);
 const statusTargetLabel = ref("");
-const skuOptions = ref<
-  Array<{
-    label: string;
-    value: string;
-    skuId: string;
-    goodsId: string;
-    goodsName: string;
-    thumbnail: string;
-    originalPrice: number;
-  }>
->([]);
+const statusSubmitting = ref(false);
+const skuRows = ref<ReturnType<typeof normalizePromotionSku>[]>([]);
+const selectedSkuRows = ref<ReturnType<typeof normalizePromotionSku>[]>([]);
+const skuTableRef = ref();
+const existingSkuIds = ref<Set<string>>(new Set());
 
 const query = reactive({
   keyword: "",
@@ -74,6 +76,20 @@ const statusForm = reactive({
   endTime: ""
 });
 
+const skuQuery = reactive({
+  keyword: "",
+  pageNumber: 1,
+  pageSize: 10,
+  total: 0
+});
+
+const goodsQuery = reactive({
+  keyword: "",
+  pageNumber: 1,
+  pageSize: 10,
+  total: 0
+});
+
 const pintuanForm = reactive(createPintuanForm());
 
 const columns: TableColumnList = [
@@ -84,7 +100,7 @@ const columns: TableColumnList = [
   { label: "拼团价", prop: "pintuanPriceText", minWidth: 120 },
   { label: "活动状态", prop: "promotionStatusLabel", minWidth: 120 },
   { label: "活动时间", prop: "activityTime", minWidth: 240 },
-  { label: "操作", prop: "operation", fixed: "right", width: 300, slot: "operation" }
+  { label: "操作", prop: "operation", fixed: "right", width: 380, slot: "operation" }
 ];
 
 const filteredRows = computed(() =>
@@ -138,22 +154,6 @@ const detailItems = computed(() => [
   { label: "拼团规则", value: detail.value.pintuanRule || "-", span: 2 }
 ]);
 
-function createPintuanGoodsItem(source: AnyRecord = {}) {
-  return {
-    id: source.id || "",
-    skuId: source.skuId || "",
-    goodsId: source.goodsId || "",
-    goodsName: source.goodsName || "",
-    thumbnail: source.thumbnail || "",
-    originalPrice: toNumber(source.originalPrice || source.price),
-    price: toNumber(source.price || source.promotionPrice || source.pintuanPrice),
-    quantity: toNumber(source.quantity || source.stock),
-    limitNum: toNumber(source.limitNum),
-    scopeId: source.scopeId || source.skuId || "",
-    scopeType: source.scopeType || "PORTION_GOODS"
-  };
-}
-
 function createPintuanForm() {
   return {
     promotionName: "",
@@ -162,8 +162,7 @@ function createPintuanForm() {
     requiredNum: 2,
     limitNum: 1,
     fictitious: false,
-    pintuanRule: "",
-    promotionGoodsList: [createPintuanGoodsItem()]
+    pintuanRule: ""
   };
 }
 
@@ -171,58 +170,131 @@ function resetPintuanForm() {
   Object.assign(pintuanForm, createPintuanForm());
 }
 
-function normalizeSkuOption(item: AnyRecord) {
+function normalizePromotionSku(item: AnyRecord) {
   const skuId = String(item.id || item.skuId || "").trim();
   const goodsName = item.goodsName || item.name || "未命名商品";
   const goodsId = String(item.goodsId || "").trim();
-  const simpleSpecs = item.simpleSpecs ? ` / ${item.simpleSpecs}` : "";
+  const simpleSpecs = String(item.simpleSpecs || "").trim();
+  const sn = String(item.sn || "").trim();
+  const barcode = String(item.barcode || "").trim();
+  const storeName = String(item.storeName || "").trim();
+  const specText = simpleSpecs ? ` / ${simpleSpecs}` : "";
+  const codeText = [sn, barcode].filter(Boolean).join(" / ");
   return {
-    label: `${goodsName}${simpleSpecs}`,
-    value: skuId,
+    label: codeText ? `${goodsName}${specText} (${codeText})` : `${goodsName}${specText}`,
     skuId,
     goodsId,
     goodsName,
+    simpleSpecs,
+    sn,
+    barcode,
+    storeName,
     thumbnail: item.thumbnail || "",
-    originalPrice: toNumber(item.price || item.originalPrice)
+    originalPrice: toNumber(item.price || item.originalPrice),
+    pintuanPrice: toNumber(item.pintuanPrice || item.promotionPrice || item.price || item.originalPrice),
+    quantity: toNumber(item.quantity || item.stock),
+    limitNum: toNumber(item.limitNum || currentRow.value?.limitNum || 0)
   };
 }
 
-function mergeSkuOptions(list: AnyRecord[]) {
-  const optionMap = new Map(skuOptions.value.map(item => [item.value, item] as const));
-  list
-    .map(normalizeSkuOption)
-    .filter(item => item.value)
-    .forEach(item => optionMap.set(item.value, item));
-  skuOptions.value = Array.from(optionMap.values());
-}
-
-async function searchPromotionSkus(keyword: string) {
+async function loadPromotionSkus() {
+  if (!currentRow.value) return;
   skuLoading.value = true;
   try {
-    const response = await getWholesaleSkuPage({
-      pageNumber: 1,
-      pageSize: 50,
-      salesModel: "WHOLESALE",
-      goodsName: keyword.trim() || undefined
+    const response = await getPintuanAvailableSkuPage(String(currentRow.value.id), {
+      pageNumber: skuQuery.pageNumber,
+      pageSize: skuQuery.pageSize,
+      skuKeyword: skuQuery.keyword.trim() || undefined
     });
-    mergeSkuOptions(extractApiRecords(response));
+    const payload = extractApiPayload<AnyRecord>(response) || {};
+    const records = extractApiRecords(response);
+    skuRows.value = records
+      .map(normalizePromotionSku)
+      .filter(item => item.skuId && !existingSkuIds.value.has(item.skuId));
+    skuQuery.total = Number(payload.total ?? records.length ?? 0);
   } catch (_error) {
+    skuRows.value = [];
+    skuQuery.total = 0;
     message("商品搜索失败", { type: "error" });
   } finally {
     skuLoading.value = false;
   }
 }
 
-function handlePromotionSkuChange(item: AnyRecord, skuId: string) {
-  const target = skuOptions.value.find(option => option.value === skuId);
-  item.skuId = skuId;
-  item.scopeId = skuId;
-  item.goodsId = target?.goodsId || "";
-  item.goodsName = target?.goodsName || "";
-  item.thumbnail = target?.thumbnail || "";
-  if (!item.originalPrice) {
-    item.originalPrice = target?.originalPrice || 0;
+async function openSkuPicker(row: AnyRecord) {
+  currentRow.value = row;
+  clearSkuSelection();
+  skuRows.value = [];
+  skuQuery.keyword = "";
+  skuQuery.pageNumber = 1;
+  skuQuery.total = 0;
+  skuPickerVisible.value = true;
+  await nextTick();
+  clearSkuSelection();
+  await loadExistingSkuIds();
+  await loadPromotionSkus();
+  await nextTick();
+  clearSkuSelection();
+}
+
+async function loadExistingSkuIds() {
+  if (!currentRow.value) {
+    existingSkuIds.value = new Set();
+    return;
   }
+  try {
+    const response = await getPintuanGoodsPage(String(currentRow.value.id), {
+      pageNumber: 1,
+      pageSize: 10000
+    });
+    existingSkuIds.value = new Set(
+      extractApiRecords(response)
+        .map(item => String(item.skuId || "").trim())
+        .filter(Boolean)
+    );
+  } catch (_error) {
+    existingSkuIds.value = new Set();
+  }
+}
+
+function closeSkuPicker() {
+  skuPickerVisible.value = false;
+  clearSkuSelection();
+}
+
+function clearSkuSelection() {
+  selectedSkuRows.value = [];
+  skuTableRef.value?.clearSelection?.();
+}
+
+function handleSkuSearch() {
+  skuQuery.pageNumber = 1;
+  clearSkuSelection();
+  loadPromotionSkus();
+}
+
+function handleSkuReset() {
+  skuQuery.keyword = "";
+  skuQuery.pageNumber = 1;
+  clearSkuSelection();
+  loadPromotionSkus();
+}
+
+function handleSkuPageSizeChange(size: number) {
+  skuQuery.pageSize = size;
+  skuQuery.pageNumber = 1;
+  clearSkuSelection();
+  loadPromotionSkus();
+}
+
+function handleSkuPageChange(page: number) {
+  skuQuery.pageNumber = page;
+  clearSkuSelection();
+  loadPromotionSkus();
+}
+
+function handleSkuSelectionChange(rows: AnyRecord[]) {
+  selectedSkuRows.value = rows.map(normalizePromotionSku).filter(item => item.skuId);
 }
 
 function firstPromotionGoods(item: AnyRecord) {
@@ -278,22 +350,38 @@ function normalizeMember(item: AnyRecord, index: number) {
 }
 
 function normalizeGoods(item: AnyRecord, index: number) {
+  const originalPriceValue = toNumber(item.originalPrice || item.goodsPrice || item.skuPrice);
+  const pintuanPriceValue = toNumber(item.price || item.promotionPrice || item.pintuanPrice);
+  const quantityValue = toNumber(item.quantity || item.stock);
+  const limitNumValue = toNumber(item.limitNum);
   return {
     id: item.id || item.skuId || `goods-${index}`,
+    skuId: String(item.skuId || "").trim(),
     goodsName: item.goodsName || item.skuName || "-",
-    originalPrice: formatMoney(item.originalPrice),
-    pintuanPrice: item.price || item.promotionPrice || item.pintuanPrice
-      ? formatMoney(item.price || item.promotionPrice || item.pintuanPrice)
-      : "-",
-    stock: item.quantity || item.stock || "-",
-    limitNum: item.limitNum || "-"
+    originalPrice: formatMoney(originalPriceValue),
+    originalPriceValue,
+    pintuanPrice: pintuanPriceValue ? formatMoney(pintuanPriceValue) : "-",
+    pintuanPriceValue,
+    stock: quantityValue || "-",
+    quantityValue,
+    limitNum: limitNumValue || "-",
+    limitNumValue
   };
 }
 
+function uniqueGoodsBySku(list: AnyRecord[]) {
+  const goodsMap = new Map<string, AnyRecord>();
+  list.forEach((item, index) => {
+    const normalized = normalizeGoods(item, index);
+    const uniqueKey = normalized.skuId || normalized.id;
+    if (!goodsMap.has(uniqueKey)) {
+      goodsMap.set(uniqueKey, normalized);
+    }
+  });
+  return Array.from(goodsMap.values());
+}
+
 function fillPintuanForm(source: AnyRecord) {
-  const goodsList = Array.isArray(source.promotionGoodsList)
-    ? source.promotionGoodsList
-    : [];
   Object.assign(pintuanForm, {
     promotionName: source.promotionName || "",
     startTime: formatDateTimeForField(source.startTime),
@@ -301,12 +389,8 @@ function fillPintuanForm(source: AnyRecord) {
     requiredNum: Number(source.requiredNum || 2),
     limitNum: Number(source.limitNum || 1),
     fictitious: Boolean(source.fictitious),
-    pintuanRule: source.pintuanRule || "",
-    promotionGoodsList: goodsList.length
-      ? goodsList.map(createPintuanGoodsItem)
-      : [createPintuanGoodsItem(source)]
+    pintuanRule: source.pintuanRule || ""
   });
-  mergeSkuOptions(pintuanForm.promotionGoodsList);
 }
 
 function buildPintuanPayload() {
@@ -318,20 +402,7 @@ function buildPintuanPayload() {
     limitNum: toNumber(pintuanForm.limitNum),
     fictitious: Boolean(pintuanForm.fictitious),
     pintuanRule: pintuanForm.pintuanRule,
-    scopeType: "PORTION_GOODS",
-    promotionGoodsList: pintuanForm.promotionGoodsList.map(item => ({
-      ...item,
-      goodsId: item.goodsId,
-      skuId: item.skuId,
-      goodsName: item.goodsName,
-      thumbnail: item.thumbnail,
-      originalPrice: toNumber(item.originalPrice),
-      price: toNumber(item.price),
-      quantity: toNumber(item.quantity),
-      limitNum: toNumber(item.limitNum || pintuanForm.limitNum),
-      scopeId: item.skuId,
-      scopeType: "PORTION_GOODS"
-    }))
+    scopeType: "PORTION_GOODS"
   };
 }
 
@@ -371,7 +442,6 @@ function handleSelectionChange(list: AnyRecord[]) {
 function openCreate() {
   editingId.value = "";
   resetPintuanForm();
-  searchPromotionSkus("");
   dialogVisible.value = true;
 }
 
@@ -396,7 +466,7 @@ async function openDetail(row: AnyRecord) {
     ]);
     detail.value = normalizePintuanRecord(extractApiPayload<AnyRecord>(detailRes) || row);
     memberRows.value = extractApiRecords(memberRes).map(normalizeMember);
-    goodsRows.value = extractApiRecords(goodsRes).map(normalizeGoods);
+    goodsRows.value = uniqueGoodsBySku(extractApiRecords(goodsRes));
   } catch (_error) {
     detail.value = normalizePintuanRecord(row);
     memberRows.value = [];
@@ -411,10 +481,6 @@ async function openDetail(row: AnyRecord) {
 async function submitPayload() {
   if (!pintuanForm.promotionName.trim()) {
     message("请填写活动名称", { type: "warning" });
-    return;
-  }
-  if (!pintuanForm.promotionGoodsList.some(item => item.skuId)) {
-    message("请至少选择一个拼团商品", { type: "warning" });
     return;
   }
   saving.value = true;
@@ -435,18 +501,6 @@ async function submitPayload() {
   }
 }
 
-function addGoodsItem() {
-  pintuanForm.promotionGoodsList.push(createPintuanGoodsItem());
-}
-
-function removeGoodsItem(index: number) {
-  if (pintuanForm.promotionGoodsList.length === 1) {
-    pintuanForm.promotionGoodsList.splice(0, 1, createPintuanGoodsItem());
-    return;
-  }
-  pintuanForm.promotionGoodsList.splice(index, 1);
-}
-
 async function handleDelete(row: AnyRecord) {
   await ElMessageBox.confirm(`确认删除拼团活动「${row.promotionName}」吗？`, "删除确认", {
     type: "warning"
@@ -457,6 +511,107 @@ async function handleDelete(row: AnyRecord) {
     await loadData();
   } catch (_error) {
     message("拼团活动删除失败，可能存在进行中拼团或有效订单", { type: "error" });
+  }
+}
+
+async function openGoods(row: AnyRecord) {
+  currentRow.value = row;
+  goodsVisible.value = true;
+  goodsQuery.keyword = "";
+  goodsQuery.pageNumber = 1;
+  goodsQuery.total = 0;
+  await loadGoodsData();
+}
+
+async function loadGoodsData() {
+  if (!currentRow.value) return;
+  try {
+    const response = await getPintuanGoodsPage(String(currentRow.value.id), {
+      pageNumber: goodsQuery.pageNumber,
+      pageSize: goodsQuery.pageSize,
+      goodsName: goodsQuery.keyword.trim() || undefined
+    });
+    const payload = extractApiPayload<AnyRecord>(response) || {};
+    const records = extractApiRecords(response);
+    goodsRows.value = uniqueGoodsBySku(records);
+    goodsQuery.total = Number(payload.total ?? goodsRows.value.length ?? 0);
+  } catch (_error) {
+    goodsRows.value = [];
+    goodsQuery.total = 0;
+    message("拼团商品加载失败", { type: "error" });
+  }
+}
+
+function searchGoodsData() {
+  goodsQuery.pageNumber = 1;
+  loadGoodsData();
+}
+
+function handleGoodsPageChange(page: number) {
+  goodsQuery.pageNumber = page;
+  loadGoodsData();
+}
+
+async function submitGoods() {
+  if (!currentRow.value) return;
+  const selectedSkus = Array.from(
+    new Map(selectedSkuRows.value.map(item => [item.skuId, item])).values()
+  );
+  if (!selectedSkus.length) {
+    message("请选择需要添加的拼团商品", { type: "warning" });
+    return;
+  }
+  goodsSaving.value = true;
+  try {
+    await addPintuanGoods(
+      String(currentRow.value.id),
+      selectedSkus.map(item => ({
+        skuId: item.skuId,
+        price: toNumber(item.pintuanPrice),
+        quantity: item.quantity,
+        limitNum: item.limitNum || toNumber(currentRow.value?.limitNum || 0)
+      }))
+    );
+    message("拼团商品添加成功", { type: "success" });
+    selectedSkus.forEach(item => existingSkuIds.value.add(item.skuId));
+    closeSkuPicker();
+    await loadData();
+  } catch (_error) {
+    message("拼团商品添加失败，可能存在秒杀/拼团时间冲突", { type: "error" });
+  } finally {
+    goodsSaving.value = false;
+  }
+}
+
+async function handleSaveGoods(row: AnyRecord) {
+  if (!currentRow.value) return;
+  goodsRowSavingId.value = String(row.id);
+  try {
+    await updatePintuanGoods(String(currentRow.value.id), String(row.id), {
+      skuId: row.skuId,
+      price: toNumber(row.pintuanPriceValue),
+      quantity: toNumber(row.quantityValue),
+      limitNum: toNumber(row.limitNumValue)
+    });
+    message("拼团商品已更新", { type: "success" });
+    await loadGoodsData();
+    await loadData();
+  } catch (_error) {
+    message("拼团商品更新失败，请检查拼团价、库存和活动冲突", { type: "error" });
+  } finally {
+    goodsRowSavingId.value = "";
+  }
+}
+
+async function handleDeleteGoods(row: AnyRecord) {
+  if (!currentRow.value) return;
+  try {
+    await deletePintuanGoods(String(currentRow.value.id), String(row.id));
+    message("拼团商品移除成功", { type: "success" });
+    await loadGoodsData();
+    await loadData();
+  } catch (_error) {
+    message("拼团商品移除失败", { type: "error" });
   }
 }
 
@@ -480,33 +635,71 @@ async function handleBatchDelete() {
   }
 }
 
-function openStatusDialog(row?: AnyRecord) {
-  const ids = row ? [String(row.id || "").trim()].filter(Boolean) : selectedIds.value;
-  if (!ids.length) {
-    message("请先勾选需要调整状态的拼团活动", { type: "warning" });
+function isDisplaying(row: AnyRecord) {
+  return String(row.promotionStatus || "").toUpperCase() === "START";
+}
+
+function openStatusDialog(row: AnyRecord) {
+  const id = String(row.id || "").trim();
+  if (!id) {
+    message("未找到需要开启展示的拼团活动", { type: "warning" });
     return;
   }
-  statusTargetIds.value = ids;
-  statusTargetLabel.value = row
+  statusTargetIds.value = [id];
+  statusTargetLabel.value = row.promotionName || id;
+  statusForm.startTime = formatDateTimeForField(row.startTime);
+  statusForm.endTime = formatDateTimeForField(row.endTime);
+  statusVisible.value = true;
+}
+
+async function closeDisplay(row?: AnyRecord) {
+  const ids = row ? [String(row.id || "").trim()].filter(Boolean) : selectedIds.value;
+  if (!ids.length) {
+    message("请先勾选需要关闭展示的拼团活动", { type: "warning" });
+    return;
+  }
+  const label = row
     ? row.promotionName || String(row.id || "")
     : `已勾选的 ${ids.length} 个拼团活动`;
-  statusForm.startTime = "";
-  statusForm.endTime = "";
-  statusVisible.value = true;
+  await ElMessageBox.confirm(
+    `确认关闭「${label}」的移动端拼团展示吗？关闭后移动端不再展示这些拼团入口。`,
+    "关闭展示确认",
+    { type: "warning" }
+  );
+  try {
+    await updatePintuanStatus(ids.join(","), { open: false });
+    message("拼团活动展示已关闭", { type: "success" });
+    selectedRows.value = [];
+    await loadData();
+  } catch (_error) {
+    message("拼团活动关闭展示失败", { type: "error" });
+  }
 }
 
 async function submitStatus() {
   if (!statusTargetIds.value.length) return;
+  if (!statusForm.startTime || !statusForm.endTime) {
+    message("请选择移动端展示开始时间和结束时间", { type: "warning" });
+    return;
+  }
+  if (statusTargetIds.value.length > 1) {
+    message("移动端展示拼团一次只能开启一个活动", { type: "warning" });
+    return;
+  }
+  statusSubmitting.value = true;
   try {
-    await updatePintuanStatus(statusTargetIds.value.join(","), {
+    await updatePintuanStatus(statusTargetIds.value[0], {
+      open: true,
       startTime: toTimeValue(statusForm.startTime),
       endTime: toTimeValue(statusForm.endTime)
     });
-    message("拼团活动状态更新成功", { type: "success" });
+    message("拼团活动已开启移动端展示", { type: "success" });
     statusVisible.value = false;
     await loadData();
   } catch (_error) {
-    message("拼团活动状态更新失败", { type: "error" });
+    message("拼团活动开启展示失败", { type: "error" });
+  } finally {
+    statusSubmitting.value = false;
   }
 }
 
@@ -559,8 +752,8 @@ onMounted(() => {
   >
     <template #table-extra>
       <el-button type="danger" plain @click="handleBatchDelete">批量删除</el-button>
-      <el-button type="warning" plain @click="openStatusDialog()">
-        批量状态
+      <el-button type="warning" plain @click="closeDisplay()">
+        批量关闭展示
       </el-button>
       <el-button @click="exportPintuan">导出</el-button>
       <el-button type="primary" @click="openCreate">新增拼团活动</el-button>
@@ -577,7 +770,19 @@ onMounted(() => {
     <template #operation="{ row }">
       <el-button link type="primary" @click="openDetail(row)">详情</el-button>
       <el-button link type="success" @click="openEdit(row)">编辑</el-button>
-      <el-button link type="warning" @click="openStatusDialog(row)">状态</el-button>
+      <el-button
+        v-if="isDisplaying(row)"
+        link
+        type="warning"
+        @click="closeDisplay(row)"
+      >
+        关闭展示
+      </el-button>
+      <el-button v-else link type="warning" @click="openStatusDialog(row)">
+        开启展示
+      </el-button>
+      <el-button link type="primary" @click="openSkuPicker(row)">添加商品</el-button>
+      <el-button link type="primary" @click="openGoods(row)">活动商品</el-button>
       <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
     </template>
   </WholesaleAdminPage>
@@ -635,84 +840,6 @@ onMounted(() => {
           placeholder="请输入拼团规则说明"
         />
       </el-form-item>
-
-      <section class="goods-section">
-        <div class="section-header">
-          <span>拼团商品</span>
-          <el-button type="primary" link @click="addGoodsItem">新增商品</el-button>
-        </div>
-        <div
-          v-for="(item, index) in pintuanForm.promotionGoodsList"
-          :key="`pintuan-${index}`"
-          class="goods-card"
-        >
-          <div class="section-header">
-            <strong>商品 {{ index + 1 }}</strong>
-            <el-button type="danger" link @click="removeGoodsItem(index)">
-              移除
-            </el-button>
-          </div>
-          <div class="form-grid">
-            <el-form-item label="选择商品">
-              <el-select
-                :model-value="item.skuId"
-                filterable
-                remote
-                clearable
-                reserve-keyword
-                :remote-method="searchPromotionSkus"
-                :loading="skuLoading"
-                placeholder="请输入商品名称搜索后选择 SKU"
-                style="width: 100%"
-                @update:model-value="value => handlePromotionSkuChange(item, String(value || ''))"
-              >
-                <el-option
-                  v-for="option in skuOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="商品名称">
-              <el-input v-model="item.goodsName" disabled />
-            </el-form-item>
-            <el-form-item label="原价">
-              <el-input-number
-                v-model="item.originalPrice"
-                :min="0"
-                :precision="2"
-                style="width: 100%"
-              />
-            </el-form-item>
-            <el-form-item label="拼团价">
-              <el-input-number
-                v-model="item.price"
-                :min="0"
-                :precision="2"
-                style="width: 100%"
-              />
-            </el-form-item>
-            <el-form-item label="活动库存">
-              <el-input-number
-                v-model="item.quantity"
-                :min="0"
-                style="width: 100%"
-              />
-            </el-form-item>
-            <el-form-item label="单品限购">
-              <el-input-number
-                v-model="item.limitNum"
-                :min="0"
-                style="width: 100%"
-              />
-            </el-form-item>
-            <el-form-item label="缩略图">
-              <el-input v-model="item.thumbnail" />
-            </el-form-item>
-          </div>
-        </div>
-      </section>
     </el-form>
     <template #footer>
       <el-button @click="dialogVisible = false">取消</el-button>
@@ -720,6 +847,175 @@ onMounted(() => {
         保存
       </el-button>
     </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="skuPickerVisible"
+    title="选择拼团商品"
+    width="1080px"
+    append-to-body
+    @closed="clearSkuSelection"
+  >
+    <el-form class="sku-picker-filter" inline @submit.prevent>
+      <el-form-item label="商品">
+        <el-input
+          v-model="skuQuery.keyword"
+          clearable
+          placeholder="商品名 / 规格 / 货号 / 条码"
+          @keyup.enter="handleSkuSearch"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="handleSkuSearch">查询</el-button>
+        <el-button @click="handleSkuReset">重置</el-button>
+      </el-form-item>
+    </el-form>
+    <el-table
+      ref="skuTableRef"
+      v-loading="skuLoading"
+      :data="skuRows"
+      border
+      height="430"
+      row-key="skuId"
+      @selection-change="handleSkuSelectionChange"
+    >
+      <el-table-column type="selection" width="54" />
+      <el-table-column label="商品" min-width="260" show-overflow-tooltip>
+        <template #default="{ row }">
+          <div class="sku-table-name">
+            <span>{{ row.goodsName }}</span>
+            <small v-if="row.simpleSpecs">{{ row.simpleSpecs }}</small>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="SKU ID" prop="skuId" min-width="170" show-overflow-tooltip />
+      <el-table-column label="货号" prop="sn" min-width="130" show-overflow-tooltip />
+      <el-table-column label="条码" prop="barcode" min-width="150" show-overflow-tooltip />
+      <el-table-column label="店铺" prop="storeName" min-width="150" show-overflow-tooltip />
+      <el-table-column label="价格" min-width="100">
+        <template #default="{ row }">¥ {{ row.originalPrice.toFixed(2) }}</template>
+      </el-table-column>
+      <el-table-column label="拼团价" min-width="150">
+        <template #default="{ row }">
+          <el-input-number
+            v-model="row.pintuanPrice"
+            :min="0"
+            :precision="2"
+            :step="1"
+            controls-position="right"
+            class="table-number-input"
+          />
+        </template>
+      </el-table-column>
+      <el-table-column label="库存" prop="quantity" min-width="90" />
+      <el-table-column label="限购" min-width="130">
+        <template #default="{ row }">
+          <el-input-number
+            v-model="row.limitNum"
+            :min="0"
+            :precision="0"
+            :step="1"
+            controls-position="right"
+            class="table-number-input"
+          />
+        </template>
+      </el-table-column>
+    </el-table>
+    <div class="sku-picker-pagination">
+      <el-pagination
+        v-model:current-page="skuQuery.pageNumber"
+        v-model:page-size="skuQuery.pageSize"
+        :total="skuQuery.total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSkuPageSizeChange"
+        @current-change="handleSkuPageChange"
+      />
+    </div>
+    <template #footer>
+      <el-button @click="closeSkuPicker">取消</el-button>
+      <el-button type="primary" :loading="goodsSaving" @click="submitGoods">
+        保存商品
+      </el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="goodsVisible" title="拼团活动商品" width="1080px">
+    <div class="section-header sku-picker-filter">
+      <span>{{ currentRow?.promotionName || "当前活动" }}</span>
+      <div class="sku-search">
+        <el-input
+          v-model="goodsQuery.keyword"
+          clearable
+          placeholder="搜索商品名称"
+          @keyup.enter="searchGoodsData"
+        />
+        <el-button type="primary" @click="searchGoodsData">查询</el-button>
+      </div>
+    </div>
+    <el-table :data="goodsRows" border height="430" row-key="id">
+      <el-table-column label="商品名称" prop="goodsName" min-width="220" show-overflow-tooltip />
+      <el-table-column label="原价" prop="originalPrice" min-width="120" />
+      <el-table-column label="拼团价" min-width="150">
+        <template #default="{ row }">
+          <el-input-number
+            v-model="row.pintuanPriceValue"
+            :min="0"
+            :precision="2"
+            :step="1"
+            controls-position="right"
+            class="table-number-input"
+          />
+        </template>
+      </el-table-column>
+      <el-table-column label="库存" min-width="130">
+        <template #default="{ row }">
+          <el-input-number
+            v-model="row.quantityValue"
+            :min="0"
+            :precision="0"
+            :step="1"
+            controls-position="right"
+            class="table-number-input"
+          />
+        </template>
+      </el-table-column>
+      <el-table-column label="限购" min-width="130">
+        <template #default="{ row }">
+          <el-input-number
+            v-model="row.limitNumValue"
+            :min="0"
+            :precision="0"
+            :step="1"
+            controls-position="right"
+            class="table-number-input"
+          />
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" fixed="right" width="132">
+        <template #default="{ row }">
+          <el-button
+            link
+            type="primary"
+            :loading="goodsRowSavingId === String(row.id)"
+            @click="handleSaveGoods(row)"
+          >
+            保存
+          </el-button>
+          <el-button link type="danger" @click="handleDeleteGoods(row)">移除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <div class="sku-picker-pagination">
+      <el-pagination
+        v-model:current-page="goodsQuery.pageNumber"
+        :page-size="goodsQuery.pageSize"
+        :total="goodsQuery.total"
+        layout="prev, pager, next, total"
+        background
+        @current-change="handleGoodsPageChange"
+      />
+    </div>
   </el-dialog>
 
   <el-drawer v-model="detailVisible" title="拼团活动详情" size="760px">
@@ -752,11 +1048,13 @@ onMounted(() => {
     </el-table>
   </el-drawer>
 
-  <el-dialog v-model="statusVisible" title="拼团活动状态调整" width="520px">
+  <el-dialog v-model="statusVisible" title="开启移动端拼团展示" width="520px">
     <el-alert
-      :title="`当前将调整：${statusTargetLabel}`"
-      type="info"
+      :title="`当前将开启：${statusTargetLabel}`"
+      description="移动端拼团入口一次只展示一个活动，开启后后端会自动关闭其他正在展示的拼团活动。"
+      type="warning"
       :closable="false"
+      show-icon
       class="status-alert"
     />
     <el-form label-width="92px">
@@ -779,7 +1077,9 @@ onMounted(() => {
     </el-form>
     <template #footer>
       <el-button @click="statusVisible = false">取消</el-button>
-      <el-button type="primary" @click="submitStatus">提交</el-button>
+      <el-button type="primary" :loading="statusSubmitting" @click="submitStatus">
+        开启展示
+      </el-button>
     </template>
   </el-dialog>
 </template>
@@ -791,20 +1091,42 @@ onMounted(() => {
   gap: 8px 16px;
 }
 
-.goods-section {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 14px;
-  background: #fafbfc;
+.sku-picker-filter {
+  margin-bottom: 12px;
 }
 
-.goods-card {
+.sku-search {
+  display: flex;
+  width: min(520px, 100%);
+  gap: 8px;
+}
+
+.sku-table-name {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.sku-table-name span,
+.sku-table-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sku-table-name small {
+  color: #909399;
+}
+
+.sku-picker-pagination {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 12px;
-  padding: 16px;
-  border: 1px solid #edf0f5;
-  border-radius: 12px;
-  background: #fff;
+}
+
+.table-number-input {
+  width: 118px;
 }
 
 .section-header {

@@ -8,10 +8,12 @@ package cn.lili.modules.message.entity.enums;
  */
 public enum MessageSendClient {
 
-    //全部用户
-    MEMBER("客户"),
-    //指定用户
-    STORE("店铺");
+    MEMBER("会员"),
+    STORE("店铺"),
+    ALL("全部"),
+    CONSUMER("消费者"),
+    AGENT("代理商"),
+    SUPPLIER("供货商");
 
     private final String description;
 

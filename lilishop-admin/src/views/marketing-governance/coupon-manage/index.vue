@@ -271,7 +271,7 @@ function createCouponForm() {
     couponType: "PRICE",
     price: 10,
     couponDiscount: 0,
-    getType: "FREE_GET",
+    getType: "FREE",
     publishNum: 100,
     couponLimitNum: 1,
     consumeThreshold: 0,
@@ -297,7 +297,7 @@ function fillCouponForm(source: Record<string, any>) {
     couponType: source.couponType || "PRICE",
     price: toNumber(source.price || 0),
     couponDiscount: toNumber(source.couponDiscount || 0),
-    getType: source.getType || "FREE_GET",
+    getType: source.getType === "FREE_GET" ? "FREE" : source.getType || "FREE",
     publishNum: toNumber(source.publishNum || 0),
     couponLimitNum: toNumber(source.couponLimitNum || 0),
     consumeThreshold: toNumber(source.consumeThreshold || 0),
@@ -626,7 +626,7 @@ onMounted(() => {
         </el-form-item>
         <el-form-item label="领取方式">
           <el-select v-model="couponForm.getType">
-            <el-option label="免费领取" value="FREE_GET" />
+            <el-option label="免费领取" value="FREE" />
             <el-option label="活动赠送" value="ACTIVITY" />
           </el-select>
         </el-form-item>

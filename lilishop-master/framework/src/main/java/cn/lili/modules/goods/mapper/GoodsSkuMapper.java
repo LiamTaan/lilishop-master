@@ -58,6 +58,10 @@ public interface GoodsSkuMapper extends BaseMapper<GoodsSku> {
             "\tstore_category_path,\n" +
             "\tstore_id,\n" +
             "\tstore_name,\n" +
+            "\tsource_store_id,\n" +
+            "\tsource_store_name,\n" +
+            "\tsource_goods_id,\n" +
+            "\tsource_sku_id,\n" +
             "\tauth_flag,\n" +
             "\tself_operated,\n" +
             "\tmobile_intro,\n" +
@@ -95,6 +99,10 @@ public interface GoodsSkuMapper extends BaseMapper<GoodsSku> {
             "\t#{goodsSku.storeCategoryPath},\n" +
             "\t#{goodsSku.storeId},\n" +
             "\t#{goodsSku.storeName},\n" +
+            "\t#{goodsSku.sourceStoreId},\n" +
+            "\t#{goodsSku.sourceStoreName},\n" +
+            "\t#{goodsSku.sourceGoodsId},\n" +
+            "\t#{goodsSku.sourceSkuId},\n" +
             "\t#{goodsSku.authFlag},\n" +
             "\t#{goodsSku.selfOperated},\n" +
             "\t#{goodsSku.mobileIntro},\n" +

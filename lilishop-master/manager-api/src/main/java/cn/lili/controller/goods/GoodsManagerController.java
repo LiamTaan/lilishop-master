@@ -13,6 +13,7 @@ import cn.lili.modules.goods.entity.dto.GoodsAuthUpdateDTO;
 import cn.lili.modules.goods.entity.dto.GoodsBatchOperationDTO;
 import cn.lili.modules.goods.entity.dto.GoodsBatchUnderDTO;
 import cn.lili.modules.goods.entity.dto.GoodsSearchParams;
+import cn.lili.modules.goods.entity.dto.GoodsSkuSearchParams;
 import cn.lili.modules.goods.entity.dto.GoodsVirtualSalesSingleDTO;
 import cn.lili.modules.goods.entity.dto.GoodsVirtualSalesDTO;
 import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
@@ -58,11 +59,17 @@ public class GoodsManagerController {
 
     @GetMapping("/list")
     public ResultMessage<IPage<Goods>> getByPage(GoodsSearchParams goodsSearchParams) {
+        if (goodsSearchParams.getSalesModel() == null || goodsSearchParams.getSalesModel().isBlank()) {
+            goodsSearchParams.setSalesModel(GoodsSalesModeEnum.RETAIL.name());
+        }
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
     @GetMapping("/goodsNumber")
     public ResultMessage<GoodsNumVO> getGoodsNumVO(GoodsSearchParams goodsSearchParams) {
+        if (goodsSearchParams.getSalesModel() == null || goodsSearchParams.getSalesModel().isBlank()) {
+            goodsSearchParams.setSalesModel(GoodsSalesModeEnum.RETAIL.name());
+        }
         return ResultUtil.data(goodsService.getGoodsNumVO(goodsSearchParams));
     }
 
@@ -70,7 +77,20 @@ public class GoodsManagerController {
     public ResultMessage<IPage<GoodsSku>> getSkuByPage(GoodsSearchParams goodsSearchParams) {
         goodsSearchParams.setSort("create_time");
         goodsSearchParams.setOrder("desc");
+        if (goodsSearchParams.getSalesModel() == null || goodsSearchParams.getSalesModel().isBlank()) {
+            goodsSearchParams.setSalesModel(GoodsSalesModeEnum.RETAIL.name());
+        }
         return ResultUtil.data(goodsSkuService.getGoodsSkuByPage(goodsSearchParams));
+    }
+
+    @GetMapping("/sku/promotion/list")
+    public ResultMessage<IPage<GoodsSku>> getPromotionSkuByPage(GoodsSkuSearchParams goodsSkuSearchParams) {
+        goodsSkuSearchParams.setSalesModel(GoodsSalesModeEnum.RETAIL.name());
+        goodsSkuSearchParams.setAuthFlag(GoodsAuthEnum.PASS.name());
+        goodsSkuSearchParams.setMarketEnable(GoodsStatusEnum.UPPER.name());
+        goodsSkuSearchParams.setSort("create_time");
+        goodsSkuSearchParams.setOrder("desc");
+        return ResultUtil.data(goodsSkuService.getGoodsSkuByPage(goodsSkuSearchParams));
     }
 
     @GetMapping("/auth/list")

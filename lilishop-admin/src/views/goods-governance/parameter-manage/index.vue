@@ -53,7 +53,7 @@ const form = reactive({
 });
 
 const columns: TableColumnList = [
-  { label: "参数名称", prop: "paramName", minWidth: 150 },
+  { label: "规格名称", prop: "paramName", minWidth: 150 },
   {
     label: "选项值",
     prop: "options",
@@ -87,19 +87,19 @@ const selectedIds = computed(() => [
 
 const summaryCards = computed(() => [
   {
-    label: "参数总数",
+    label: "规格总数",
     value: filteredRows.value.length,
     accent: "orange" as const,
     hint: "当前筛选结果"
   },
   {
-    label: "索引参数",
+    label: "可索引规格",
     value: filteredRows.value.filter(item => Number(item.isIndex) === 1).length,
     accent: "green" as const,
     hint: "前台筛选可用"
   },
   {
-    label: "必填参数",
+    label: "必填规格",
     value: filteredRows.value.filter(item => Number(item.required) === 1)
       .length,
     accent: "blue" as const,
@@ -209,7 +209,7 @@ async function loadCategories() {
   } catch (_error) {
     categoryOptions.value = [];
     categoryNameMap.value = new Map();
-    message("分类选项加载失败，参数保存时请先确认分类接口可用", {
+    message("分类选项加载失败，规格保存时请先确认分类接口可用", {
       type: "warning"
     });
   } finally {
@@ -227,7 +227,7 @@ async function loadData() {
     rows.value = extractApiRecords(response).map(normalizeRow);
   } catch (_error) {
     rows.value = [];
-    message("参数列表加载失败，请稍后重试", { type: "error" });
+    message("规格列表加载失败，请稍后重试", { type: "error" });
   }
 }
 
@@ -279,7 +279,7 @@ async function openEdit(row: Record<string, any>) {
       : [];
     dialogVisible.value = true;
   } catch (_error) {
-    message("参数详情加载失败", { type: "error" });
+    message("规格详情加载失败", { type: "error" });
   }
 }
 
@@ -289,7 +289,7 @@ async function openDetail(row: Record<string, any>) {
     detailRow.value = normalizeDetailRow(extractApiPayload(response) || row);
     detailVisible.value = true;
   } catch (_error) {
-    message("参数详情加载失败", { type: "error" });
+    message("规格详情加载失败", { type: "error" });
   }
 }
 
@@ -297,15 +297,15 @@ async function submitForm() {
   const paramName = form.paramName.trim();
   const options = joinOptions(form.optionList);
   if (!paramName) {
-    message("请输入参数名称", { type: "warning" });
+    message("请输入规格名称", { type: "warning" });
     return;
   }
   if (!options) {
-    message("请至少维护一个参数选项", { type: "warning" });
+    message("请至少维护一个规格值", { type: "warning" });
     return;
   }
   if (options.length > 255) {
-    message("参数选项总长度不能超过 255 个字符", { type: "warning" });
+    message("规格值总长度不能超过 255 个字符", { type: "warning" });
     return;
   }
 
@@ -325,16 +325,16 @@ async function submitForm() {
     };
     if (editingId.value) {
       await updateParameter(payload);
-      message("参数更新成功", { type: "success" });
+      message("规格更新成功", { type: "success" });
     } else {
       await createParameter(payload);
-      message("参数创建成功", { type: "success" });
+      message("规格创建成功", { type: "success" });
     }
     dialogVisible.value = false;
     resetForm();
     await loadData();
   } catch (_error) {
-    message("参数保存失败，请检查字段契约", { type: "error" });
+    message("规格保存失败，请检查字段契约", { type: "error" });
   } finally {
     saving.value = false;
   }
@@ -342,7 +342,7 @@ async function submitForm() {
 
 async function handleDelete(row: Record<string, any>) {
   await ElMessageBox.confirm(
-    `确认删除参数「${row.paramName}」吗？`,
+    `确认删除规格「${row.paramName}」吗？`,
     "删除确认",
     {
       type: "warning"
@@ -350,20 +350,20 @@ async function handleDelete(row: Record<string, any>) {
   );
   try {
     await deleteParameter(String(row.id));
-    message("参数删除成功", { type: "success" });
+    message("规格删除成功", { type: "success" });
     await loadData();
   } catch (_error) {
-    message("参数删除失败，请先确认是否有分类绑定", { type: "error" });
+    message("规格删除失败，请先确认是否有分类绑定", { type: "error" });
   }
 }
 
 async function handleBatchDelete() {
   if (!selectedRows.value.length) {
-    message("请先选择要删除的参数", { type: "warning" });
+    message("请先选择要删除的规格", { type: "warning" });
     return;
   }
   await ElMessageBox.confirm(
-    `确认批量删除选中的 ${selectedRows.value.length} 个参数吗？`,
+    `确认批量删除选中的 ${selectedRows.value.length} 个规格吗？`,
     "批量删除确认",
     {
       type: "warning"
@@ -377,23 +377,23 @@ async function handleBatchDelete() {
   ).length;
   const failCount = results.length - successCount;
   if (failCount > 0) {
-    message(`${successCount} 个参数删除成功，${failCount} 个删除失败`, {
+    message(`${successCount} 个规格删除成功，${failCount} 个删除失败`, {
       type: successCount > 0 ? "warning" : "error"
     });
   } else {
-    message("参数批量删除成功", { type: "success" });
+    message("规格批量删除成功", { type: "success" });
   }
   await loadData();
 }
 
 function exportParameters() {
   if (!filteredRows.value.length) {
-    message("暂无可导出的参数", { type: "warning" });
+    message("暂无可导出的规格", { type: "warning" });
     return;
   }
   const worksheet = utils.json_to_sheet(
     filteredRows.value.map(item => ({
-      参数名称: item.paramName,
+      规格名称: item.paramName,
       选项值: item.options,
       选项数: item.optionCount,
       索引: item.isIndexLabel,
@@ -403,9 +403,9 @@ function exportParameters() {
     }))
   );
   const workbook = utils.book_new();
-  utils.book_append_sheet(workbook, worksheet, "参数管理");
-  writeFile(workbook, "参数管理.xlsx");
-  message("参数导出成功", { type: "success" });
+  utils.book_append_sheet(workbook, worksheet, "规格管理");
+  writeFile(workbook, "规格管理.xlsx");
+  message("规格数据导出成功", { type: "success" });
 }
 
 onMounted(() => {
@@ -415,22 +415,22 @@ onMounted(() => {
 
 <template>
   <WholesaleAdminPage
-    title="参数管理"
-    description="这里就是商品参数模板与分类绑定的入口：新增/编辑参数时，在“关联分类”里勾选要生效的商品分类。"
+    title="规格管理"
+    description="这里统一承接商品规格模板维护。当前底层仍复用参数接口，但对运营侧统一展示为规格管理。"
     api-path="/manager/goods/parameters"
     :columns="columns"
     :data="filteredRows"
     :summary-cards="summaryCards"
     :selectable="true"
     :show-status-filter="false"
-    keyword-label="参数名称"
-    keyword-placeholder="请输入参数名称"
+    keyword-label="规格名称"
+    keyword-placeholder="请输入规格名称"
     @search="handleSearch"
     @reset="handleReset"
     @selection-change="handleSelectionChange"
   >
     <template #table-extra>
-      <el-button type="primary" @click="openCreate">新增参数</el-button>
+      <el-button type="primary" @click="openCreate">新增规格</el-button>
       <el-button :disabled="!filteredRows.length" @click="exportParameters"
         >导出</el-button
       >
@@ -451,11 +451,11 @@ onMounted(() => {
 
   <el-dialog
     v-model="dialogVisible"
-    :title="editingId ? '编辑参数' : '新增参数'"
+    :title="editingId ? '编辑规格' : '新增规格'"
     width="720px"
   >
     <el-form label-width="96px">
-      <el-form-item label="参数名称" required>
+      <el-form-item label="规格名称" required>
         <el-input v-model="form.paramName" maxlength="5" show-word-limit />
       </el-form-item>
       <el-form-item label="选项值" required>
@@ -468,7 +468,7 @@ onMounted(() => {
           collapse-tags
           collapse-tags-tooltip
           :reserve-keyword="false"
-          placeholder="输入后回车，可连续维护多个选项"
+          placeholder="输入后回车，可连续维护多个规格值"
           style="width: 100%"
         >
           <el-option
@@ -479,7 +479,7 @@ onMounted(() => {
           />
         </el-select>
         <div class="form-tip">
-          系统仍会按后端契约保存为逗号分隔字符串，这里改成标签化录入，避免手工拼接。
+          系统仍按后端契约保存为逗号分隔字符串，这里改成标签化录入，避免手工拼接。
         </div>
       </el-form-item>
       <el-form-item label="是否索引">
@@ -518,9 +518,7 @@ onMounted(() => {
           style="width: 100%"
         />
         <div class="form-tip">
-          后端实际接收的是
-          `categoryParameterList`，这里按分类多选生成对应关联对象，不再暴露
-          JSON。
+          后端实际接收的仍是 `categoryParameterList`，这里只是把它改成规格管理视角的可视化多选。
         </div>
       </el-form-item>
     </el-form>
@@ -532,9 +530,9 @@ onMounted(() => {
     </template>
   </el-dialog>
 
-  <el-drawer v-model="detailVisible" title="参数详情" size="42%">
+    <el-drawer v-model="detailVisible" title="规格详情" size="42%">
     <el-descriptions v-if="detailRow" :column="1" border>
-      <el-descriptions-item label="参数名称">
+      <el-descriptions-item label="规格名称">
         {{ detailRow.paramName }}
       </el-descriptions-item>
       <el-descriptions-item label="选项值">

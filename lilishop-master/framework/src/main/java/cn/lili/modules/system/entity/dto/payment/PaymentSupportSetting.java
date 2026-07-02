@@ -35,9 +35,7 @@ public class PaymentSupportSetting {
             PaymentSupportItem paymentSupportItem = new PaymentSupportItem();
 
             List<String> supports = new ArrayList<>();
-            for (PaymentMethodEnum payment : paymentSupportForm.getPayments()) {
-                supports.add(payment.name());
-            }
+            supports.add(PaymentMethodEnum.UNIONPAY.name());
             paymentSupportItem.setClient(client.name());
             paymentSupportItem.setSupports(supports);
             paymentSupportItems.add(paymentSupportItem);

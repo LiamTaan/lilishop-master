@@ -146,8 +146,8 @@ function exportSettingLogs() {
   }));
   const worksheet = utils.json_to_sheet(table);
   const workbook = utils.book_new();
-  utils.book_append_sheet(workbook, worksheet, "系统维护记录");
-  writeFile(workbook, "系统维护记录.xlsx");
+  utils.book_append_sheet(workbook, worksheet, "配置日志");
+  writeFile(workbook, "配置日志.xlsx");
   message("配置日志导出成功", { type: "success" });
 }
 
@@ -156,7 +156,7 @@ onMounted(loadData);
 
 <template>
   <WholesaleAdminPage
-    title="系统维护记录"
+    title="配置日志"
     description="承接平台配置变更日志、操作详情查看和日志清理动作，作为系统治理的日志台账页。"
     api-path="/manager/setting/log/getAllByPage"
     :columns="columns"

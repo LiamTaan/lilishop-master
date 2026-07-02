@@ -27,6 +27,50 @@ export const getPintuanGoodsPage = (
   );
 };
 
+export const getPintuanAvailableSkuPage = (
+  pintuanId: string,
+  params?: Record<string, any>
+) => {
+  return http.request<ResultMessage<any>>(
+    "get",
+    `/manager/promotion/pintuan/${pintuanId}/available-sku`,
+    { params }
+  );
+};
+
+export const addPintuanGoods = (
+  pintuanId: string,
+  data: Record<string, any>[]
+) => {
+  return http.request<ResultMessage<any>>(
+    "post",
+    `/manager/promotion/pintuan/${pintuanId}/goods`,
+    { data }
+  );
+};
+
+export const updatePintuanGoods = (
+  pintuanId: string,
+  promotionGoodsId: string,
+  data: Record<string, any>
+) => {
+  return http.request<ResultMessage<any>>(
+    "put",
+    `/manager/promotion/pintuan/${pintuanId}/goods/${promotionGoodsId}`,
+    { data }
+  );
+};
+
+export const deletePintuanGoods = (
+  pintuanId: string,
+  promotionGoodsId: string
+) => {
+  return http.request<ResultMessage<any>>(
+    "delete",
+    `/manager/promotion/pintuan/${pintuanId}/goods/${promotionGoodsId}`
+  );
+};
+
 export const getPintuanMembers = (pintuanId: string) => {
   return http.request<ResultMessage<any>>(
     "get",
@@ -233,6 +277,40 @@ export const getSeckillApplyPage = (params?: Record<string, any>) => {
     "get",
     "/manager/promotion/seckill/apply",
     { params }
+  );
+};
+
+export const getSeckillAvailableSkuPage = (
+  seckillId: string,
+  params?: Record<string, any>
+) => {
+  return http.request<ResultMessage<any>>(
+    "get",
+    `/manager/promotion/seckill/apply/${seckillId}/available-sku`,
+    { params }
+  );
+};
+
+export const addSeckillApply = (
+  seckillId: string,
+  data: Record<string, any>[]
+) => {
+  return http.request<ResultMessage<any>>(
+    "post",
+    `/manager/promotion/seckill/apply/${seckillId}`,
+    { data }
+  );
+};
+
+export const updateSeckillApply = (
+  seckillId: string,
+  id: string,
+  data: Record<string, any>
+) => {
+  return http.request<ResultMessage<any>>(
+    "put",
+    `/manager/promotion/seckill/apply/${seckillId}/${id}`,
+    { data }
   );
 };
 

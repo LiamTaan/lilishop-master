@@ -1069,12 +1069,16 @@ def build_doc():
         "代理商经营概览页。",
         [],
         [
-            ["totalSalesAmount", "number", "总销售额。"],
-            ["totalOrderCount", "int", "总订单数。"],
-            ["activeStoreCount", "int", "活跃店铺数。"],
-            ["activeSupplierCount", "int", "绑定供货商数。"],
-            ["pendingPurchaseAmount", "number", "待采购金额。"],
-            ["pendingSettleAmount", "number", "待结算金额。"],
+            ["salesAmount", "number", "本月销售额。"],
+            ["orderCount", "int", "本月订单数。"],
+            ["bindStoreCount", "int", "绑定店铺数。"],
+            ["commissionAmount", "number", "累计佣金金额。"],
+            ["monthIncome", "number", "本月成交额。"],
+            ["todaySales", "int", "今日销量。"],
+            ["sevenDaySales", "int", "近 7 日销量。"],
+            ["totalOrderCount", "int", "累计订单数。"],
+            ["customerUnitPrice", "number", "客单价。"],
+            ["returnRate", "number", "退货率，百分比数值。"],
         ],
         [("用于概览卡片", "这些字段适合做顶部 KPI 卡片，不建议前端再按订单列表自己汇总。")],
     )
@@ -1128,17 +1132,20 @@ def build_doc():
         "DB 对账单聚合",
         "代理商资金对账页。",
         [
-            ["dateRange", "Query / string", "否", "对账周期。"],
-            ["status", "Query / string", "否", "对账状态。"],
-            ["keyword", "Query / string", "否", "流水号/订单号。"],
+            ["serviceType", "Query / string", "否", "资金流水业务类型，例如充值、提现、余额支付、退款、佣金。"],
+            ["startDate", "Query / string", "否", "开始日期，格式 yyyy-MM-dd。"],
+            ["endDate", "Query / string", "否", "结束日期，格式 yyyy-MM-dd。"],
         ],
         [
-            ["id", "string", "对账单 ID。"],
-            ["balanceAmount", "number", "期内余额相关金额。"],
-            ["withdrawAmount", "number", "期内提现金额。"],
-            ["flowCount", "int", "流水数量。"],
+            ["id", "string", "资金流水 ID。"],
+            ["memberId", "string", "代理商会员 ID。"],
+            ["memberName", "string", "代理商会员名称。"],
+            ["money", "number", "变动金额。"],
+            ["serviceType", "string", "业务类型。"],
+            ["detail", "string", "业务描述。"],
+            ["createTime", "datetime", "创建时间。"],
         ],
-        [],
+        [("首期不提供下载文件", "当前买家端只支持分页、汇总、详情，不提供对账单下载接口。")],
     )
 
     add_h1(doc, "8. 供货商页面")
@@ -1293,11 +1300,11 @@ def build_doc():
         "供货商工作台/数据概览。",
         [],
         [
-            ["salesSummary", "object", "销售汇总。"],
-            ["orderSummary", "object", "订单汇总。"],
-            ["goodsSummary", "object", "商品汇总。"],
+            ["storeIndexStatistics", "object", "店铺首页概览，包括商品数、订单总额、待处理事项、库存预警等。"],
+            ["orderOverview", "object", "订单概览，包括下单、支付、退款、转化率等统计。"],
+            ["goodsRankList", "array", "热卖商品排行。"],
         ],
-        [],
+        [("当前版本范围", "供货商工作台一期仅支持营业总览与商品排行，不包含销售团队、地区统计。")],
     )
     endpoint_block(
         doc,
@@ -1309,9 +1316,10 @@ def build_doc():
         "供货商资产页。",
         [],
         [
-            ["balance", "number", "账户余额。"],
+            ["totalIncome", "number", "累计收益。"],
+            ["settledAmount", "number", "已结算金额。"],
             ["withdrawableAmount", "number", "可提现金额。"],
-            ["pendingSettlementAmount", "number", "待结算金额。"],
+            ["frozenAmount", "number", "冻结金额。"],
         ],
         [],
     )

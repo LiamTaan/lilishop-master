@@ -44,13 +44,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 买家端代理商接口
+ * 代理商端 App 接口
  *
  * @author dawn
  * @since 2026/6/17
  */
 @RestController
-@Tag(name = "买家端,代理商接口")
+@Tag(name = "代理商端(App),工作台与采购接口")
 @RequestMapping("/buyer/agent")
 public class AgentBuyerController {
 
@@ -75,14 +75,14 @@ public class AgentBuyerController {
     @Autowired
     private BuyerStoreScopeSupport buyerStoreScopeSupport;
 
-    @Operation(summary = "查询当前用户是否代理商")
+    @Operation(summary = "代理商查询当前用户是否具备代理身份")
     @GetMapping("/role/check")
     public ResultMessage<Boolean> checkRole() {
         AuthUser authUser = UserContext.getCurrentUser();
         return ResultUtil.data(authUser != null && agentRoleRelationService.isAgent(authUser.getId()));
     }
 
-    @Operation(summary = "查询当前代理商绑定店铺")
+    @Operation(summary = "代理商查询已绑定供货商店铺")
     @GetMapping("/store")
     public ResultMessage<List<AgentStoreBindVO>> myStores() {
         AuthUser authUser = UserContext.getCurrentUser();
@@ -92,7 +92,7 @@ public class AgentBuyerController {
         return ResultUtil.data(agentStoreBindService.listApprovedBindsByAgentMemberId(authUser.getId()));
     }
 
-    @Operation(summary = "查询当前用户店铺申请")
+    @Operation(summary = "代理商查询当前用户店铺申请")
     @GetMapping("/store/apply")
     public ResultMessage<StoreApplyVO> myStoreApply() {
         AuthUser authUser = UserContext.getCurrentUser();
@@ -102,14 +102,14 @@ public class AgentBuyerController {
         return ResultUtil.data(storeDetailService.getStoreApplyVOByMemberId(authUser.getId()));
     }
 
-    @Operation(summary = "查询当前代理商经营概览")
+    @Operation(summary = "代理商查询经营概览")
     @GetMapping("/dashboard/overview")
     public ResultMessage<AgentDashboardOverviewVO> overview() {
         AuthUser authUser = this.getCurrentAgent();
         return ResultUtil.data(agentDashboardService.overview(authUser.getId()));
     }
 
-    @Operation(summary = "分页查询当前代理商可见批发商品")
+    @Operation(summary = "代理商分页查询可采购的供货商批发商品")
     @GetMapping("/goods/wholesale")
     public ResultMessage<IPage<GoodsVO>> myWholesaleGoods(GoodsSearchParams goodsSearchParams, PageVO pageVO) {
         this.getCurrentAgent();
@@ -122,7 +122,7 @@ public class AgentBuyerController {
         return ResultUtil.data(PageUtil.convertPage(page, records));
     }
 
-    @Operation(summary = "查询当前代理商可见批发商品详情")
+    @Operation(summary = "代理商查询可采购的供货商批发商品详情")
     @Parameter(name = "goodsId", description = "商品ID", required = true)
     @GetMapping("/goods/wholesale/{goodsId}")
     public ResultMessage<GoodsVO> wholesaleGoodsDetail(@PathVariable String goodsId) {
@@ -134,21 +134,21 @@ public class AgentBuyerController {
         return ResultUtil.data(goodsVO);
     }
 
-    @Operation(summary = "分页查询代理商采购对账")
+    @Operation(summary = "代理商分页查询采购对账")
     @GetMapping("/procurement/reconciliation")
     public ResultMessage<IPage<AgentProcurementReconciliationVO>> procurementReconciliation(AgentProcurementReconciliationSearchParams params) {
         AuthUser authUser = this.getCurrentAgent();
         return ResultUtil.data(agentReconciliationService.procurementPage(authUser.getId(), params));
     }
 
-    @Operation(summary = "查询代理商采购对账汇总")
+    @Operation(summary = "代理商查询采购对账汇总")
     @GetMapping("/procurement/reconciliation/summary")
     public ResultMessage<AgentProcurementReconciliationSummaryVO> procurementReconciliationSummary(AgentProcurementReconciliationSearchParams params) {
         AuthUser authUser = this.getCurrentAgent();
         return ResultUtil.data(agentReconciliationService.procurementSummary(authUser.getId(), params));
     }
 
-    @Operation(summary = "查询代理商采购对账详情")
+    @Operation(summary = "代理商查询采购对账详情")
     @Parameter(name = "id", description = "采购单ID", required = true)
     @GetMapping("/procurement/reconciliation/{id}")
     public ResultMessage<AgentProcurementReconciliationVO> procurementReconciliationDetail(@PathVariable String id) {
@@ -156,21 +156,21 @@ public class AgentBuyerController {
         return ResultUtil.data(agentReconciliationService.procurementDetail(authUser.getId(), id));
     }
 
-    @Operation(summary = "分页查询代理商资金对账")
+    @Operation(summary = "代理商分页查询资金对账")
     @GetMapping("/fund/reconciliation")
     public ResultMessage<IPage<AgentFundReconciliationVO>> fundReconciliation(AgentFundReconciliationSearchParams params) {
         AuthUser authUser = this.getCurrentAgent();
         return ResultUtil.data(agentReconciliationService.fundPage(authUser.getId(), params));
     }
 
-    @Operation(summary = "查询代理商资金对账汇总")
+    @Operation(summary = "代理商查询资金对账汇总")
     @GetMapping("/fund/reconciliation/summary")
     public ResultMessage<AgentFundReconciliationSummaryVO> fundReconciliationSummary(AgentFundReconciliationSearchParams params) {
         AuthUser authUser = this.getCurrentAgent();
         return ResultUtil.data(agentReconciliationService.fundSummary(authUser.getId(), params));
     }
 
-    @Operation(summary = "查询代理商资金对账详情")
+    @Operation(summary = "代理商查询资金对账详情")
     @Parameter(name = "id", description = "资金流水ID", required = true)
     @GetMapping("/fund/reconciliation/{id}")
     public ResultMessage<AgentFundReconciliationVO> fundReconciliationDetail(@PathVariable String id) {

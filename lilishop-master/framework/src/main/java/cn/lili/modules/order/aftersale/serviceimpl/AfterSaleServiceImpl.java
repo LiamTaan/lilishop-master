@@ -36,6 +36,7 @@ import cn.lili.modules.order.trade.entity.enums.AfterSaleStatusEnum;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleTypeEnum;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.payment.kit.RefundSupport;
+import cn.lili.modules.procurement.service.ProcurementAutomationService;
 import cn.lili.modules.store.entity.dto.StoreAfterSaleAddressDTO;
 import cn.lili.modules.store.service.StoreDetailService;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
@@ -108,6 +109,8 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
 
     @Autowired
     private AgentStoreBindService agentStoreBindService;
+    @Autowired
+    private ProcurementAutomationService procurementAutomationService;
 
 
     @Override
@@ -389,6 +392,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
         this.updateOrderItemAfterSaleStatus(afterSale);
         //发送售后消息
         this.sendAfterSaleMessage(afterSale);
+        procurementAutomationService.applyCompletedAfterSale(afterSale);
         return afterSale;
     }
 
@@ -399,6 +403,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
     public AfterSale refund(String afterSaleSn, String remark) {
         //根据售后单号获取售后单
         AfterSale afterSale = OperationalJudgment.judgment(this.getBySn(afterSaleSn));
+        boolean alreadyCompleted = AfterSaleStatusEnum.COMPLETE.name().equals(afterSale.getServiceStatus());
         afterSale.setServiceStatus(AfterSaleStatusEnum.COMPLETE.name());
         //根据售后编号修改售后单
         this.updateAfterSale(afterSaleSn, afterSale);
@@ -408,6 +413,9 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
         this.updateAfterSale(afterSaleSn, afterSale);
         //发送退款消息
         this.sendAfterSaleMessage(afterSale);
+        if (!alreadyCompleted) {
+            procurementAutomationService.applyCompletedAfterSale(afterSale);
+        }
         return afterSale;
     }
 
@@ -416,8 +424,12 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
     @SystemLogPoint(description = "售后-买家确认解决", customerLog = "'售后-买家确认解决:单号['+#afterSaleSn+']'")
     public AfterSale complete(String afterSaleSn) {
         AfterSale afterSale = this.getBySn(afterSaleSn);
+        boolean alreadyCompleted = AfterSaleStatusEnum.COMPLETE.name().equals(afterSale.getServiceStatus());
         afterSale.setServiceStatus(AfterSaleStatusEnum.COMPLETE.name());
         this.updateAfterSale(afterSaleSn, afterSale);
+        if (!alreadyCompleted) {
+            procurementAutomationService.applyCompletedAfterSale(afterSale);
+        }
         return afterSale;
     }
 

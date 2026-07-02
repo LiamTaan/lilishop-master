@@ -4,9 +4,9 @@ import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.security.context.UserContext;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.goods.entity.vos.CategoryBrandVO;
-import cn.lili.modules.goods.entity.vos.CategoryVO;
 import cn.lili.modules.goods.service.CategoryBrandService;
 import cn.lili.modules.goods.service.CategoryService;
+import cn.lili.modules.store.entity.vos.StoreManagementCategoryVO;
 import cn.lili.modules.store.service.StoreDetailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,11 +51,9 @@ public class CategoryStoreController {
 
     @Operation(summary = "获取店铺经营的分类")
     @GetMapping("/all")
-    public ResultMessage<List<CategoryVO>> getListAll() {
+    public ResultMessage<List<StoreManagementCategoryVO>> getListAll() {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
-        //获取店铺经营范围
-        String goodsManagementCategory = storeDetailService.getStoreDetail(storeId).getGoodsManagementCategory();
-        return ResultUtil.data(this.categoryService.getStoreCategory(goodsManagementCategory.split(",")));
+        return ResultUtil.data(this.storeDetailService.goodsManagementCategory(storeId));
     }
 
     @Operation(summary = "获取所选分类关联的品牌信息")

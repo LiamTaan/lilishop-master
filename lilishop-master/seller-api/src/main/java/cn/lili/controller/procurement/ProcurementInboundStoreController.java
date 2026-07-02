@@ -3,7 +3,6 @@ package cn.lili.controller.procurement;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.procurement.entity.dos.ProcurementInbound;
-import cn.lili.modules.procurement.entity.dto.ProcurementInboundCreateDTO;
 import cn.lili.modules.procurement.entity.params.ProcurementInboundSearchParams;
 import cn.lili.modules.procurement.service.ProcurementInboundService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -14,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 店铺端采购入库接口
- * 支持创建入库单、分页与详情查询
+ * 代理商端采购入库查询接口
+ * 采购入库由订单完成链路自动生成，店铺端仅保留查询能力。
  * @author Bulbasaur
  * @since 2025-12-18
  */
-@Tag(name = "店铺端,采购入库接口")
+@Tag(name = "代理商端,采购入库查询接口")
 @RestController
 @RequestMapping("/store/procurement/inbound")
 public class ProcurementInboundStoreController {
@@ -27,19 +26,13 @@ public class ProcurementInboundStoreController {
     @Autowired
     private ProcurementInboundService procurementInboundService;
 
-    @Operation(summary = "创建入库单")
-    @PostMapping
-    public ResultMessage<ProcurementInbound> create(@RequestBody ProcurementInboundCreateDTO dto) {
-        return ResultUtil.data(procurementInboundService.createInbound(dto));
-    }
-
-    @Operation(summary = "入库单分页")
+    @Operation(summary = "代理商分页查询采购入库单")
     @GetMapping
     public ResultMessage<IPage<ProcurementInbound>> page(ProcurementInboundSearchParams params) {
         return ResultUtil.data(procurementInboundService.page(params));
     }
 
-    @Operation(summary = "入库单详情")
+    @Operation(summary = "代理商查询采购入库单详情")
     @Parameter(name = "id", description = "入库单ID", required = true)
     @GetMapping("/{id}")
     public ResultMessage<ProcurementInbound> detail(@PathVariable String id) {

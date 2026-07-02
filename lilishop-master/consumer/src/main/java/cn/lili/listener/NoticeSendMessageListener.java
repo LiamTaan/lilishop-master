@@ -2,6 +2,7 @@ package cn.lili.listener;
 
 import cn.hutool.json.JSONUtil;
 import cn.lili.common.enums.SwitchEnum;
+import cn.lili.common.utils.StringUtils;
 import cn.lili.common.vo.PageVO;
 import cn.lili.modules.member.entity.vo.MemberSearchVO;
 import cn.lili.modules.member.entity.vo.MemberVO;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -85,17 +87,27 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
             //管理员发送站内信
             case MESSAGE:
                 Message message = JSONUtil.toBean(new String(messageExt.getBody()), Message.class);
-                // 管理端发送给商家的站内信
-                if (MessageSendClient.STORE.name().equalsIgnoreCase(message.getMessageClient())) {
-                    saveStoreMessage(message);
-                } else {
-                    //管理员发送给客户的站内信
-                    saveMemberMessage(message);
-                }
+                dispatchManualMessage(message);
                 break;
             default:
                 break;
         }
+    }
+
+    private void dispatchManualMessage(Message message) {
+        String receiverType = StringUtils.isEmpty(message.getMessageClient())
+                ? MessageSendClient.MEMBER.name()
+                : message.getMessageClient().trim().toUpperCase();
+        if (MessageSendClient.ALL.name().equals(receiverType)) {
+            saveMemberMessage(message, receiverType);
+            saveStoreMessage(message, receiverType);
+            return;
+        }
+        if (MessageSendClient.STORE.name().equals(receiverType)) {
+            saveStoreMessage(message, receiverType);
+            return;
+        }
+        saveMemberMessage(message, receiverType);
     }
 
     /**
@@ -103,7 +115,7 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
      *
      * @param message 消息
      */
-    private void saveStoreMessage(Message message) {
+    private void saveStoreMessage(Message message, String receiverType) {
         List<StoreMessage> list = new ArrayList<>();
         //发送全部商家情况
         if ("ALL".equals(message.getMessageRange())) {
@@ -116,21 +128,26 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
                 storeMessage.setStatus(MessageStatusEnum.UN_READY.name());
                 storeMessage.setTitle(message.getTitle());
                 storeMessage.setContent(message.getContent());
+                storeMessage.setBizType(message.getBizType());
                 list.add(storeMessage);
             });
         } else {
-            //发送给指定商家情况
-            int i = 0;
-            for (String str : message.getUserIds()) {
+            List<String> userIds = toList(message.getUserIds());
+            List<String> userNames = toList(message.getUserNames());
+            List<String> userTypes = toList(message.getUserTypes());
+            for (int i = 0; i < userIds.size(); i++) {
+                if (!shouldSendStoreTarget(receiverType, userTypes, i)) {
+                    continue;
+                }
                 StoreMessage storeMessage = new StoreMessage();
                 storeMessage.setMessageId(message.getId());
-                storeMessage.setStoreId(str);
-                storeMessage.setStoreName(message.getUserNames()[i]);
+                storeMessage.setStoreId(userIds.get(i));
+                storeMessage.setStoreName(getArrayValue(userNames, i));
                 storeMessage.setStatus(MessageStatusEnum.UN_READY.name());
                 storeMessage.setTitle(message.getTitle());
                 storeMessage.setContent(message.getContent());
+                storeMessage.setBizType(message.getBizType());
                 list.add(storeMessage);
-                i++;
             }
         }
         if (list.size() > 0) {
@@ -144,7 +161,7 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
      *
      * @param message 消息
      */
-    private void saveMemberMessage(Message message) {
+    private void saveMemberMessage(Message message, String receiverType) {
         List<MemberMessage> list = new ArrayList<>();
         //如果是给所有客户发送消息
         if ("ALL".equals(message.getMessageRange())) {
@@ -165,6 +182,9 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
                 IPage<MemberVO> page = memberService.getMemberPage(memberSearchVO, pageVO);
                 //循环要保存的信息
                 page.getRecords().forEach(item -> {
+                    if (!matchesMemberReceiver(receiverType, item)) {
+                        return;
+                    }
                     MemberMessage memberMessage = new MemberMessage();
                     memberMessage.setContent(message.getContent());
                     memberMessage.setTitle(message.getTitle());
@@ -172,23 +192,29 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
                     memberMessage.setMemberId(item.getId());
                     memberMessage.setMemberName(item.getUsername());
                     memberMessage.setStatus(MessageStatusEnum.UN_READY.name());
+                    memberMessage.setBizType(message.getBizType());
                     list.add(memberMessage);
                 });
             }
 
         } else {
             //如果是给指定客户发送消息
-            int i = 0;
-            for (String str : message.getUserIds()) {
+            List<String> userIds = toList(message.getUserIds());
+            List<String> userNames = toList(message.getUserNames());
+            List<String> userTypes = toList(message.getUserTypes());
+            for (int i = 0; i < userIds.size(); i++) {
+                if (!shouldSendMemberTarget(receiverType, userTypes, i)) {
+                    continue;
+                }
                 MemberMessage memberMessage = new MemberMessage();
                 memberMessage.setMessageId(message.getId());
-                memberMessage.setMemberId(str);
-                memberMessage.setMemberName(message.getUserNames()[i]);
+                memberMessage.setMemberId(userIds.get(i));
+                memberMessage.setMemberName(getArrayValue(userNames, i));
                 memberMessage.setStatus(MessageStatusEnum.UN_READY.name());
                 memberMessage.setTitle(message.getTitle());
                 memberMessage.setContent(message.getContent());
+                memberMessage.setBizType(message.getBizType());
                 list.add(memberMessage);
-                i++;
             }
         }
         if (list.size() > 0) {
@@ -196,6 +222,50 @@ public class NoticeSendMessageListener implements RocketMQListener<MessageExt> {
             memberMessageService.save(list);
         }
 
+    }
+
+    private boolean matchesMemberReceiver(String receiverType, MemberVO member) {
+        if (member == null) {
+            return false;
+        }
+        return switch (receiverType) {
+            case "CONSUMER" -> !Boolean.TRUE.equals(member.getAgent()) && !Boolean.TRUE.equals(member.getSupplier());
+            case "AGENT" -> Boolean.TRUE.equals(member.getAgent());
+            case "SUPPLIER" -> Boolean.TRUE.equals(member.getSupplier());
+            case "ALL", "MEMBER" -> true;
+            default -> true;
+        };
+    }
+
+    private boolean shouldSendStoreTarget(String receiverType, List<String> userTypes, int index) {
+        if (MessageSendClient.STORE.name().equals(receiverType)) {
+            return true;
+        }
+        if (MessageSendClient.ALL.name().equals(receiverType)) {
+            return "STORE".equalsIgnoreCase(getArrayValue(userTypes, index));
+        }
+        return false;
+    }
+
+    private boolean shouldSendMemberTarget(String receiverType, List<String> userTypes, int index) {
+        if (MessageSendClient.ALL.name().equals(receiverType)) {
+            return !"STORE".equalsIgnoreCase(getArrayValue(userTypes, index));
+        }
+        return !MessageSendClient.STORE.name().equals(receiverType);
+    }
+
+    private List<String> toList(String[] values) {
+        if (values == null || values.length == 0) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(Arrays.asList(values));
+    }
+
+    private String getArrayValue(List<String> values, int index) {
+        if (values == null || index < 0 || index >= values.size()) {
+            return "";
+        }
+        return values.get(index);
     }
 
 

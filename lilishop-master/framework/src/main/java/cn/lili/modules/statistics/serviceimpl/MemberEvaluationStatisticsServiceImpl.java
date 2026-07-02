@@ -33,9 +33,16 @@ public class MemberEvaluationStatisticsServiceImpl extends ServiceImpl<MemberEva
 
     @Override
     public long getWaitReplyNum() {
+        String storeId = CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name())
+                ? UserContext.getCurrentUser().getStoreId()
+                : null;
+        return getWaitReplyNum(storeId);
+    }
+
+    @Override
+    public long getWaitReplyNum(String storeId) {
         QueryWrapper<MemberEvaluation> queryWrapper = Wrappers.query();
-        queryWrapper.eq(CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name()),
-                "store_id", UserContext.getCurrentUser().getStoreId());
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), "store_id", storeId);
         queryWrapper.eq("reply_status", false);
         return this.count(queryWrapper);
     }

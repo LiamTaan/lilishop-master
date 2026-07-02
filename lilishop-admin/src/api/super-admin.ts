@@ -1,16 +1,13 @@
 import { http } from "@/utils/http";
+import { stringify } from "qs";
 import type { ResultMessage } from "./types";
 
 export type SuperAdminMenuRecord = Record<string, any>;
 
-function toFormBody(payload: Record<string, any>) {
-  const body = new URLSearchParams();
-  Object.entries(payload).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    body.append(key, String(value));
-  });
-  return body;
-}
+const repeatArrayParamsSerializer = {
+  serialize: (params: Record<string, any>) =>
+    stringify(params, { arrayFormat: "repeat" })
+};
 
 export const getSettingConfig = (key: string) => {
   return http.request<ResultMessage<Record<string, any>>>(
@@ -402,221 +399,6 @@ export const deleteMemberAddress = (id: string) => {
   );
 };
 
-export const getMemberNoticePage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/message/memberNotice/page",
-    { params }
-  );
-};
-
-export const getMemberNoticeDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/message/memberNotice/${id}`
-  );
-};
-
-export const readMemberNotice = (ids: string[]) => {
-  return http.request<ResultMessage<boolean>>(
-    "post",
-    `/manager/message/memberNotice/read/${ids.join(",")}`
-  );
-};
-
-export const readAllMemberNotice = () => {
-  return http.request<ResultMessage<boolean>>(
-    "post",
-    "/manager/message/memberNotice/read/all"
-  );
-};
-
-export const deleteMemberNotice = (ids: string[]) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/message/memberNotice/${ids.join(",")}`
-  );
-};
-
-export const deleteAllMemberNotice = () => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    "/manager/message/memberNotice"
-  );
-};
-
-export const getMemberNoticeLogPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/message/memberNoticeLog/getByPage",
-    { params }
-  );
-};
-
-export const getMemberNoticeLogDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/message/memberNoticeLog/get/${id}`
-  );
-};
-
-export const deleteMemberNoticeLog = (ids: string[]) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/message/memberNoticeLog/delByIds/${ids.join(",")}`
-  );
-};
-
-export const getMemberNoticeSenderPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/message/memberNoticeSenter/getByPage",
-    { params }
-  );
-};
-
-export const getMemberNoticeSenderDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/message/memberNoticeSenter/get/${id}`
-  );
-};
-
-export const createMemberNoticeSender = (data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "post",
-    "/manager/message/memberNoticeSenter/insertOrUpdate",
-    { data }
-  );
-};
-
-export const deleteMemberNoticeSender = (ids: string[]) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/message/memberNoticeSenter/delByIds/${ids.join(",")}`
-  );
-};
-
-export const getServiceNoticePage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/message/serviceNotice/page",
-    { params }
-  );
-};
-
-export const getServiceNoticeDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/message/serviceNotice/${id}`
-  );
-};
-
-export const createServiceNotice = (data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "post",
-    "/manager/message/serviceNotice",
-    { data }
-  );
-};
-
-export const updateServiceNotice = (id: string, data: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "post",
-    `/manager/message/serviceNotice/${id}`,
-    { data }
-  );
-};
-
-export const deleteServiceNotice = (ids: string[]) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/message/serviceNotice/${ids.join(",")}`
-  );
-};
-
-export const getSmsSignPage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/sms/sign/querySmsSignPage",
-    { params }
-  );
-};
-
-export const getSmsSignDetail = (id: string) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    `/manager/sms/sign/${id}`
-  );
-};
-
-export const createSmsSign = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>("post", "/manager/sms/sign", {
-    params: data
-  });
-};
-
-export const modifySmsSign = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    "/manager/sms/sign/modifySmsSign",
-    { params: data }
-  );
-};
-
-export const querySmsSignStatus = () => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    "/manager/sms/sign/querySmsSign"
-  );
-};
-
-export const deleteSmsSign = (id: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    `/manager/sms/sign/${id}`
-  );
-};
-
-export const getSmsTemplatePage = (params?: Record<string, any>) => {
-  return http.request<ResultMessage<Record<string, any>>>(
-    "get",
-    "/manager/sms/template/querySmsTemplatePage",
-    { params }
-  );
-};
-
-export const createSmsTemplate = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "post",
-    "/manager/sms/template",
-    { params: data }
-  );
-};
-
-export const modifySmsTemplate = (data: Record<string, any>) => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    "/manager/sms/template/modifySmsTemplate",
-    { params: data }
-  );
-};
-
-export const querySmsTemplateStatus = () => {
-  return http.request<ResultMessage<boolean>>(
-    "put",
-    "/manager/sms/template/querySmsSign"
-  );
-};
-
-export const deleteSmsTemplate = (templateCode: string) => {
-  return http.request<ResultMessage<boolean>>(
-    "delete",
-    "/manager/sms/template",
-    { params: { templateCode } }
-  );
-};
-
 export const getSmsChannelPage = (params?: Record<string, any>) => {
   return http.request<ResultMessage<Record<string, any>>>(
     "get",
@@ -874,11 +656,47 @@ export const getStoreMessagePage = (params?: Record<string, any>) => {
   );
 };
 
+export const getNoticeTemplatePage = (params?: Record<string, any>) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    "/manager/setting/messageTemplate/page",
+    { params }
+  );
+};
+
+export const getNoticeTemplateDetail = (id: string) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "get",
+    `/manager/setting/noticeMessage/${id}`
+  );
+};
+
+export const updateNoticeTemplate = (
+  id: string,
+  data: Record<string, any>
+) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "put",
+    `/manager/setting/noticeMessage/${id}`,
+    { params: data }
+  );
+};
+
+export const updateNoticeTemplateStatus = (id: string, status: string) => {
+  return http.request<ResultMessage<Record<string, any>>>(
+    "put",
+    `/manager/setting/noticeMessage/${id}/${status}`
+  );
+};
+
 export const createMessageChannel = (data: Record<string, any>) => {
   return http.request<ResultMessage<boolean>>(
     "post",
     "/manager/other/message",
-    { params: data }
+    {
+      params: data,
+      paramsSerializer: repeatArrayParamsSerializer
+    }
   );
 };
 

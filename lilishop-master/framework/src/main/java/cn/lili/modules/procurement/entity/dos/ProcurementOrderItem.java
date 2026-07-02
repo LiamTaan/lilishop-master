@@ -42,6 +42,15 @@ public class ProcurementOrderItem extends BaseIdEntity {
     @Schema(description = "商品名称")
     private String goodsName;
 
+    @Schema(description = "来源订单货物编号")
+    private String sourceOrderItemSn;
+
+    @Schema(description = "供货商店铺ID")
+    private String supplierStoreId;
+
+    @Schema(description = "供货商店铺名称")
+    private String supplierStoreName;
+
     @Schema(description = "零售价")
     private Double retailPrice;
 

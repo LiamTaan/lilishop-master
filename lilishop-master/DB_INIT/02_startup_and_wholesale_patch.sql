@@ -884,6 +884,34 @@ CREATE TABLE IF NOT EXISTS `li_procurement_order` (
   KEY `idx_li_procurement_order_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购单';
 
+SET @ddl := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE table_schema = DATABASE() AND table_name = 'li_procurement_order' AND column_name = 'source_order_sn'
+  ),
+  'SELECT ''li_procurement_order.source_order_sn already exists'' AS message',
+  'ALTER TABLE `li_procurement_order`
+      ADD COLUMN `source_order_sn` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源订单编号'' AFTER `store_name`,
+      ADD COLUMN `supplier_store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''供货商店铺ID'' AFTER `source_order_sn`,
+      ADD COLUMN `supplier_store_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''供货商店铺名称'' AFTER `supplier_store_id`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE table_schema = DATABASE() AND table_name = 'li_procurement_order' AND index_name = 'uk_procurement_source_order'
+  ),
+  'SELECT ''li_procurement_order.uk_procurement_source_order already exists'' AS message',
+  'ALTER TABLE `li_procurement_order`
+      ADD UNIQUE KEY `uk_procurement_source_order` (`source_order_sn`)'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS `li_procurement_order_item` (
   `id` BIGINT NOT NULL COMMENT 'ID',
   `create_time` DATETIME(6) DEFAULT NULL COMMENT '创建时间',
@@ -904,6 +932,52 @@ CREATE TABLE IF NOT EXISTS `li_procurement_order_item` (
   KEY `idx_li_procurement_order_item_sku_id` (`sku_id`) USING BTREE,
   KEY `idx_li_procurement_order_item_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='采购单明细';
+
+SET @ddl := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE table_schema = DATABASE() AND table_name = 'li_procurement_order_item' AND column_name = 'source_order_item_sn'
+  ),
+  'SELECT ''li_procurement_order_item.source_order_item_sn already exists'' AS message',
+  'ALTER TABLE `li_procurement_order_item`
+      ADD COLUMN `source_order_item_sn` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源订单货物编号'' AFTER `goods_name`,
+      ADD COLUMN `supplier_store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''供货商店铺ID'' AFTER `source_order_item_sn`,
+      ADD COLUMN `supplier_store_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''供货商店铺名称'' AFTER `supplier_store_id`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE table_schema = DATABASE() AND table_name = 'li_goods' AND column_name = 'source_store_id'
+  ),
+  'SELECT ''li_goods.source_store_id already exists'' AS message',
+  'ALTER TABLE `li_goods`
+      ADD COLUMN `source_store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源供货商店铺ID'' AFTER `store_name`,
+      ADD COLUMN `source_store_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源供货商店铺名称'' AFTER `source_store_id`,
+      ADD COLUMN `source_goods_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源商品ID'' AFTER `source_store_name`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE table_schema = DATABASE() AND table_name = 'li_goods_sku' AND column_name = 'source_store_id'
+  ),
+  'SELECT ''li_goods_sku.source_store_id already exists'' AS message',
+  'ALTER TABLE `li_goods_sku`
+      ADD COLUMN `source_store_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源供货商店铺ID'' AFTER `store_name`,
+      ADD COLUMN `source_store_name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源供货商店铺名称'' AFTER `source_store_id`,
+      ADD COLUMN `source_goods_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源商品ID'' AFTER `source_store_name`,
+      ADD COLUMN `source_sku_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT ''来源SKU ID'' AFTER `source_goods_id`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS `li_procurement_inbound` (
   `id` BIGINT NOT NULL COMMENT 'ID',
@@ -994,7 +1068,7 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000000004', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance', 'ep:goods', '0', 'GoodsManage', '0', '/goods-governance', 40.00, '商品管理', NULL, NULL),
   ('3062200000000010011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/goods-manage', '', '1', 'GoodsManage', '3062200000000000004', '/goods-governance/goods-manage', 1.00, '商品列表', NULL, NULL),
   ('3062200000000010093', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/brand-manage', '', '1', 'BrandManage', '3062200000000000004', '/goods-governance/brand-manage', 2.00, '品牌管理', NULL, NULL),
-  ('3062200000000010094', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/parameter-manage', '', '1', 'ParameterManage', '3062200000000000004', '/goods-governance/parameter-manage', 3.00, '参数管理', NULL, NULL),
+  ('3062200000000010094', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/parameter-manage', '', '1', 'ParameterManage', '3062200000000000004', '/goods-governance/parameter-manage', 3.00, '规格管理', NULL, NULL),
   ('3062200000000010012', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/category-manage', '', '1', 'CategoryManage', '3062200000000000004', '/goods-governance/category-manage', 4.00, '分类管理', NULL, NULL),
   ('3062200000000010095', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/goods-group-manage', '', '1', 'GoodsGroupManage', '3062200000000000004', '/goods-governance/goods-group-manage', 5.00, '商品分组', NULL, NULL),
   ('3062200000000010014', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/goods-governance/points-goods', '', '1', 'PointsGoodsManage', '3062200000000000004', '/goods-governance/points-goods', 7.00, '积分商品治理', NULL, NULL),
@@ -1053,16 +1127,8 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010056', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-points-history', '', '1', 'MemberPointsHistory', '3062200000000000009', '/member-center/member-points-history', 5.00, '积分记录', NULL, NULL),
   ('3062200000000010057', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-evaluation', '', '1', 'MemberEvaluation', '3062200000000000009', '/member-center/member-evaluation', 6.00, '用户评价', NULL, NULL),
   ('3062200000000010058', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/member-center/member-address', '', '1', 'MemberAddress', '3062200000000000009', '/member-center/member-address', 7.00, '用户地址', NULL, NULL),
-  ('3062200000000000010', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center', 'ep:chat-dot-round', '0', 'MemberNotice', '0', '/message-center', 100.00, '通知与消息', NULL, NULL),
-  ('3062200000000010059', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice', '', '1', 'MemberNotice', '3062200000000000010', '/message-center/member-notice', 1.00, '站内通知', NULL, NULL),
-  ('3062200000000010060', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice-log', '', '1', 'MemberNoticeLog', '3062200000000000010', '/message-center/member-notice-log', 2.00, '通知日志', NULL, NULL),
-  ('3062200000000010061', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/sms-sign', '', '1', 'SmsSign', '3062200000000000010', '/message-center/sms-sign', 3.00, '短信签名', NULL, NULL),
-  ('3062200000000010062', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/sms-template', '', '1', 'SmsTemplate', '3062200000000000010', '/message-center/sms-template', 4.00, '短信模板', NULL, NULL),
-  ('3062200000000010063', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-notice-sender', '', '1', 'MemberNoticeSender', '3062200000000000010', '/message-center/member-notice-sender', 5.00, '发送任务', NULL, NULL),
-  ('3062200000000010064', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/service-notice', '', '1', 'ServiceNotice', '3062200000000000010', '/message-center/service-notice', 6.00, '服务通知', NULL, NULL),
-  ('3062200000000010065', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/message-channel', '', '1', 'MessageChannel', '3062200000000000010', '/message-center/message-channel', 7.00, '消息发送管理', NULL, NULL),
-  ('3062200000000010066', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/member-message', '', '1', 'MemberMessage', '3062200000000000010', '/message-center/member-message', 8.00, '客户消息', NULL, NULL),
-  ('3062200000000010067', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/store-message', '', '1', 'StoreMessage', '3062200000000000010', '/message-center/store-message', 9.00, '店铺消息', NULL, NULL),
+  ('3062200000000000010', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center', 'ep:chat-dot-round', '0', 'NoticeCenter', '0', '/message-center', 100.00, '通知与消息', NULL, NULL),
+  ('3062200000000010059', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/message-center/notice-center', '', '1', 'NoticeCenter', '3062200000000000010', '/message-center/notice-center', 1.00, '站内通知', NULL, NULL),
   ('3062200000000000011', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center', 'ep:document', '0', 'ContentArticle', '0', '/content-center', 110.00, '内容与运营', NULL, NULL),
   ('3062200000000010069', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/advertisement', '', '1', 'ContentAdvertisement', '3062200000000000011', '/content-center/advertisement', 1.00, '广告位管理', NULL, NULL),
   ('3062200000000010070', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/content-center/special-manage', '', '1', 'ContentSpecialManage', '3062200000000000011', '/content-center/special-manage', 2.00, '专题管理', NULL, NULL),
@@ -1086,10 +1152,7 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_seed` (
   ('3062200000000010088', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/department-manage', '', '1', 'MerchantGrantDepartmentManage', '3062200000000000013', '/merchant-grant/department-manage', 3.00, '组织架构配置', NULL, NULL),
   ('3062200000000010089', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/backend-account', '', '1', 'MerchantGrantBackendAccount', '3062200000000000013', '/merchant-grant/backend-account', 4.00, '平台后台账号', NULL, NULL),
   ('3062200000000010097', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/merchant-grant/store-menu', '', '1', 'MerchantGrantStoreMenu', '3062200000000000013', '/merchant-grant/store-menu', 5.00, '店铺菜单资源', NULL, NULL),
-  ('3062200000000000014', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system', 'ep:setting', '0', 'SystemWarningSetting', '0', '/system', 140.00, '系统设置', NULL, NULL),
-  ('3062200000000010090', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/warning-setting', '', '1', 'SystemWarningSetting', '3062200000000000014', '/system/warning-setting', 1.00, '预警设置', NULL, NULL),
-  ('3062200000000010091', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/maintenance-log', '', '1', 'SystemMaintenanceLog', '3062200000000000014', '/system/maintenance-log', 2.00, '系统维护记录', NULL, NULL),
-  ('3062200000000010092', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/system/operation-log', '', '1', 'SystemOperationLog', '3062200000000000014', '/system/operation-log', 3.00, '操作日志', NULL, NULL);
+  ('3062200000000010092', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-route-baseline', '/support-center/operation-log', '', '1', 'SupportOperationLog', '3062200000000000012', '/support-center/operation-log', 7.00, '操作日志', NULL, NULL);
 
 INSERT INTO `li_menu` (
   `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
@@ -1131,6 +1194,17 @@ DELETE FROM `li_menu`
 WHERE `id` = 3062200000000010071
    OR `front_route` IN ('/content-center/message-monitor', '/content-center/shortcut-nav');
 
+DELETE FROM `li_role_menu`
+WHERE `menu_id` IN ('3062200000000010061', '3062200000000010062');
+
+DELETE FROM `li_menu`
+WHERE `id` IN (3062200000000010061, 3062200000000010062)
+   OR `path` IN ('/message-center/sms-sign', '/message-center/sms-template')
+   OR `front_route` IN ('/message-center/sms-sign', '/message-center/sms-template');
+
+DROP TABLE IF EXISTS `li_sms_sign`;
+DROP TABLE IF EXISTS `li_sms_template`;
+
 -- BEGIN patch_wholesale_manager_menu_permission_fill.sql
 UPDATE li_menu SET permission = '/manager/dashboard/wholesale*,/manager/statistics/index/notice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/welcome';
 UPDATE li_menu SET permission = '/manager/dashboard/wholesale*,/manager/statistics/index/notice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/dashboard/wholesale';
@@ -1148,6 +1222,7 @@ WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110
   AND path = '/goods-governance/goods-manage';
 UPDATE li_menu SET permission = '/manager/goods/brand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/brand-manage';
 UPDATE li_menu SET permission = '/manager/goods/parameters*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/parameter-manage';
+UPDATE li_menu SET title = '规格管理' WHERE path = '/goods-governance/parameter-manage';
 UPDATE li_menu SET permission = '/manager/goods/category*,/manager/goods/brand/all*,/manager/goods/categoryBrand*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/category-manage';
 UPDATE li_menu SET permission = '/manager/goods/goodsGroup*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/goods-group-manage';
 UPDATE li_menu SET permission = '/manager/promotion/pointsGoods*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/goods-governance/points-goods';
@@ -1184,15 +1259,7 @@ UPDATE li_menu SET permission = '/manager/member/benefit*' WHERE id BETWEEN 3062
 UPDATE li_menu SET permission = '/manager/member/memberPointsHistory/getByPage*,/manager/member/memberPointsHistory/getMemberPointsHistoryVO*,/manager/member/memberPointsHistory/queryMemberPointsStatistics*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-points-history';
 UPDATE li_menu SET permission = '/manager/member/evaluation/get*,/manager/member/evaluation/delete*,/manager/member/evaluation/updateTop*,/manager/member/evaluation/updateStatus*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-evaluation';
 UPDATE li_menu SET permission = '/manager/member/address*,/manager/passport/member*,/manager/setting/region/item*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/member-center/member-address';
-UPDATE li_menu SET permission = '/manager/message/memberNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice';
-UPDATE li_menu SET permission = '/manager/message/memberNoticeLog/get*,/manager/message/memberNoticeLog/delByIds*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice-log';
-UPDATE li_menu SET permission = '/manager/sms/sign*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/sms-sign';
-UPDATE li_menu SET permission = '/manager/sms/template*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/sms-template';
-UPDATE li_menu SET permission = '/manager/message/memberNoticeSenter/get*,/manager/message/memberNoticeSenter/delByIds*,/manager/message/memberNoticeSenter/insertOrUpdate*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-notice-sender';
-UPDATE li_menu SET permission = '/manager/message/serviceNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/service-notice';
-UPDATE li_menu SET permission = '/manager/other/message*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/message-channel';
-UPDATE li_menu SET permission = '/manager/other/memberMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/member-message';
-UPDATE li_menu SET permission = '/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/store-message';
+UPDATE li_menu SET permission = '/manager/setting/messageTemplate/page*,/manager/setting/noticeMessage*,/manager/other/message*,/manager/other/memberMessage*,/manager/other/storeMessage*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/message-center/notice-center';
 UPDATE li_menu SET permission = '/manager/other/homeAdvertisement*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/advertisement';
 UPDATE li_menu SET permission = '/manager/other/special*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/special-manage';
 UPDATE li_menu SET permission = '/manager/other/homeRecommendationStrategy*,/manager/goods/category/allChildren*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/content-center/recommendation-strategy';
@@ -1207,13 +1274,14 @@ UPDATE li_menu SET permission = '/manager/other/logistics*' WHERE id BETWEEN 306
 UPDATE li_menu SET permission = '/manager/goods/freightTemplate*,/manager/store/store/all*,/common/common/region/allCity*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010113 AND path = '/support-center/freight-template-manage';
 UPDATE li_menu SET permission = '/manager/order/afterSaleReason*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/after-sale-reason';
 UPDATE li_menu SET permission = '/manager/other/feedback*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/support-center/feedback-manage';
-UPDATE li_menu SET permission = '/manager/setting/log*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/support-center/setting-log','/system/maintenance-log','/system/operation-log');
-UPDATE li_menu SET permission = '/manager/permission/menu*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/menu-permission','/system/menu');
-UPDATE li_menu SET permission = '/manager/permission/role*,/manager/permission/menu/tree*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/role-permission','/system/role');
-UPDATE li_menu SET permission = '/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/department-manage','/system/dept');
-UPDATE li_menu SET permission = '/manager/passport/user*,/manager/permission/role*,/common/common/upload/file*,/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/merchant-grant/backend-account','/system/user');
+UPDATE li_menu SET permission = '/manager/setting/log*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path IN ('/support-center/setting-log','/support-center/operation-log');
+UPDATE li_menu SET permission = '/manager/permission/menu*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/menu-permission';
+UPDATE li_menu SET permission = '/manager/permission/role*,/manager/permission/menu/tree*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/role-permission';
+UPDATE li_menu SET permission = '/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/department-manage';
+UPDATE li_menu SET permission = '/manager/passport/user*,/manager/permission/role*,/common/common/upload/file*,/manager/permission/department*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/backend-account';
 UPDATE li_menu SET permission = '/manager/permission/storeMenu*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/merchant-grant/store-menu';
-UPDATE li_menu SET permission = '/manager/message/serviceNotice*' WHERE id BETWEEN 3062200000000000001 AND 3062200000000010110 AND path = '/system/warning-setting';
+DELETE FROM li_role_menu WHERE menu_id IN ('3062200000000000014','3062200000000010090','3062200000000010091');
+DELETE FROM li_menu WHERE id IN (3062200000000000014,3062200000000010090,3062200000000010091);
 
 -- BEGIN patch_wholesale_manager_legacy_menu_archive.sql
 DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_legacy_menu_ids`;
@@ -1321,7 +1389,6 @@ WHERE delete_flag = b'0'
     OR permission LIKE '%/manager/wxchannels/%'
     OR permission LIKE '%/manager/broadcast/%'
     OR permission LIKE '%/manager/other/elasticsearch%'
-    OR permission LIKE '%/manager/setting/messageTemplate%'
     OR permission LIKE '%/manager/setting/settingx%'
   );
 
@@ -1411,209 +1478,8 @@ WHERE (sku.`barcode` IS NULL OR sku.`barcode` = '')
 
 -- BEGIN patch_wholesale_manager_menu_finalize.sql
 DROP TEMPORARY TABLE IF EXISTS `tmp_wholesale_manager_menu_finalize_seed`;
-
-UPDATE `li_store_settlement_profile` p
-INNER JOIN `li_store_detail` d ON d.`store_id` = p.`store_id`
-SET
-  p.`bank_account_name` = COALESCE(NULLIF(p.`bank_account_name`, ''), d.`settlement_bank_account_name`),
-  p.`bank_account_number` = COALESCE(NULLIF(p.`bank_account_number`, ''), d.`settlement_bank_account_num`),
-  p.`bank_branch_name` = COALESCE(NULLIF(p.`bank_branch_name`, ''), d.`settlement_bank_branch_name`),
-  p.`bank_joint_code` = COALESCE(NULLIF(p.`bank_joint_code`, ''), d.`settlement_bank_joint_name`),
-  p.`settlement_cycle` = COALESCE(NULLIF(p.`settlement_cycle`, ''), d.`settlement_cycle`),
-  p.`settlement_day` = COALESCE(p.`settlement_day`, d.`settlement_day`);
-
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store' AND COLUMN_NAME = 'apply_type'
-);
-SET @sql := IF(@col_exists = 1,
-  'ALTER TABLE `li_store` DROP COLUMN `apply_type`',
-  'SELECT ''li_store.apply_type missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'apply_type';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.apply_type missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_name';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_name missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_address';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_address_id_path';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address_id_path missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_address_path';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_address_path missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_phone';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_phone missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'company_email';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.company_email missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'employee_num';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.employee_num missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'registered_capital';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.registered_capital missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'link_name';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.link_name missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'link_phone';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.link_phone missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'license_num';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.license_num missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'scope';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.scope missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'licence_photo';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.licence_photo missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'legal_photo';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.legal_photo missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'id_card_front_url';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.id_card_front_url missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'id_card_back_url';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.id_card_back_url missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_bank_account_name';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_account_name missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_bank_account_num';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_account_num missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_bank_branch_name';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_branch_name missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_bank_joint_name';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_bank_joint_name missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_cycle';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_cycle missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @drop_col := 'settlement_day';
-SET @col_exists := (
-  SELECT COUNT(1) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'li_store_detail' AND COLUMN_NAME = @drop_col
-);
-SET @sql := IF(@col_exists = 1, CONCAT('ALTER TABLE `li_store_detail` DROP COLUMN `', @drop_col, '`'), 'SELECT ''li_store_detail.settlement_day missing''');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- 新库初始化不执行旧店铺申请字段、旧结算字段兼容迁移，也不做旧字段清理。
+-- 当前基础库已经是新结构，历史兼容逻辑只保留给旧库升级脚本使用。
 
 -- Store apply refactor patch
 -- 将批发阶段一老入驻结构收敛到新三步流程结构，并拆分结算资料表。
@@ -1762,101 +1628,8 @@ CREATE TABLE IF NOT EXISTS `li_store_settlement_profile` (
   UNIQUE KEY `uk_li_store_settlement_profile_store_id` (`store_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC COMMENT='店铺结算资料';
 
-UPDATE `li_store`
-SET
-  `subject_type` = CASE `apply_type`
-    WHEN 'PERSONAL' THEN 'PERSONAL'
-    WHEN 'INDIVIDUAL' THEN 'INDIVIDUAL'
-    WHEN 'COMPANY_LEGAL' THEN 'COMPANY'
-    WHEN 'COMPANY_NON_LEGAL' THEN 'COMPANY'
-    ELSE `subject_type`
-  END,
-  `company_identity_type` = CASE `apply_type`
-    WHEN 'COMPANY_LEGAL' THEN 'LEGAL'
-    WHEN 'COMPANY_NON_LEGAL' THEN 'AUTHORIZED'
-    ELSE `company_identity_type`
-  END
-WHERE `apply_type` IS NOT NULL AND (`subject_type` IS NULL OR `subject_type` = '');
-
-UPDATE `li_store_detail`
-SET
-  `subject_type` = CASE `apply_type`
-    WHEN 'PERSONAL' THEN 'PERSONAL'
-    WHEN 'INDIVIDUAL' THEN 'INDIVIDUAL'
-    WHEN 'COMPANY_LEGAL' THEN 'COMPANY'
-    WHEN 'COMPANY_NON_LEGAL' THEN 'COMPANY'
-    ELSE `subject_type`
-  END,
-  `company_identity_type` = CASE `apply_type`
-    WHEN 'COMPANY_LEGAL' THEN 'LEGAL'
-    WHEN 'COMPANY_NON_LEGAL' THEN 'AUTHORIZED'
-    ELSE `company_identity_type`
-  END
-WHERE `apply_type` IS NOT NULL AND (`subject_type` IS NULL OR `subject_type` = '');
-
-UPDATE `li_store_detail` d
-INNER JOIN `li_store` s ON s.`id` = d.`store_id`
-SET
-  d.`store_name` = COALESCE(NULLIF(d.`store_name`, ''), s.`store_name`),
-  d.`store_logo` = COALESCE(NULLIF(d.`store_logo`, ''), s.`store_logo`),
-  d.`store_desc` = COALESCE(NULLIF(d.`store_desc`, ''), s.`store_desc`),
-  d.`store_center` = COALESCE(NULLIF(d.`store_center`, ''), s.`store_center`),
-  d.`store_address_path` = COALESCE(NULLIF(d.`store_address_path`, ''), s.`store_address_path`),
-  d.`store_address_id_path` = COALESCE(NULLIF(d.`store_address_id_path`, ''), s.`store_address_id_path`),
-  d.`store_address_detail` = COALESCE(NULLIF(d.`store_address_detail`, ''), s.`store_address_detail`),
-  d.`subject_type` = COALESCE(NULLIF(d.`subject_type`, ''), s.`subject_type`),
-  d.`company_identity_type` = COALESCE(NULLIF(d.`company_identity_type`, ''), s.`company_identity_type`),
-  d.`store_type` = COALESCE(NULLIF(d.`store_type`, ''), s.`store_type`),
-  d.`agent_level` = COALESCE(NULLIF(d.`agent_level`, ''), s.`agent_level`),
-  d.`agent_region_id` = COALESCE(NULLIF(d.`agent_region_id`, ''), s.`agent_region_id`),
-  d.`agent_region_name` = COALESCE(NULLIF(d.`agent_region_name`, ''), s.`agent_region_name`);
-
-UPDATE `li_store_detail`
-SET `business_license_url` = `licence_photo`
-WHERE (`business_license_url` IS NULL OR `business_license_url` = '')
-  AND `licence_photo` IS NOT NULL
-  AND `licence_photo` != '';
-
-INSERT INTO `li_store_settlement_profile` (
-  `id`,
-  `create_by`,
-  `create_time`,
-  `update_by`,
-  `update_time`,
-  `delete_flag`,
-  `store_id`,
-  `bank_account_name`,
-  `bank_account_number`,
-  `bank_branch_name`,
-  `bank_joint_code`,
-  `settlement_cycle`,
-  `settlement_day`
-)
-SELECT
-  CONCAT('SSP_', d.`store_id`),
-  COALESCE(d.`create_by`, 'admin'),
-  COALESCE(d.`create_time`, NOW(6)),
-  d.`update_by`,
-  d.`update_time`,
-  COALESCE(d.`delete_flag`, b'0'),
-  d.`store_id`,
-  d.`settlement_bank_account_name`,
-  d.`settlement_bank_account_num`,
-  d.`settlement_bank_branch_name`,
-  d.`settlement_bank_joint_name`,
-  d.`settlement_cycle`,
-  d.`settlement_day`
-FROM `li_store_detail` d
-LEFT JOIN `li_store_settlement_profile` p ON p.`store_id` = d.`store_id`
-WHERE p.`store_id` IS NULL
-  AND (
-    NULLIF(d.`settlement_bank_account_name`, '') IS NOT NULL
-    OR NULLIF(d.`settlement_bank_account_num`, '') IS NOT NULL
-    OR NULLIF(d.`settlement_bank_branch_name`, '') IS NOT NULL
-    OR NULLIF(d.`settlement_bank_joint_name`, '') IS NOT NULL
-    OR NULLIF(d.`settlement_cycle`, '') IS NOT NULL
-    OR d.`settlement_day` IS NOT NULL
-  );
+-- 新库初始化不做旧店铺申请字段、旧结算字段迁移。
+-- 这些迁移仅对历史库升级有意义，空库场景直接跳过。
 
 CREATE TEMPORARY TABLE `tmp_wholesale_manager_menu_finalize_seed` (
   `id` bigint NOT NULL,
@@ -1884,11 +1657,41 @@ INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
   `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
   `sort_order`,`title`,`front_component`,`permission`
 ) VALUES
-  ('3062200000000000015', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement-governance', 'ep:box', '0', 'ProcurementGovernance', '0', 'procurement-governance', 75.00, '采购管理', NULL, NULL),
-  ('3062200000000010098', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/order/index', '', '1', 'procurement-order', '3062200000000000015', 'procurement-order', 1.00, '采购订单管理', NULL, NULL),
-  ('3062200000000010099', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inbound/index', '', '1', 'procurement-inbound', '3062200000000000015', 'procurement-inbound', 2.00, '采购入库管理', NULL, NULL),
-  ('3062200000000010100', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inventory-count/index', '', '1', 'procurement-inventory-count', '3062200000000000015', 'procurement-inventory-count', 3.00, '盘点管理', NULL, NULL),
-  ('3062200000000010111', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/damage-report/index', '', '1', 'procurement-damage-report', '3062200000000000015', 'procurement-damage-report', 4.00, '报损管理', NULL, NULL),
+  ('3062200000000000015', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement-governance', 'ep:box', '0', 'ProcurementGovernance', '0', 'procurement-governance', 75.00, '采购管理', NULL, NULL);
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000010098', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/order/index', '', '1', 'procurement-order', '3062200000000000015', 'procurement-order', 1.00, '采购订单管理', NULL, NULL);
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000010099', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inbound/index', '', '1', 'procurement-inbound', '3062200000000000015', 'procurement-inbound', 2.00, '采购入库管理', NULL, NULL);
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000010100', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/inventory-count/index', '', '1', 'procurement-inventory-count', '3062200000000000015', 'procurement-inventory-count', 3.00, '盘点管理', NULL, NULL);
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
+  ('3062200000000010111', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/damage-report/index', '', '1', 'procurement-damage-report', '3062200000000000015', 'procurement-damage-report', 4.00, '报损管理', NULL, NULL);
+
+INSERT IGNORE INTO `tmp_wholesale_manager_menu_finalize_seed` (
+  `id`,`create_by`,`create_time`,`delete_flag`,`update_by`,`update_time`,
+  `description`,`front_route`,`icon`,`level`,`name`,`parent_id`,`path`,
+  `sort_order`,`title`,`front_component`,`permission`
+) VALUES
   ('3062200000000010112', 'admin', CURRENT_TIMESTAMP, b'0', 'admin', CURRENT_TIMESTAMP, 'wholesale-manager-menu-finalize', 'procurement/reason/index', '', '1', 'procurement-reason', '3062200000000000015', 'procurement-reason', 5.00, '库存原因管理', NULL, NULL);
 
 INSERT INTO `li_menu` (

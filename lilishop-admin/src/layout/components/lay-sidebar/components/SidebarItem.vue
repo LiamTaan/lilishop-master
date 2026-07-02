@@ -86,7 +86,16 @@ const expandCloseIcon = computed(() => {
   };
 });
 
-const onlyOneChild: menuType = ref(null);
+const onlyOneChild = ref<menuType | null>(null);
+
+const singleRouteTarget = computed((): menuType => {
+  const child = onlyOneChild.value;
+  if (!child) return props.item as menuType;
+  return {
+    ...child,
+    path: resolvePath(child.path || "")
+  };
+});
 
 function hasOneShowingChild(children: menuType[] = [], parent: menuType) {
   const showingChildren = children.filter((item: any) => {
@@ -125,7 +134,7 @@ function resolvePath(routePath) {
       hasOneShowingChild(item.children, item) &&
       (!onlyOneChild.children || onlyOneChild.noShowingChildren)
     "
-    :to="item"
+    :to="singleRouteTarget"
   >
     <el-menu-item
       :index="resolvePath(onlyOneChild.path)"

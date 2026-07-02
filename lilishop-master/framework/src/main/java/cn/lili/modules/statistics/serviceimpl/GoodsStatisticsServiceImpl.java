@@ -35,6 +35,15 @@ public class GoodsStatisticsServiceImpl extends ServiceImpl<GoodsStatisticsMappe
 
     @Override
     public long goodsNum(GoodsStatusEnum goodsStatusEnum, GoodsAuthEnum goodsAuthEnum) {
+        AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
+        String storeId = CharSequenceUtil.equals(currentUser.getRole().name(), UserEnums.STORE.name())
+                ? currentUser.getStoreId()
+                : null;
+        return goodsNum(storeId, goodsStatusEnum, goodsAuthEnum);
+    }
+
+    @Override
+    public long goodsNum(String storeId, GoodsStatusEnum goodsStatusEnum, GoodsAuthEnum goodsAuthEnum) {
         LambdaQueryWrapper<Goods> queryWrapper = Wrappers.lambdaQuery();
 
         queryWrapper.eq(Goods::getDeleteFlag, false);
@@ -45,9 +54,7 @@ public class GoodsStatisticsServiceImpl extends ServiceImpl<GoodsStatisticsMappe
         if (goodsAuthEnum != null) {
             queryWrapper.eq(Goods::getAuthFlag, goodsAuthEnum.name());
         }
-        AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
-        queryWrapper.eq(CharSequenceUtil.equals(currentUser.getRole().name(), UserEnums.STORE.name()),
-                Goods::getStoreId, currentUser.getStoreId());
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), Goods::getStoreId, storeId);
 
         return this.count(queryWrapper);
     }
@@ -62,10 +69,17 @@ public class GoodsStatisticsServiceImpl extends ServiceImpl<GoodsStatisticsMappe
 
     @Override
     public long alertQuantityNum() {
-        QueryWrapper queryWrapper = new QueryWrapper();
         AuthUser currentUser = Objects.requireNonNull(UserContext.getCurrentUser());
-        queryWrapper.eq(CharSequenceUtil.equals(currentUser.getRole().name(), UserEnums.STORE.name()),
-                "store_id", currentUser.getStoreId());
+        String storeId = CharSequenceUtil.equals(currentUser.getRole().name(), UserEnums.STORE.name())
+                ? currentUser.getStoreId()
+                : null;
+        return alertQuantityNum(storeId);
+    }
+
+    @Override
+    public long alertQuantityNum(String storeId) {
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(storeId), "store_id", storeId);
         queryWrapper.eq("market_enable",GoodsStatusEnum.UPPER.name());
         queryWrapper.apply("quantity < alert_quantity");
         queryWrapper.gt("alert_quantity",0);

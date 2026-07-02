@@ -19,12 +19,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 店铺端,商品统计接口
+ * 供货商端,商品统计接口
  *
  * @author Bulbasaur
  * @since 2020/11/22 14:23
  */
-@Tag(name = "店铺端,商品统计接口")
+@Tag(name = "供货商端,商品统计接口")
 @RestController
 @RequestMapping("/store/statistics/goods")
 public class GoodsStatisticsStoreController {
@@ -35,7 +35,7 @@ public class GoodsStatisticsStoreController {
     @Autowired
     private StoreFlowStatisticsService storeFlowStatisticsService;
 
-    @Operation(description = "获取统计列表,排行前一百的数据")
+    @Operation(summary = "供货商查询商品统计排行", description = "获取统计列表,排行前一百的数据")
     @Parameter(name = "statisticsQueryParam", description = "商品统计查询参数", required = true)
     @GetMapping
     public ResultMessage<List<GoodsStatisticsDataVO>> getByPage(GoodsStatisticsQueryParam statisticsQueryParam) {

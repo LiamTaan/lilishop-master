@@ -25,4 +25,12 @@ public interface MemberEvaluationStatisticsService extends IService<MemberEvalua
      */
     long getWaitReplyNum();
 
+    /**
+     * 按指定店铺获取等待回复评价数量
+     *
+     * @param storeId 店铺ID
+     * @return 等待回复评价数量
+     */
+    long getWaitReplyNum(String storeId);
+
 }

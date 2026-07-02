@@ -21,6 +21,16 @@ public interface GoodsStatisticsService extends IService<Goods> {
      * @return 所有的已上架的商品数量
      */
     long goodsNum(GoodsStatusEnum goodsStatusEnum, GoodsAuthEnum goodsAuthEnum);
+
+    /**
+     * 按指定店铺获取商品数量
+     *
+     * @param storeId          店铺ID
+     * @param goodsStatusEnum  商品状态枚举
+     * @param goodsAuthEnum    商品审核枚举
+     * @return 商品数量
+     */
+    long goodsNum(String storeId, GoodsStatusEnum goodsStatusEnum, GoodsAuthEnum goodsAuthEnum);
     /**
      * 获取今天的已上架的商品数量
      *
@@ -33,5 +43,13 @@ public interface GoodsStatisticsService extends IService<Goods> {
      * @return
      */
     long alertQuantityNum();
+
+    /**
+     * 按指定店铺获取预警库存数
+     *
+     * @param storeId 店铺ID
+     * @return 预警库存数
+     */
+    long alertQuantityNum(String storeId);
 
 }

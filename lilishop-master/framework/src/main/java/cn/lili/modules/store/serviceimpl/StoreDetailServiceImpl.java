@@ -11,6 +11,7 @@ import cn.lili.common.security.context.UserContext;
 import cn.lili.common.utils.BeanUtil;
 import cn.lili.modules.member.service.StoreCollectionService;
 import cn.lili.modules.goods.entity.dos.Category;
+import cn.lili.modules.goods.entity.vos.CategoryVO;
 import cn.lili.modules.goods.service.CategoryService;
 import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.search.utils.EsIndexUtil;
@@ -260,22 +261,19 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
 
     @Override
     public List<StoreManagementCategoryVO> goodsManagementCategory(String storeId) {
-
-        //获取顶部分类列表
-        List<Category> categoryList = categoryService.firstCategory();
-        //获取店铺信息
         StoreDetail storeDetail = this.getOne(new LambdaQueryWrapper<StoreDetail>().eq(StoreDetail::getStoreId, storeId));
-        //获取店铺分类
-        String[] storeCategoryList = storeDetail.getGoodsManagementCategory().split(",");
-        List<StoreManagementCategoryVO> list = new ArrayList<>();
-        for (Category category : categoryList) {
-            StoreManagementCategoryVO storeManagementCategoryVO = new StoreManagementCategoryVO(category);
+        Set<String> selectedCategoryIds = new HashSet<>();
+        if (storeDetail != null && storeDetail.getGoodsManagementCategory() != null) {
+            String[] storeCategoryList = storeDetail.getGoodsManagementCategory().split(",");
             for (String storeCategory : storeCategoryList) {
-                if (storeCategory.equals(category.getId())) {
-                    storeManagementCategoryVO.setSelected(true);
+                if (storeCategory != null && !storeCategory.trim().isEmpty()) {
+                    selectedCategoryIds.add(storeCategory.trim());
                 }
             }
-            list.add(storeManagementCategoryVO);
+        }
+        List<StoreManagementCategoryVO> list = new ArrayList<>();
+        for (CategoryVO categoryVO : categoryService.categoryTree()) {
+            list.add(buildStoreManagementCategoryTree(categoryVO, selectedCategoryIds));
         }
         return list;
     }
@@ -283,6 +281,24 @@ public class StoreDetailServiceImpl extends ServiceImpl<StoreDetailMapper, Store
     @Override
     public StoreOtherVO getStoreOtherVO(String storeId) {
         return this.baseMapper.getLicencePhoto(storeId);
+    }
+
+    private StoreManagementCategoryVO buildStoreManagementCategoryTree(
+            CategoryVO categoryVO,
+            Set<String> selectedCategoryIds
+    ) {
+        StoreManagementCategoryVO storeManagementCategoryVO = new StoreManagementCategoryVO(categoryVO);
+        storeManagementCategoryVO.setSelected(selectedCategoryIds.contains(categoryVO.getId()));
+        if (categoryVO.getChildren() != null && !categoryVO.getChildren().isEmpty()) {
+            List<StoreManagementCategoryVO> children = new ArrayList<>();
+            for (CategoryVO child : categoryVO.getChildren()) {
+                children.add(buildStoreManagementCategoryTree(child, selectedCategoryIds));
+            }
+            storeManagementCategoryVO.setChildren(children);
+        } else {
+            storeManagementCategoryVO.setChildren(new ArrayList<>());
+        }
+        return storeManagementCategoryVO;
     }
 
 

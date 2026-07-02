@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 店铺经营范围
  * @author Bulbasaur
@@ -20,8 +22,11 @@ public class StoreManagementCategoryVO extends Category {
     @Schema(description = "已选择")
     private Boolean selected;
 
+    @Schema(description = "子分类列表")
+    private List<StoreManagementCategoryVO> children;
+
     public StoreManagementCategoryVO(Category category) {
-        BeanUtil.copyProperties(this, category);
+        BeanUtil.copyProperties(category, this);
     }
 
 }

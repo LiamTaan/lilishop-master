@@ -176,17 +176,21 @@ public class IndexStatisticsServiceImpl implements IndexStatisticsService {
 
     @Override
     public StoreIndexStatisticsVO storeIndexStatistics() {
-
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
+        return storeIndexStatistics(storeId);
+    }
+
+    @Override
+    public StoreIndexStatisticsVO storeIndexStatistics(String storeId) {
         StoreIndexStatisticsVO storeIndexStatisticsVO = new StoreIndexStatisticsVO();
 
         //商品总数量
-        storeIndexStatisticsVO.setGoodsNum(goodsStatisticsService.goodsNum(GoodsStatusEnum.UPPER, null));
+        storeIndexStatisticsVO.setGoodsNum(goodsStatisticsService.goodsNum(storeId, GoodsStatusEnum.UPPER, null));
         //订单总数量、订单总金额
         Map<String, Object> map = storeFlowStatisticsService.getOrderStatisticsPrice();
         storeIndexStatisticsVO.setOrderNum(Convert.toInt(map.get("num").toString()));
         storeIndexStatisticsVO.setOrderPrice(map.get("price") != null ? Double.parseDouble(map.get("price").toString()) : 0.0);
-        storeIndexStatisticsVO.setAlertQuantityNum(goodsStatisticsService.alertQuantityNum());
+        storeIndexStatisticsVO.setAlertQuantityNum(goodsStatisticsService.alertQuantityNum(storeId));
         //访问量
         StatisticsQueryParam queryParam = new StatisticsQueryParam();
         queryParam.setSearchType(SearchTypeEnum.TODAY.name());
@@ -195,31 +199,31 @@ public class IndexStatisticsServiceImpl implements IndexStatisticsService {
         storeIndexStatisticsVO.setStoreUV(platformViewVO.getUvNum().intValue());
 
         //待付款订单数量
-        storeIndexStatisticsVO.setUnPaidOrder(orderStatisticsService.orderNum(OrderStatusEnum.UNPAID.name()));
+        storeIndexStatisticsVO.setUnPaidOrder(orderStatisticsService.orderNum(storeId, OrderStatusEnum.UNPAID.name()));
         //待发货订单数量
-        storeIndexStatisticsVO.setUnDeliveredOrder(orderStatisticsService.orderNum(OrderStatusEnum.UNDELIVERED.name()));
+        storeIndexStatisticsVO.setUnDeliveredOrder(orderStatisticsService.orderNum(storeId, OrderStatusEnum.UNDELIVERED.name()));
         //待收货订单数量
-        storeIndexStatisticsVO.setDeliveredOrder(orderStatisticsService.orderNum(OrderStatusEnum.DELIVERED.name()));
+        storeIndexStatisticsVO.setDeliveredOrder(orderStatisticsService.orderNum(storeId, OrderStatusEnum.DELIVERED.name()));
         //待自提数量
-        storeIndexStatisticsVO.setSelfPickNum(orderStatisticsService.orderNum(OrderStatusEnum.STAY_PICKED_UP.name()));
+        storeIndexStatisticsVO.setSelfPickNum(orderStatisticsService.orderNum(storeId, OrderStatusEnum.STAY_PICKED_UP.name()));
         //待处理退货数量
-        storeIndexStatisticsVO.setReturnGoods(afterSaleStatisticsService.applyNum(AfterSaleTypeEnum.RETURN_GOODS.name()));
+        storeIndexStatisticsVO.setReturnGoods(afterSaleStatisticsService.applyNum(storeId, AfterSaleTypeEnum.RETURN_GOODS.name()));
         //待处理退款数量
-        storeIndexStatisticsVO.setReturnMoney(afterSaleStatisticsService.applyNum(AfterSaleTypeEnum.RETURN_MONEY.name()));
+        storeIndexStatisticsVO.setReturnMoney(afterSaleStatisticsService.applyNum(storeId, AfterSaleTypeEnum.RETURN_MONEY.name()));
         //待回复评价数量
-        storeIndexStatisticsVO.setMemberEvaluation(memberEvaluationStatisticsService.getWaitReplyNum());
+        storeIndexStatisticsVO.setMemberEvaluation(memberEvaluationStatisticsService.getWaitReplyNum(storeId));
         //待处理投诉数量
-        storeIndexStatisticsVO.setComplaint(orderComplaintStatisticsService.waitComplainNum());
+        storeIndexStatisticsVO.setComplaint(orderComplaintStatisticsService.waitComplainNum(storeId));
 
         //待上架商品数量
-        storeIndexStatisticsVO.setWaitUpper(goodsStatisticsService.goodsNum(GoodsStatusEnum.DOWN, null));
+        storeIndexStatisticsVO.setWaitUpper(goodsStatisticsService.goodsNum(storeId, GoodsStatusEnum.DOWN, null));
         //待审核商品数量
-        storeIndexStatisticsVO.setWaitAuth(goodsStatisticsService.goodsNum(null, GoodsAuthEnum.TOBEAUDITED));
+        storeIndexStatisticsVO.setWaitAuth(goodsStatisticsService.goodsNum(storeId, null, GoodsAuthEnum.TOBEAUDITED));
 
         //可参与秒杀活动数量
         storeIndexStatisticsVO.setSeckillNum(seckillStatisticsService.getApplyNum());
         //待处理商家结算
-        storeIndexStatisticsVO.setWaitPayBill(billStatisticsService.billNum(BillStatusEnum.OUT));
+        storeIndexStatisticsVO.setWaitPayBill(billStatisticsService.billNum(storeId, BillStatusEnum.OUT));
 
         return storeIndexStatisticsVO;
     }

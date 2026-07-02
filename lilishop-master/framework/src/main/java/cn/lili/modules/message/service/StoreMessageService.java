@@ -42,6 +42,14 @@ public interface StoreMessageService extends IService<StoreMessage> {
      */
     boolean save(List<StoreMessage> messages);
 
+    /**
+     * 保存单条店铺消息
+     *
+     * @param message 店铺消息
+     * @return 操作结果
+     */
+    boolean save(StoreMessage message);
+
 
     /**
      * 修改店铺消息状态

@@ -65,7 +65,7 @@ public class GoodsStoreController {
     @Autowired
     private GoodsSkuService goodsSkuService;
 
-    @Operation(summary = "分页获取商品列表")
+    @Operation(summary = "分页查询当前店铺商品列表", description = "用于商品管理列表页，返回当前登录店铺下的商品分页数据。")
     @GetMapping("/list")
     public ResultMessage<IPage<Goods>> getByPage(GoodsSearchParams goodsSearchParams) {
         //获取当前登录商家账号
@@ -74,7 +74,7 @@ public class GoodsStoreController {
         return ResultUtil.data(goodsService.queryByParams(goodsSearchParams));
     }
 
-    @Operation(summary = "获取商品数量")
+    @Operation(summary = "获取当前店铺商品数量统计", description = "返回当前店铺商品在售、下架、待审核、审核拒绝等数量统计。")
     @GetMapping("/goodsNumber")
     public ResultMessage<GoodsNumVO> getGoodsNumVO(GoodsSearchParams goodsSearchParams) {
         //获取当前登录商家账号
@@ -83,7 +83,7 @@ public class GoodsStoreController {
         return ResultUtil.data(goodsService.getGoodsNumVO(goodsSearchParams));
     }
 
-    @Operation(summary = "分页获取商品Sku列表")
+    @Operation(summary = "分页查询当前店铺SKU列表", description = "按 SKU 维度查询当前登录店铺的商品规格分页数据。")
     @GetMapping("/sku/list")
     public ResultMessage<IPage<GoodsSku>> getSkuByPage(GoodsSearchParams goodsSearchParams) {
         //获取当前登录商家账号
@@ -92,7 +92,7 @@ public class GoodsStoreController {
         return ResultUtil.data(goodsSkuService.getGoodsSkuByPage(goodsSearchParams));
     }
 
-    @Operation(summary = "分页获取库存告警商品列表")
+    @Operation(summary = "分页查询库存告警商品列表", description = "仅返回当前店铺已上架且触发库存预警的 SKU 分页数据。")
     @GetMapping("/list/stock")
     public ResultMessage<IPage<GoodsSku>> getWarningStockByPage(GoodsSearchParams goodsSearchParams) {
         //获取当前登录商家账号
@@ -104,7 +104,7 @@ public class GoodsStoreController {
         return ResultUtil.data(goodsSkuPage);
     }
 
-    @Operation(summary = "批量修改商品预警库存")
+    @Operation(summary = "批量修改SKU预警库存", description = "按 skuId 批量设置预警库存值，仅允许修改当前登录店铺自己的 SKU。")
     @PutMapping(value = "/batch/update/alert/stocks", consumes = "application/json")
     public ResultMessage<Object> batchUpdateAlertQuantity(@RequestBody List<GoodsSkuStockDTO> updateStockList) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
@@ -119,7 +119,7 @@ public class GoodsStoreController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "修改商品预警库存")
+    @Operation(summary = "修改单个SKU预警库存", description = "按 skuId 修改单个 SKU 的预警库存值。")
     @PutMapping(value = "/update/alert/stocks", consumes = "application/json")
     public ResultMessage<Object> updateAlertQuantity(@RequestBody GoodsSkuStockDTO goodsSkuStockDTO) {
         goodsSkuService.updateAlertQuantity(goodsSkuStockDTO);
@@ -127,21 +127,21 @@ public class GoodsStoreController {
     }
 
 
-    @Operation(summary = "通过id获取")
+    @Operation(summary = "获取商品编辑回显信息", description = "商品编辑页初始化回显接口。返回商品基础信息、商品参数、商品相册、SKU 列表、批发阶梯价等完整编辑数据。")
     @GetMapping("/get/{id}")
     public ResultMessage<GoodsVO> get(@PathVariable String id) {
         GoodsVO goods = OperationalJudgment.judgment(goodsService.getGoodsVO(id));
         return ResultUtil.data(goods);
     }
 
-    @Operation(summary = "新增商品")
+    @Operation(summary = "新增商品", description = "提交商品维护表单创建新商品。请求体使用 GoodsOperationDTO，skuList 中每个对象代表一个 SKU；除 sn、price、cost、quantity、weight、barcode、images 等保留字段外，其余字段都会作为规格项保存。")
     @PostMapping(value = "/create", consumes = "application/json", produces = "application/json")
     public ResultMessage<GoodsOperationDTO> save(@Valid @RequestBody GoodsOperationDTO goodsOperationDTO) {
         goodsService.addGoods(goodsOperationDTO);
         return ResultUtil.success();
     }
 
-    @Operation(summary = "修改商品")
+    @Operation(summary = "修改商品", description = "提交商品维护表单保存商品编辑结果。goodsId 取路径参数，商品主体数据和 SKU 数据从 GoodsOperationDTO 中读取。")
     @PutMapping(value = "/update/{goodsId}", consumes = "application/json", produces = "application/json")
     public ResultMessage<GoodsOperationDTO> update(@Valid @RequestBody GoodsOperationDTO goodsOperationDTO, @PathVariable String goodsId) {
         goodsService.editGoods(goodsOperationDTO, goodsId);
@@ -149,7 +149,7 @@ public class GoodsStoreController {
     }
 
     @DemoSite
-    @Operation(summary = "下架商品", description = "下架商品时使用")
+    @Operation(summary = "下架商品", description = "批量下架商品。请求体传商品 ID 列表。")
     @PutMapping("/under")
     public ResultMessage<Object> underGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
 
@@ -157,7 +157,7 @@ public class GoodsStoreController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "上架商品", description = "上架商品时使用")
+    @Operation(summary = "上架商品", description = "批量上架商品。请求体传商品 ID 列表。")
     @PutMapping("/up")
     public ResultMessage<Object> unpGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
         goodsService.updateGoodsMarketAble(updateDTO.getGoodsId(), GoodsStatusEnum.UPPER, "");
@@ -165,28 +165,28 @@ public class GoodsStoreController {
     }
 
     @DemoSite
-    @Operation(summary = "删除商品")
+    @Operation(summary = "删除商品", description = "逻辑删除商品。请求体传商品 ID 列表。")
     @PutMapping("/delete")
     public ResultMessage<Object> deleteGoods(@RequestBody @Valid GoodsBatchOperationDTO updateDTO) {
         goodsService.deleteGoods(updateDTO.getGoodsId());
         return ResultUtil.success();
     }
 
-    @Operation(summary = "设置商品运费模板")
+    @Operation(summary = "批量设置商品运费模板", description = "为指定商品批量设置运费模板。")
     @PutMapping("/freight")
     public ResultMessage<Object> freight(@RequestBody @Valid GoodsFreightUpdateDTO updateDTO) {
         goodsService.freight(updateDTO.getGoodsId(), updateDTO.getTemplateId());
         return ResultUtil.success();
     }
 
-    @Operation(summary = "根据goodsId分页获取商品规格列表")
+    @Operation(summary = "根据商品ID获取SKU列表", description = "用于商品编辑页或规格列表弹窗，返回当前商品下全部 SKU 明细。")
     @GetMapping("/sku/{goodsId}/list")
     public ResultMessage<List<GoodsSkuVO>> getSkuByList(@PathVariable String goodsId) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
         return ResultUtil.data(goodsSkuService.getGoodsSkuVOList(goodsSkuService.listByGoodsIdAndStoreId(goodsId, storeId)));
     }
 
-    @Operation(summary = "修改商品库存")
+    @Operation(summary = "批量修改SKU库存", description = "按 skuId 批量修改库存，仅允许修改当前登录店铺自己的 SKU。")
     @PutMapping(value = "/update/stocks", consumes = "application/json")
     public ResultMessage<Object> updateStocks(@RequestBody List<GoodsSkuStockDTO> updateStockList) {
         String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
@@ -201,7 +201,7 @@ public class GoodsStoreController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "定时上下架商品", description = "触发时间为到秒的Date类型，建议格式：yyyy-MM-dd HH:mm:ss")
+    @Operation(summary = "定时上下架商品", description = "按商品 ID 列表设置定时上架或下架任务。触发时间精确到秒，建议格式：yyyy-MM-dd HH:mm:ss。")
     @PostMapping(value = "/schedule/market", consumes = "application/json")
     public ResultMessage<Object> scheduleMarket(@RequestBody @Valid GoodsMarketScheduleDTO dto) {
         GoodsStatusEnum status = GoodsStatusEnum.valueOf(dto.getStatus());
@@ -209,9 +209,9 @@ public class GoodsStoreController {
         return ResultUtil.success();
     }
 
-    @Operation(summary = "通过id获取商品信息")
+    @Operation(summary = "获取商品SKU详情", description = "按 goodsId 和 skuId 获取某个 SKU 的详情数据，常用于商品详情预览或规格切换后的明细展示。")
     @Parameter(name = "goodsId", description = "商品ID", required = true)
-    @Parameter(name = "skuId", description = "skuId", required = true)
+    @Parameter(name = "skuId", description = "SKU ID", required = true)
     @GetMapping("/sku/{goodsId}/{skuId}")
     @PageViewPoint(type = PageViewEnum.SKU, id = "#id")
     public ResultMessage<Map<String, Object>> getSku(@NotNull(message = "商品ID不能为空") @PathVariable("goodsId") String goodsId,
@@ -231,7 +231,7 @@ public class GoodsStoreController {
     }
 
 
-    @Operation(summary = "分页获取商品Sku列表")
+    @Operation(summary = "导出商品库存列表", description = "导出当前店铺 SKU 库存清单，返回 Excel 文件流。")
     @GetMapping("/queryExportStock")
     public void queryExportStock(GoodsSearchParams goodsSearchParams) {
         //获取当前登录商家账号
@@ -242,7 +242,7 @@ public class GoodsStoreController {
         goodsSkuService.queryExportStock(response, goodsSearchParams);
     }
 
-    @Operation(summary = "上传商品库存列表")
+    @Operation(summary = "导入商品库存列表", description = "上传 Excel 批量修改当前店铺商品库存。")
     @PostMapping(value = "/importStockExcel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResultMessage<Object> importStockExcel(@RequestPart("files") MultipartFile files) {
         //获取当前登录商家账号

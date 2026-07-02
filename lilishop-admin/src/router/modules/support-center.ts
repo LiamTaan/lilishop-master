@@ -60,6 +60,12 @@ export default {
       component: () =>
         import("@/views/super-admin/support-center/setting-log.vue"),
       meta: { title: "配置日志" }
+    },
+    {
+      path: "/support-center/operation-log",
+      name: "SupportOperationLog",
+      component: () => import("@/views/monitor/logs/operation/index.vue"),
+      meta: { title: "操作日志" }
     }
   ]
 } satisfies RouteConfigsTable;

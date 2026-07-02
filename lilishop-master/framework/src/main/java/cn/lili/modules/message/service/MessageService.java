@@ -39,4 +39,12 @@ public interface MessageService extends IService<Message> {
      */
     Boolean deleteMessage(String id);
 
+    /**
+     * 保存但不触发广播的消息记录
+     *
+     * @param message 消息
+     * @return 是否成功
+     */
+    boolean saveOnly(Message message);
+
 }

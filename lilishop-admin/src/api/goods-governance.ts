@@ -54,6 +54,14 @@ export const getWholesaleSkuPage = (params?: Record<string, any>) => {
   );
 };
 
+export const getPromotionSkuPage = (params?: Record<string, any>) => {
+  return http.request<ResultMessage<any>>(
+    "get",
+    "/manager/goods/goods/sku/promotion/list",
+    { params }
+  );
+};
+
 export const auditWholesaleGoods = (
   goodsIds: string[],
   authFlag: "PASS" | "REFUSE"

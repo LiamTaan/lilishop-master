@@ -196,7 +196,7 @@ const LayHeader = defineComponent({
         <LayContent :fixed-header="set.fixedHeader" />
       </el-scrollbar>
     </div>
-    <!-- 系统设置 -->
+    <!-- 页面设置 -->
     <LaySetting />
   </div>
 </template>
